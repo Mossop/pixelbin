@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO media_person (\n                    \"catalog\",\n                    \"media\",\n                    \"person\",\n                    \"location\".\"left\",\n                    \"location\".\"right\",\n                    \"location\".\"top\",\n                    \"location\".\"bottom\"\n                )\n                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::location[])\n                ON CONFLICT(media, person) DO UPDATE SET\n                    \"location\"=\"excluded\".\"location\"\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        {
+          "Custom": {
+            "name": "location[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "location",
+                  "kind": {
+                    "Composite": [
+                      [
+                        "left",
+                        "Float4"
+                      ],
+                      [
+                        "right",
+                        "Float4"
+                      ],
+                      [
+                        "top",
+                        "Float4"
+                      ],
+                      [
+                        "bottom",
+                        "Float4"
+                      ]
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c0983256055b75aa12b344f5677da9e56e1e0373c425b216181435305640ddce"
+}

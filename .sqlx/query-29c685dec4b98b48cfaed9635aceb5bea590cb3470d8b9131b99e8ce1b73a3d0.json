@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REFRESH MATERIALIZED VIEW \"media_file_alternates\";",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "29c685dec4b98b48cfaed9635aceb5bea590cb3470d8b9131b99e8ce1b73a3d0"
+}

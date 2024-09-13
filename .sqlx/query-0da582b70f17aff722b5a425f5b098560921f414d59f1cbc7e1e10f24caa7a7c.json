@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "REFRESH MATERIALIZED VIEW \"user_catalog\";",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "0da582b70f17aff722b5a425f5b098560921f414d59f1cbc7e1e10f24caa7a7c"
+}

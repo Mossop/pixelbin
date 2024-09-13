@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT catalog.*, writable\n            FROM user_catalog JOIN catalog ON catalog.id = user_catalog.catalog\n            WHERE user_catalog.user = $1\n            ORDER BY catalog.name ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "storage",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "writable",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "12658e7d93d8a84fabe36e3c79aa8ecbd2c1c56836c1effc3a68f53ebe7c1041"
+}

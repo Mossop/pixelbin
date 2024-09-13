@@ -8,12 +8,13 @@ use std::{
 
 use async_once_cell::OnceCell;
 use image::DynamicImage;
+use pixelbin_shared::Ignorable;
 use tokio::{fs, sync::Mutex};
 
 use crate::{
     metadata::{crop_image, load_source_image, resize_image},
-    shared::{error::Ignorable, file_exists},
-    store::{db::DbConnection, models, path::MediaFileStore},
+    shared::file_exists,
+    store::{db::DbConnection, models, path::MediaFileStore, DiskStore},
     FileStore, Result,
 };
 
@@ -154,7 +155,7 @@ impl MediaFileOpCache {
         }
 
         // Delete local file if present
-        let temp_store = conn.config().temp_store();
+        let temp_store = DiskStore::temp_store(conn.config());
         temp_store.prune(&self.media_file_store).await.ignore();
 
         let mut media_files = OP_CACHE.media_files.lock().await;
@@ -180,7 +181,7 @@ impl MediaFileOpCache {
         self.ensure_local_lock
             .perform(|| async {
                 let file_path = self.media_file_store.file(&self.media_file.file_name);
-                let temp_store = conn.config().temp_store();
+                let temp_store = DiskStore::temp_store(conn.config());
                 let temp_path = temp_store.local_path(&file_path);
 
                 if file_exists(&temp_path).await? {

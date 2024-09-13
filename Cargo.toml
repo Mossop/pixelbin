@@ -1,5 +1,8 @@
 [workspace]
 members = [
+  "packages/shared",
+  "packages/migrations",
   "packages/service",
 ]
 resolver = "2"
+default-members = ["packages/service"]

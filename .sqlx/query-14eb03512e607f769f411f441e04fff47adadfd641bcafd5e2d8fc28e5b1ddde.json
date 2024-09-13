@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM media_person\n            WHERE\n                media=$1 AND\n                person != ALL($2)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "14eb03512e607f769f411f441e04fff47adadfd641bcafd5e2d8fc28e5b1ddde"
+}

@@ -1,0 +1,263 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT media_view.*\n                FROM media_view\n                    JOIN media_search ON media_search.media=media_view.id\n                WHERE media_search.search=$1\n                OFFSET $2\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "catalog",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "created",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "datetime",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "taken_zone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "state",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "country",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "make",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "model",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "lens",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "photographer",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "shutter_speed",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 21,
+        "name": "orientation",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 22,
+        "name": "iso",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 23,
+        "name": "rating",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 24,
+        "name": "longitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 25,
+        "name": "latitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 26,
+        "name": "altitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 27,
+        "name": "aperture",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 28,
+        "name": "focal_length",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 29,
+        "name": "taken",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 30,
+        "name": "media_file",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 31,
+        "name": "file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 32,
+        "name": "mimetype",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 33,
+        "name": "width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 34,
+        "name": "height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 35,
+        "name": "duration",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 36,
+        "name": "frame_rate",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 37,
+        "name": "bit_rate",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 38,
+        "name": "uploaded",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 39,
+        "name": "file_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 40,
+        "name": "alternates",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "8c021753db2a24f0fa44d164d64a45f40e01f9a8adb38e8d00075cc77f66f924"
+}

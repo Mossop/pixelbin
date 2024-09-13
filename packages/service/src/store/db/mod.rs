@@ -1,57 +1,36 @@
 pub(crate) mod functions;
 pub(crate) mod models;
-#[allow(unreachable_pub)]
-pub(super) mod schema;
 pub(crate) mod search;
-pub(super) mod views;
 
 use std::{
-    ops::{Deref, DerefMut},
+    fmt, mem,
     pin::{pin, Pin},
+    result,
     task::{Context, Poll},
+    time::Instant,
 };
 
 use chrono::{Duration, Utc};
-use diesel::{
-    connection::Instrumentation,
-    debug_query,
-    dsl::now,
-    migration::{Migration, MigrationSource},
-    pg::Pg,
-    prelude::*,
-    query_builder::{AsQuery, QueryFragment, QueryId},
-    sql_query,
-};
-use diesel_async::{
-    pooled_connection::{
-        deadpool::{Object, Pool},
-        AsyncDieselConnectionManager,
-    },
-    scoped_futures::ScopedFutureExt,
-    AsyncConnection, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection, TransactionManager,
-};
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use futures::{Future, Stream};
+use futures::{future::BoxFuture, stream::BoxStream, Future, FutureExt, Stream, StreamExt};
 use pin_project::pin_project;
-use schema::*;
-use scoped_futures::ScopedBoxFuture;
+use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
-use tracing::{field, info, instrument, span, span::Id, trace, Level, Span};
+use sqlx::{
+    pool::PoolConnection, postgres::PgPoolOptions, Acquire, Database, Executor, Transaction,
+};
+use tracing::{error, field, info, instrument, span, span::Id, warn, Level, Span};
 
 use crate::{
-    metadata::{alternates_for_media_file, parse_metadata, METADATA_FILE},
-    shared::{file_exists, long_id, record_error, spawn_blocking, DEFAULT_STATUS},
-    store::{db::functions::media_file_columns, path::MediaFileStore, Isolation},
+    shared::{long_id, record_error, spawn_blocking, DEFAULT_STATUS},
+    store::{db::functions::from_row, Isolation},
     Config, Error, Result, Store, Task, TaskQueue,
 };
 
-pub(crate) type Backend = Pg;
-pub(crate) type BackendConnection = AsyncPgConnection;
-pub(crate) type DbPool = Pool<BackendConnection>;
+type SqlxDatabase = sqlx::Postgres;
+type SqlxResult<T> = sqlx::Result<T>;
+pub(crate) type SqlxPool = sqlx::Pool<SqlxDatabase>;
 
 const TOKEN_EXPIRY_DAYS: i64 = 90;
-
-const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -63,174 +42,62 @@ pub(crate) enum MediaAccess {
 }
 
 #[instrument(err, skip_all)]
-async fn reprocess_all_media(conn: &mut DbConnection<'_>) -> Result {
-    let files = media_file::table
-        .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
-        .filter(media_item::deleted.eq(false))
-        .select((media_file_columns!(), media_item::catalog))
-        .for_update()
-        .load::<(models::MediaFile, String)>(conn)
+pub(crate) async fn connect(
+    config: &Config,
+    task_span: Option<Id>,
+) -> Result<(SqlxPool, TaskQueue)> {
+    // Set up the async pool.
+    let pool = PgPoolOptions::new()
+        .min_connections(5)
+        .max_connections(10)
+        .connect(&config.database_url)
         .await?;
 
-    let local_store = conn.config().local_store();
-    let mut media_files = Vec::new();
+    {
+        // Connect to perform migrations.
+        let mut connection = pool.acquire().await?;
+        let mut migrator = Migrator::new(&mut connection).await?;
 
-    for (mut media_file, catalog) in files.into_iter() {
-        let media_file_store = MediaFileStore {
-            catalog,
-            item: media_file.media_item.clone(),
-            file: media_file.id.clone(),
-        };
-
-        let metadata_path = local_store.local_path(&media_file_store.file(METADATA_FILE));
-        if file_exists(&metadata_path).await? {
-            let metadata = parse_metadata(&metadata_path).await?;
-            metadata.apply_to_media_file(&mut media_file);
-        }
-
-        media_files.push(media_file);
+        migrator.apply(&mut connection, None, |_, phase, migration| {
+            match phase {
+                Phase::Complete => info!(version = migration.version(), name=migration.name(), "Applied migration"),
+                Phase::Error(e) => error!(version = migration.version(), name=migration.name(), error=?e, "Failed to apply migration"),
+                _ => {}
+            }
+        }).await?;
     }
 
-    models::MediaFile::upsert(conn, media_files).await?;
-
-    Ok(())
-}
-
-#[instrument(err, skip_all)]
-async fn update_search_dates(conn: &mut DbConnection<'_>) -> Result {
-    sql_query(
-        r#"UPDATE "media_search" SET "added" = "media_file"."uploaded"
-            FROM "media_item" JOIN "media_file" ON "media_item"."media_file"="media_file"."id"
-            WHERE "media_item"."id" = "media_search"."media";"#,
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
-
-#[instrument(err, skip_all)]
-pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<(DbPool, TaskQueue)> {
-    #![allow(clippy::borrowed_box)]
-    let mut update_search_queries = false;
-    let mut reprocess_media = false;
-    let mut update_search_date = false;
-    let mut update_alternates = false;
-
-    // First connect synchronously to apply migrations.
-    let mut connection = PgConnection::establish(&config.database_url)?;
-    let migrations =
-        connection
-            .pending_migrations(MIGRATIONS)
-            .map_err(|e| Error::DbMigrationError {
-                message: e.to_string(),
-            })?;
-    for migration in migrations.iter() {
-        let name = migration.name().to_string();
-
-        info!(migration = name, "Running migration");
-        connection
-            .run_migration(migration)
-            .map_err(|e| Error::DbMigrationError {
-                message: e.to_string(),
-            })?;
-
-        match name.as_str() {
-            "2023-07-03-132731_search_cache" => update_search_date = true,
-            "2024-04-05-120807_alternates_lookup" => {
-                update_search_queries = true;
-                reprocess_media = true;
-            }
-            "2024-08-10-105759_public_media_item" => {
-                update_alternates = true;
-            }
-            _ => {}
-        }
-    }
-
-    // Now set up the async pool.
-    let pool_config = AsyncDieselConnectionManager::<BackendConnection>::new(&config.database_url);
-    let pool = Pool::builder(pool_config).build()?;
     let task_queue = TaskQueue::new(pool.clone(), config.clone(), task_span);
 
     // Verify that we can connect and update cached views.
     let mut conn = DbConnection::new(pool.clone(), config.clone(), task_queue.clone()).await?;
 
-    conn.batch_execute("REFRESH MATERIALIZED VIEW \"user_catalog\";")
+    sqlx::query!(r#"REFRESH MATERIALIZED VIEW "user_catalog";"#)
+        .execute(&mut conn)
         .await?;
-    conn.batch_execute("REFRESH MATERIALIZED VIEW \"album_descendent\";")
+    sqlx::query!(r#"REFRESH MATERIALIZED VIEW "album_descendent";"#)
+        .execute(&mut conn)
         .await?;
-    conn.batch_execute("REFRESH MATERIALIZED VIEW \"album_relation\";")
+    sqlx::query!(r#"REFRESH MATERIALIZED VIEW "album_relation";"#)
+        .execute(&mut conn)
         .await?;
-    conn.batch_execute("REFRESH MATERIALIZED VIEW \"tag_descendent\";")
+    sqlx::query!(r#"REFRESH MATERIALIZED VIEW "tag_descendent";"#)
+        .execute(&mut conn)
         .await?;
-    conn.batch_execute("REFRESH MATERIALIZED VIEW \"tag_relation\";")
+    sqlx::query!(r#"REFRESH MATERIALIZED VIEW "tag_relation";"#)
+        .execute(&mut conn)
         .await?;
-    conn.batch_execute("REFRESH MATERIALIZED VIEW \"person_relation\";")
+    sqlx::query!(r#"REFRESH MATERIALIZED VIEW "person_relation";"#)
+        .execute(&mut conn)
         .await?;
-    conn.batch_execute("REFRESH MATERIALIZED VIEW \"media_file_alternates\";")
-        .await?;
-
-    // Clear expired auth tokens.
-    diesel::delete(auth_token::table.filter(auth_token::expiry.le(now)))
+    sqlx::query!(r#"REFRESH MATERIALIZED VIEW "media_file_alternates";"#)
         .execute(&mut conn)
         .await?;
 
-    if reprocess_media {
-        trace!("Reprocessing all media metadata");
-        conn.isolated(Isolation::Committed, |conn| {
-            reprocess_all_media(conn).scope_boxed()
-        })
+    // Clear expired auth tokens.
+    sqlx::query!("DELETE FROM auth_token WHERE expiry <= CURRENT_TIMESTAMP")
+        .execute(&pool)
         .await?;
-    }
-
-    if update_search_queries {
-        trace!("Upgrading search queries");
-        conn.isolated(Isolation::Committed, |conn| {
-            models::SavedSearch::upgrade_queries(conn).scope_boxed()
-        })
-        .await?;
-    }
-
-    if update_search_date {
-        trace!("Updating search dates");
-        update_search_dates(&mut conn).await?;
-    }
-
-    if update_alternates {
-        trace!("Rebuilding missing alternate files");
-
-        let mut media_items = Vec::new();
-        for catalog in models::Catalog::list(&mut conn).await? {
-            media_items.extend(models::MediaItem::list_public(&mut conn, &catalog.id).await?);
-        }
-
-        let mut alternates_to_update = Vec::new();
-
-        for (media_file, media_file_store) in
-            models::MediaFile::list_for_items(&mut conn, &media_items).await?
-        {
-            let alternates = alternates_for_media_file(conn.config(), &media_file, true);
-
-            alternates_to_update.push((media_file, media_file_store, alternates));
-        }
-
-        models::AlternateFile::sync_for_media_files(&mut conn, alternates_to_update).await?;
-    }
-
-    let last_migration = if migrations.is_empty() {
-        MIGRATIONS
-            .migrations()
-            .map_err(|e| Error::DbMigrationError {
-                message: e.to_string(),
-            })?
-            .last()
-            .map(|m: &Box<dyn Migration<Backend>>| m.name().to_string())
-    } else {
-        migrations.last().map(|m| m.name().to_string())
-    };
-
-    trace!(migration = last_migration, "Database is fully migrated");
 
     Ok((pool, task_queue))
 }
@@ -247,49 +114,62 @@ pub struct StoreStats {
     pub alternate_files: u32,
 }
 
-enum Conn<'a> {
-    Owned(Object<BackendConnection>),
-    Borrowed(&'a mut BackendConnection),
+#[derive(Default)]
+pub(super) enum Connection<'c> {
+    #[default]
+    None,
+    Connected(PoolConnection<SqlxDatabase>),
+    Transaction((Isolation, Transaction<'c, SqlxDatabase>)),
 }
 
-impl<'a> Deref for Conn<'a> {
-    type Target = BackendConnection;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Conn::Owned(ref c) => c,
-            Conn::Borrowed(c) => c,
-        }
-    }
+pub struct DbConnection<'conn> {
+    pub(super) pool: SqlxPool,
+    pub(super) connection: Connection<'conn>,
+    pub(super) config: Config,
+    pub(super) task_queue: TaskQueue,
 }
 
-impl<'a> DerefMut for Conn<'a> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            Conn::Owned(ref mut c) => c.deref_mut(),
-            Conn::Borrowed(c) => c,
-        }
+impl<'conn> fmt::Debug for DbConnection<'conn> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DbConnection")
+            .field("config", &self.config)
+            .finish()
     }
 }
 
 #[pin_project]
-pub struct LoadStream<'conn, 'query> {
+struct InstrumentedStream<'a, T, E> {
     #[pin]
-    inner: <BackendConnection as AsyncConnection>::Stream<'conn, 'query>,
+    inner: BoxStream<'a, result::Result<T, E>>,
     span: Span,
+    start: Instant,
 }
 
-impl<'conn, 'query> LoadStream<'conn, 'query> {
-    fn new(
-        inner: <BackendConnection as AsyncConnection>::Stream<'conn, 'query>,
+impl<'a, T, E> InstrumentedStream<'a, T, E>
+where
+    Self: Sized + Send + 'a,
+    T: 'a,
+    E: fmt::Display + 'a,
+{
+    fn wrap(
+        inner: BoxStream<'a, result::Result<T, E>>,
         span: Span,
-    ) -> Self {
-        Self { inner, span }
+    ) -> BoxStream<'a, result::Result<T, E>> {
+        let instrumented = Self {
+            inner,
+            span,
+            start: Instant::now(),
+        };
+
+        instrumented.boxed()
     }
 }
 
-impl<'conn, 'query> Stream for LoadStream<'conn, 'query> {
-    type Item = QueryResult<<BackendConnection as AsyncConnection>::Row<'conn, 'query>>;
+impl<'a, T, E> Stream for InstrumentedStream<'a, T, E>
+where
+    E: fmt::Display,
+{
+    type Item = result::Result<T, E>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
@@ -301,90 +181,51 @@ impl<'conn, 'query> Stream for LoadStream<'conn, 'query> {
             record_error(this.span, &format!("Database error: {}", error));
         }
 
+        match result {
+            Poll::Ready(None) | Poll::Ready(Some(Err(_))) => {
+                let duration = (Instant::now() - *this.start).as_millis();
+                error!(duration, "database stream completed");
+                eprintln!("database stream completed: {duration}");
+            }
+            _ => {}
+        }
+
         result
     }
 }
-
 #[pin_project]
-pub struct LoadFuture<'conn, 'query> {
+struct InstrumentedFuture<'a, T, E> {
     #[pin]
-    inner: <BackendConnection as AsyncConnection>::LoadFuture<'conn, 'query>,
+    inner: BoxFuture<'a, result::Result<T, E>>,
     span: Span,
+    start: Instant,
 }
 
-impl<'conn, 'query> LoadFuture<'conn, 'query> {
-    fn new<F>(query: String, cb: F) -> Self
-    where
-        F: FnOnce() -> <BackendConnection as AsyncConnection>::LoadFuture<'conn, 'query>,
-    {
-        let span = span!(
-            Level::INFO,
-            "database_query",
-            "query" = query,
-            "operation" = "load",
-            "otel.status_code" = DEFAULT_STATUS,
-            "otel.status_description" = field::Empty,
-        );
-
-        let inner = {
-            let _entered = span.enter();
-            cb()
+impl<'a, T, E> InstrumentedFuture<'a, T, E>
+where
+    Self: Sized + Send + 'a,
+    T: 'a,
+    E: fmt::Display + 'a,
+{
+    fn wrap(
+        inner: BoxFuture<'a, result::Result<T, E>>,
+        span: Span,
+    ) -> BoxFuture<'a, result::Result<T, E>> {
+        let instrumented = Self {
+            inner,
+            span,
+            start: Instant::now(),
         };
 
-        Self { inner, span }
+        instrumented.boxed()
     }
 }
 
-impl<'conn, 'query> Future for LoadFuture<'conn, 'query> {
-    type Output = QueryResult<LoadStream<'conn, 'query>>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.project();
-        let _entered = this.span.enter();
-
-        match this.inner.poll(cx) {
-            Poll::Ready(Ok(stream)) => Poll::Ready(Ok(LoadStream::new(stream, this.span.clone()))),
-            Poll::Ready(Err(error)) => {
-                record_error(this.span, &format!("Database error: {}", error));
-                Poll::Ready(Err(error))
-            }
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
-
-#[pin_project]
-pub struct ExecuteFuture<'conn, 'query> {
-    #[pin]
-    inner: <BackendConnection as AsyncConnection>::ExecuteFuture<'conn, 'query>,
-    span: Span,
-}
-
-impl<'conn, 'query> ExecuteFuture<'conn, 'query> {
-    fn new<F>(query: String, cb: F) -> Self
-    where
-        F: FnOnce() -> <BackendConnection as AsyncConnection>::ExecuteFuture<'conn, 'query>,
-    {
-        let span = span!(
-            Level::INFO,
-            "database_query",
-            "query" = query,
-            "operation" = "execute_returning_count",
-            "otel.status_code" = DEFAULT_STATUS,
-            "otel.status_description" = field::Empty,
-        );
-
-        let inner = {
-            let _entered = span.enter();
-            cb()
-        };
-
-        Self { inner, span }
-    }
-}
-
-impl<'conn, 'query> Future for ExecuteFuture<'conn, 'query> {
-    type Output = QueryResult<usize>;
+impl<'a, T, E> Future for InstrumentedFuture<'a, T, E>
+where
+    E: fmt::Display,
+{
+    type Output = result::Result<T, E>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
@@ -392,108 +233,172 @@ impl<'conn, 'query> Future for ExecuteFuture<'conn, 'query> {
 
         let result = this.inner.poll(cx);
 
-        if let Poll::Ready(Err(error)) = &result {
-            record_error(this.span, &format!("Database error: {}", error))
+        if let Poll::Ready(Err(ref error)) = result {
+            record_error(this.span, &format!("Database error: {}", error));
+        }
+
+        if result.is_ready() {
+            let duration = (Instant::now() - *this.start).as_millis();
+            error!(duration, "database load completed");
+            eprintln!("database load completed: {duration}");
         }
 
         result
     }
 }
 
-pub struct DbConnection<'conn> {
-    pool: DbPool,
-    conn: Conn<'conn>,
-    config: Config,
-    isolation: Option<Isolation>,
-    task_queue: TaskQueue,
-}
+impl<'c, 'conn> Executor<'c> for &'c mut DbConnection<'conn>
+where
+    'conn: 'c,
+{
+    type Database = SqlxDatabase;
 
-impl<'a> SimpleAsyncConnection for DbConnection<'a> {
-    fn batch_execute<'life0, 'life1, 'async_trait>(
-        &'life0 mut self,
-        query: &'life1 str,
-    ) -> Pin<Box<dyn Future<Output = QueryResult<()>> + Send + 'async_trait>>
+    fn fetch_many<'e, 'q: 'e, E>(
+        self,
+        query: E,
+    ) -> BoxStream<
+        'e,
+        SqlxResult<
+            sqlx::Either<
+                <Self::Database as Database>::QueryResult,
+                <Self::Database as Database>::Row,
+            >,
+        >,
+    >
     where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
+        'c: 'e,
+        E: 'q + sqlx::Execute<'q, Self::Database>,
     {
-        self.conn.batch_execute(query)
+        let span = span!(
+            Level::TRACE,
+            "DB fetch_many",
+            "query" = query.sql(),
+            "operation" = "fetch_many",
+            "otel.status_code" = DEFAULT_STATUS,
+            "otel.status_description" = field::Empty,
+        );
+
+        let inner = {
+            let _entered = span.enter();
+
+            match self.connection {
+                Connection::None => panic!("Disconnected"),
+                Connection::Connected(ref mut db_conn) => db_conn.fetch_many(query),
+                Connection::Transaction((_, ref mut tx)) => tx.fetch_many(query),
+            }
+        };
+
+        InstrumentedStream::wrap(inner, span)
     }
-}
 
-impl<'a> AsyncConnection for DbConnection<'a> {
-    type ExecuteFuture<'conn, 'query> = ExecuteFuture<'conn, 'query>;
-
-    type LoadFuture<'conn, 'query> = LoadFuture<'conn, 'query>;
-
-    type Stream<'conn, 'query> = LoadStream<'conn, 'query>;
-
-    type Row<'conn, 'query> = <BackendConnection as AsyncConnection>::Row<'conn, 'query>;
-
-    type Backend = <BackendConnection as AsyncConnection>::Backend;
-    type TransactionManager = <BackendConnection as AsyncConnection>::TransactionManager;
-
-    fn establish<'life0, 'async_trait>(
-        _database_url: &'life0 str,
-    ) -> Pin<Box<dyn Future<Output = ConnectionResult<Self>> + Send + 'async_trait>>
+    fn fetch_optional<'e, 'q: 'e, E>(
+        self,
+        query: E,
+    ) -> BoxFuture<'e, SqlxResult<Option<<Self::Database as Database>::Row>>>
     where
-        'life0: 'async_trait,
-        Self: 'async_trait,
+        'c: 'e,
+        E: 'q + sqlx::Execute<'q, Self::Database>,
     {
-        unimplemented!();
+        let span = span!(
+            Level::TRACE,
+            "DB fetch_optional",
+            "query" = query.sql(),
+            "operation" = "fetch_optional",
+            "otel.status_code" = DEFAULT_STATUS,
+            "otel.status_description" = field::Empty,
+        );
+
+        let inner = {
+            let _entered = span.enter();
+
+            match self.connection {
+                Connection::None => panic!("Disconnected"),
+                Connection::Connected(ref mut db_conn) => db_conn.fetch_optional(query),
+                Connection::Transaction((_, ref mut tx)) => tx.fetch_optional(query),
+            }
+        };
+
+        InstrumentedFuture::wrap(inner, span)
     }
 
-    fn load<'conn, 'query, T>(&'conn mut self, source: T) -> Self::LoadFuture<'conn, 'query>
+    fn prepare_with<'e, 'q: 'e>(
+        self,
+        sql: &'q str,
+        parameters: &'e [<Self::Database as Database>::TypeInfo],
+    ) -> BoxFuture<'e, SqlxResult<<Self::Database as Database>::Statement<'q>>>
     where
-        T: AsQuery + 'query,
-        T::Query: QueryFragment<Self::Backend> + QueryId + 'query,
+        'c: 'e,
     {
-        let query = source.as_query();
+        let span = span!(
+            Level::TRACE,
+            "DB prepare_with",
+            "query" = sql,
+            "operation" = "prepare_with",
+            "otel.status_code" = DEFAULT_STATUS,
+            "otel.status_description" = field::Empty,
+        );
 
-        LoadFuture::new(debug_query(&query).to_string(), move || {
-            AsyncConnection::load(&mut self.conn, query)
-        })
+        let inner = {
+            let _entered = span.enter();
+
+            match self.connection {
+                Connection::None => panic!("Disconnected"),
+                Connection::Connected(ref mut db_conn) => db_conn.prepare_with(sql, parameters),
+                Connection::Transaction((_, ref mut tx)) => tx.prepare_with(sql, parameters),
+            }
+        };
+
+        InstrumentedFuture::wrap(inner, span)
     }
 
-    fn execute_returning_count<'conn, 'query, T>(
-        &'conn mut self,
-        source: T,
-    ) -> Self::ExecuteFuture<'conn, 'query>
+    fn describe<'e, 'q: 'e>(
+        self,
+        sql: &'q str,
+    ) -> BoxFuture<'e, SqlxResult<sqlx::Describe<Self::Database>>>
     where
-        T: QueryFragment<Self::Backend> + QueryId + 'query,
+        'c: 'e,
     {
-        ExecuteFuture::new(debug_query(&source).to_string(), move || {
-            AsyncConnection::execute_returning_count(&mut self.conn, source)
-        })
-    }
+        let span = span!(
+            Level::TRACE,
+            "DB describe",
+            "query" = sql,
+            "operation" = "describe",
+            "otel.status_code" = DEFAULT_STATUS,
+            "otel.status_description" = field::Empty,
+        );
 
-    fn transaction_state(
-        &mut self,
-    ) -> &mut <Self::TransactionManager as TransactionManager<Self>>::TransactionStateData {
-        AsyncConnection::transaction_state(&mut self.conn)
-    }
+        let inner = {
+            let _entered = span.enter();
 
-    fn instrumentation(&mut self) -> &mut dyn Instrumentation {
-        AsyncConnection::instrumentation(&mut self.conn)
-    }
+            match self.connection {
+                Connection::None => panic!("Disconnected"),
+                Connection::Connected(ref mut db_conn) => db_conn.describe(sql),
+                Connection::Transaction((_, ref mut tx)) => tx.describe(sql),
+            }
+        };
 
-    fn set_instrumentation(&mut self, instrumentation: impl Instrumentation) {
-        AsyncConnection::set_instrumentation(&mut self.conn, instrumentation)
+        InstrumentedFuture::wrap(inner, span)
     }
 }
 
 impl DbConnection<'static> {
-    pub(crate) async fn new(pool: DbPool, config: Config, task_queue: TaskQueue) -> Result<Self> {
-        let conn = pool.get().await?;
+    pub(crate) async fn new(pool: SqlxPool, config: Config, task_queue: TaskQueue) -> Result<Self> {
+        let db_connection = pool.acquire().await?;
 
         Ok(Self {
             pool,
-            conn: Conn::Owned(conn),
             config,
-            isolation: None,
             task_queue,
+            connection: Connection::Connected(db_connection),
         })
+    }
+}
+
+impl<'conn> Drop for DbConnection<'conn> {
+    fn drop(&mut self) {
+        if matches!(self.connection, Connection::Transaction(_)) {
+            warn!("Dropping connection in the middle of a transaction. Transation will rollback");
+        }
     }
 }
 
@@ -510,79 +415,86 @@ impl<'conn> DbConnection<'conn> {
         self.task_queue.queue_task(task).await;
     }
 
-    pub async fn isolated<'a, R, F>(&'a mut self, level: Isolation, cb: F) -> Result<R>
+    pub async fn isolated<'c>(&'c mut self, level: Isolation) -> Result<DbConnection<'c>>
     where
-        R: 'a + Send,
-        F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
-            + Send
-            + 'a,
+        'conn: 'c,
     {
-        let config = self.config.clone();
-        let task_queue = self.task_queue.clone();
-
-        if let Some(l) = self.isolation {
-            assert_eq!(l, level);
-
-            let mut db_conn = DbConnection {
-                pool: self.pool.clone(),
-                conn: Conn::Borrowed(&mut self.conn),
-                config,
-                isolation: Some(level),
-                task_queue,
-            };
-            return cb(&mut db_conn).await;
-        }
-
-        let mut builder = self.conn.build_transaction();
-        builder = match level {
-            Isolation::Committed => builder.read_committed(),
-            Isolation::Repeatable => builder.repeatable_read(),
-            Isolation::ReadOnly => builder.repeatable_read().read_only(),
+        let inner: Transaction<'c, SqlxDatabase> = match self.connection {
+            Connection::None => panic!("Disconnected"),
+            Connection::Connected(ref mut db_conn) => db_conn.begin().await?,
+            Connection::Transaction((current_level, ref mut db_conn)) => {
+                assert_eq!(current_level, level);
+                db_conn.begin().await?
+            }
         };
 
-        let pool = self.pool.clone();
-        builder
-            .run(|conn| {
-                async move {
-                    let mut db_conn = DbConnection {
-                        pool,
-                        conn: Conn::Borrowed(conn),
-                        config,
-                        isolation: Some(level),
-                        task_queue,
-                    };
-                    cb(&mut db_conn).await
-                }
-                .scope_boxed()
-            })
-            .await
+        Ok(DbConnection {
+            connection: Connection::Transaction((level, inner)),
+            pool: self.pool.clone(),
+            config: self.config.clone(),
+            task_queue: self.task_queue.clone(),
+        })
+    }
+
+    pub async fn commit(mut self) -> Result<()> {
+        if let Connection::Transaction((_, tx)) = mem::take(&mut self.connection) {
+            tx.commit().await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn rollback(mut self) -> Result<()> {
+        if let Connection::Transaction((_, tx)) = mem::take(&mut self.connection) {
+            tx.rollback().await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn finish<T>(self, result: Result<T>) -> Result<T> {
+        match result {
+            Ok(t) => {
+                self.commit().await?;
+                Ok(t)
+            }
+            Err(e) => {
+                self.rollback().await?;
+                Err(e)
+            }
+        }
     }
 
     pub fn assert_in_transaction(&self) {
-        assert!(self.isolation.is_some());
+        assert!(matches!(self.connection, Connection::Transaction(_)));
     }
 
     pub fn config(&self) -> &Config {
         &self.config
     }
 
+    #[instrument(skip_all)]
     pub(crate) async fn verify_credentials(
         &mut self,
         email: &str,
         password: &str,
     ) -> Result<(models::User, String)> {
-        let mut user: models::User = user::table
-            .filter(user::email.eq(email))
-            .select(user::all_columns)
-            .for_update()
-            .get_result::<models::User>(self)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)?;
+        let mut user = sqlx::query!(
+            r#"
+            SELECT *
+            FROM "user"
+            WHERE "email"=$1
+            FOR UPDATE
+            "#,
+            email
+        )
+        .map(|row| from_row!(User(row)))
+        .fetch_one(&mut *self)
+        .await?;
 
         if let Some(password_hash) = user.password.clone() {
             let password = password.to_owned();
-            match spawn_blocking(span!(Level::INFO, "verify password",), move || {
+            match spawn_blocking(span!(Level::TRACE, "verify password"), move || {
                 bcrypt::verify(password, &password_hash)
             })
             .await
@@ -595,24 +507,32 @@ impl<'conn> DbConnection<'conn> {
         }
 
         let token = long_id("T");
-        let auth_token = models::AuthToken {
-            email: email.to_owned(),
-            token: token.clone(),
-            expiry: Some(Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS)),
-        };
 
-        diesel::insert_into(auth_token::table)
-            .values(&auth_token)
-            .execute(self)
-            .await?;
+        sqlx::query!(
+            "
+            INSERT INTO auth_token (email, token, expiry)
+            VALUES ($1,$2,$3)
+            ",
+            email,
+            token,
+            Some(Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS))
+        )
+        .execute(&mut *self)
+        .await?;
 
         user.last_login = Some(Utc::now());
 
-        diesel::update(user::table)
-            .filter(user::email.eq(email))
-            .set(user::last_login.eq(&user.last_login))
-            .execute(self)
-            .await?;
+        sqlx::query!(
+            r#"
+            UPDATE "user"
+            SET last_login=$1
+            WHERE "email"=$2
+            "#,
+            user.last_login,
+            email,
+        )
+        .execute(self)
+        .await?;
 
         Ok((user, token))
     }
@@ -621,46 +541,79 @@ impl<'conn> DbConnection<'conn> {
     pub(crate) async fn verify_token(&mut self, token: &str) -> Result<Option<models::User>> {
         let expiry = Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS);
 
-        let email = match diesel::update(auth_token::table)
-            .filter(auth_token::token.eq(token))
-            .set(auth_token::expiry.eq(expiry))
-            .returning(auth_token::email)
-            .get_result::<String>(self)
-            .await
-            .optional()?
+        let email = match sqlx::query_scalar!(
+            r#"
+            UPDATE auth_token
+            SET expiry=$1
+            WHERE token=$2
+            RETURNING "email"
+            "#,
+            expiry,
+            token
+        )
+        .fetch_optional(&mut *self)
+        .await?
         {
             Some(u) => u,
             None => return Ok(None),
         };
 
-        let user = diesel::update(user::table)
-            .filter(user::email.eq(&email))
-            .set(user::last_login.eq(Some(Utc::now())))
-            .returning(user::all_columns)
-            .get_result::<models::User>(self)
-            .await
-            .optional()?;
+        let user = sqlx::query!(
+            r#"
+            UPDATE "user"
+            SET last_login=CURRENT_TIMESTAMP
+            WHERE "email"=$1
+            RETURNING "user".*
+            "#,
+            email
+        )
+        .map(|row| from_row!(User(row)))
+        .fetch_optional(self)
+        .await?;
 
         Ok(user)
     }
 
     pub(crate) async fn delete_token(&mut self, token: &str) -> Result {
-        diesel::delete(auth_token::table.filter(auth_token::token.eq(token)))
-            .execute(self)
-            .await?;
+        sqlx::query!(
+            "
+            DELETE FROM auth_token
+            WHERE token=$1
+            ",
+            token
+        )
+        .execute(self)
+        .await?;
 
         Ok(())
     }
 
     pub async fn stats(&mut self) -> Result<StoreStats> {
-        let users: i64 = user::table.count().get_result(self).await?;
-        let catalogs: i64 = catalog::table.count().get_result(self).await?;
-        let albums: i64 = album::table.count().get_result(self).await?;
-        let tags: i64 = tag::table.count().get_result(self).await?;
-        let people: i64 = person::table.count().get_result(self).await?;
-        let media: i64 = media_item::table.count().get_result(self).await?;
-        let files: i64 = media_file::table.count().get_result(self).await?;
-        let alternate_files: i64 = alternate_file::table.count().get_result(self).await?;
+        let users: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "user""#)
+            .fetch_one(&mut *self)
+            .await?;
+        let catalogs: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "catalog""#)
+            .fetch_one(&mut *self)
+            .await?;
+        let albums: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "album""#)
+            .fetch_one(&mut *self)
+            .await?;
+        let tags: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "tag""#)
+            .fetch_one(&mut *self)
+            .await?;
+        let people: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "person""#)
+            .fetch_one(&mut *self)
+            .await?;
+        let media: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "media_item""#)
+            .fetch_one(&mut *self)
+            .await?;
+        let files: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "media_file""#)
+            .fetch_one(&mut *self)
+            .await?;
+        let alternate_files: i64 =
+            sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "alternate_file""#)
+                .fetch_one(&mut *self)
+                .await?;
 
         Ok(StoreStats {
             users: users as u32,

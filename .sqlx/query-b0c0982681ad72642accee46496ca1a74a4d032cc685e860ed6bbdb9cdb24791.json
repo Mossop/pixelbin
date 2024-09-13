@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT saved_search.*, COUNT(media_search.media) AS count\n            FROM user_catalog\n                JOIN saved_search USING (catalog)\n                LEFT JOIN media_search ON media_search.search=saved_search.id\n            WHERE user_catalog.user=$1\n            GROUP BY saved_search.id\n            ORDER BY saved_search.name ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "shared",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "query",
+        "type_info": "Json"
+      },
+      {
+        "ordinal": 4,
+        "name": "catalog",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "b0c0982681ad72642accee46496ca1a74a4d032cc685e860ed6bbdb9cdb24791"
+}

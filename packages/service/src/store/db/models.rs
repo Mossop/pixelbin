@@ -1,64 +1,47 @@
 use std::{
     cmp::min,
     collections::{HashMap, HashSet},
-    future::Future,
     result,
+    str::FromStr,
     task::Poll,
 };
 
 use actix_web::web::Bytes;
-use chrono::{DateTime, Duration, NaiveDateTime, Timelike, Utc};
-use diesel::{
-    alias, backend, delete, deserialize,
-    dsl::{count, count_star, sql},
-    expression::SqlLiteral,
-    insert_into,
-    prelude::*,
-    serialize, sql_types,
-    upsert::excluded,
-    AsExpression, Queryable,
-};
-use diesel_async::RunQueryDsl;
-use futures::{Stream, StreamExt};
+use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
+use enum_repr::EnumRepr;
+use futures::{Stream, StreamExt, TryStreamExt};
+use itertools::Itertools;
 use mime::Mime;
 use pin_project::pin_project;
+use pixelbin_shared::Ignorable;
 use regex::Regex;
-use scoped_futures::ScopedFutureExt;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{from_value, to_string, Value};
-use serde_repr::Serialize_repr;
+use serde_plain::{derive_display_from_serialize, derive_fromstr_from_deserialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
+use sqlx::{
+    postgres::PgRow, prelude::FromRow, types::Json, Error as SqlxError, QueryBuilder,
+    Result as SqlxResult, Row,
+};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
-use tracing::instrument;
-use typeshare::typeshare;
+use tracing::{error, instrument};
 
 use crate::{
     metadata::{alternates_for_media_file, lookup_timezone, media_datetime, Alternate},
-    shared::{error::Ignorable, long_id, mime::MimeField, short_id},
+    shared::{long_id, short_id},
     store::{
         aws::AwsClient,
         db::{
-            self,
-            functions::{
-                lower, media_file_columns, media_item_columns, media_view, media_view_columns,
-            },
-            schema::*,
-            search::{upgrade_query, Filterable, SearchQuery},
-            Backend, MediaAccess,
+            functions::{from_mime, from_row},
+            search::{Filterable, SearchQuery},
+            MediaAccess,
         },
         models,
         path::{FilePath, MediaFileStore, MediaItemStore},
         DbConnection,
     },
-    Config, Error, FileStore, Result, Store, Task,
+    Config, Error, FileStore, Result, Task,
 };
-
-fn sql_bool(b: bool) -> SqlLiteral<sql_types::Bool> {
-    if b {
-        sql("TRUE")
-    } else {
-        sql("FALSE")
-    }
-}
 
 struct Batch<'a, T> {
     slice: &'a [T],
@@ -89,38 +72,10 @@ fn batch<T>(slice: &[T], count: usize) -> Batch<T> {
     }
 }
 
-struct OwnedBatch<T> {
-    collection: Option<Vec<T>>,
-    count: usize,
-}
-
-impl<T> Iterator for OwnedBatch<T> {
-    type Item = Vec<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(mut collection) = self.collection.take() {
-            if collection.len() > self.count {
-                self.collection = Some(collection.split_off(self.count));
-            }
-
-            Some(collection)
-        } else {
-            None
-        }
-    }
-}
-
-fn owned_batch<T>(collection: Vec<T>, count: usize) -> OwnedBatch<T> {
-    OwnedBatch {
-        collection: Some(collection),
-        count,
-    }
-}
-
 #[pin_project]
 pub(crate) struct MediaViewStream {
     is_done: bool,
-    receiver: Receiver<Option<Result<models::MediaView>>>,
+    receiver: Receiver<Option<Result<Vec<models::MediaView>>>>,
 }
 
 impl MediaViewStream {
@@ -174,36 +129,38 @@ impl Stream for MediaViewStream {
 }
 
 pub(crate) struct MediaViewSender {
-    sender: Sender<Option<Result<models::MediaView>>>,
+    sender: Sender<Option<Result<Vec<models::MediaView>>>>,
 }
 
 impl MediaViewSender {
-    async fn send_stream<S, F>(self, stream_future: F) -> Result<()>
-    where
-        S: Stream<Item = QueryResult<MediaView>> + Unpin,
-        F: Future<Output = QueryResult<S>>,
-    {
-        match stream_future.await {
-            Ok(mut stream) => loop {
-                match stream.next().await {
-                    Some(Ok(mut media_view)) => {
-                        media_view.amend_for_access(MediaAccess::PublicMedia);
-                        self.sender.send(Some(Ok(media_view))).await.ignore();
-                    }
-                    Some(Err(error)) => {
-                        self.send_error(error.into()).await;
-                        break;
-                    }
-                    None => {
-                        self.sender.send(None).await.ignore();
-                        break;
-                    }
-                }
-            },
-            Err(error) => self.send_error(error.into()).await,
-        }
+    async fn send_media_views(&self, mut media_views: Vec<MediaView>) {
+        media_views
+            .iter_mut()
+            .for_each(|mv| mv.amend_for_access(MediaAccess::PublicMedia));
+        self.sender.send(Some(Ok(media_views))).await.ignore();
+    }
 
-        Ok(())
+    pub(crate) async fn send_stream<S>(self, stream: S)
+    where
+        S: Stream<Item = SqlxResult<MediaView>> + Unpin,
+    {
+        let mut chunked = stream.try_ready_chunks(50);
+        loop {
+            match chunked.next().await {
+                Some(Ok(media_views)) => {
+                    self.send_media_views(media_views).await;
+                }
+                Some(Err(chunk_error)) => {
+                    self.send_media_views(chunk_error.0).await;
+                    self.send_error(chunk_error.1.into()).await;
+                    break;
+                }
+                None => {
+                    self.sender.send(None).await.ignore();
+                    break;
+                }
+            }
+        }
     }
 
     async fn send_error(&self, error: Error) {
@@ -211,72 +168,30 @@ impl MediaViewSender {
     }
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    AsExpression,
-    deserialize::FromSqlRow,
-    Deserialize,
-    Serialize,
-)]
-#[diesel(sql_type = sql_types::VarChar)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub enum AlternateFileType {
+pub(crate) enum AlternateFileType {
     Thumbnail,
     Reencode,
     Social,
 }
+derive_display_from_serialize!(AlternateFileType);
+derive_fromstr_from_deserialize!(AlternateFileType);
 
 impl AlternateFileType {
     pub(crate) fn is_local(&self) -> bool {
         !matches!(self, AlternateFileType::Reencode)
     }
-}
 
-impl<DB> deserialize::FromSql<sql_types::VarChar, DB> for AlternateFileType
-where
-    DB: backend::Backend,
-    String: deserialize::FromSql<sql_types::VarChar, DB>,
-{
-    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
-        match String::from_sql(bytes)?.as_str() {
-            "thumbnail" => Ok(AlternateFileType::Thumbnail),
-            "reencode" => Ok(AlternateFileType::Reencode),
-            "social" => Ok(AlternateFileType::Social),
-            x => Err(format!("Unrecognized variant {}", x).into()),
-        }
+    pub(crate) fn decode(source: &str) -> SqlxResult<Self> {
+        Self::from_str(source).map_err(|e| SqlxError::Decode(Box::new(e)))
     }
 }
 
-impl serialize::ToSql<sql_types::VarChar, diesel::pg::Pg> for AlternateFileType
-where
-    String: serialize::ToSql<sql_types::VarChar, diesel::pg::Pg>,
-{
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut serialize::Output<'b, '_, diesel::pg::Pg>,
-    ) -> serialize::Result {
-        let string = match self {
-            AlternateFileType::Thumbnail => "thumbnail".to_string(),
-            AlternateFileType::Reencode => "reencode".to_string(),
-            AlternateFileType::Social => "social".to_string(),
-        };
-
-        <String as serialize::ToSql<sql_types::VarChar, diesel::pg::Pg>>::to_sql(
-            &string,
-            &mut out.reborrow(),
-        )
-    }
-}
-
-#[repr(i32)]
-#[derive(Debug, Clone, Copy, Serialize_repr, AsExpression, deserialize::FromSqlRow)]
-#[diesel(sql_type = sql_types::Int4)]
-pub enum Orientation {
+#[EnumRepr(type = "i32")]
+#[derive(Default, Debug, Clone, Copy, Serialize_repr, Deserialize_repr, PartialEq, Eq)]
+pub(crate) enum Orientation {
+    #[default]
     TopLeft = 1,
     TopRight = 2,
     BottomRight = 3,
@@ -287,74 +202,35 @@ pub enum Orientation {
     LeftBottom = 8,
 }
 
-impl<DB> deserialize::FromSql<sql_types::Int4, DB> for Orientation
-where
-    DB: backend::Backend,
-    i32: deserialize::FromSql<sql_types::Int4, DB>,
-{
-    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
-        match i32::from_sql(bytes)? {
-            1 => Ok(Orientation::TopLeft),
-            2 => Ok(Orientation::TopRight),
-            3 => Ok(Orientation::BottomRight),
-            4 => Ok(Orientation::BottomLeft),
-            5 => Ok(Orientation::LeftTop),
-            6 => Ok(Orientation::RightTop),
-            7 => Ok(Orientation::RightBottom),
-            8 => Ok(Orientation::LeftBottom),
-            x => Err(format!("Unrecognized variant {}", x).into()),
-        }
-    }
-}
-
-impl<DB> serialize::ToSql<sql_types::Int4, DB> for Orientation
-where
-    DB: backend::Backend,
-    i32: serialize::ToSql<sql_types::Int4, DB>,
-{
-    fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, DB>) -> serialize::Result {
-        match self {
-            Orientation::TopLeft => 1.to_sql(out),
-            Orientation::TopRight => 2.to_sql(out),
-            Orientation::BottomRight => 3.to_sql(out),
-            Orientation::BottomLeft => 4.to_sql(out),
-            Orientation::LeftTop => 5.to_sql(out),
-            Orientation::RightTop => 6.to_sql(out),
-            Orientation::RightBottom => 7.to_sql(out),
-            Orientation::LeftBottom => 8.to_sql(out),
-        }
-    }
-}
-
-#[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct User {
     pub(crate) email: String,
     #[serde(skip)]
     pub(crate) password: Option<String>,
     pub(crate) fullname: Option<String>,
     pub(crate) administrator: bool,
-    #[typeshare(serialized_as = "string")]
     pub(crate) created: DateTime<Utc>,
-    #[typeshare(serialized_as = "string")]
     pub(crate) last_login: Option<DateTime<Utc>>,
     pub(crate) verified: Option<bool>,
 }
 
 impl User {
     pub(crate) async fn get(conn: &mut DbConnection<'_>, email: &str) -> Result<User> {
-        user::table
-            .filter(user::email.eq(email))
-            .select(user::all_columns)
-            .get_result::<User>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            r#"
+            SELECT *
+            FROM "user"
+            WHERE "email"=$1
+            "#,
+            email
+        )
+        .map(|row| from_row!(User(row)))
+        .fetch_one(conn)
+        .await?)
     }
 }
 
-#[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct Storage {
     pub(crate) id: String,
     pub(crate) name: String,
@@ -393,14 +269,17 @@ impl Storage {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Storage> {
-        storage::table
-            .inner_join(catalog::table.on(catalog::storage.eq(storage::id)))
-            .filter(catalog::id.eq(catalog))
-            .select(storage::all_columns)
-            .get_result::<Storage>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            "
+            SELECT storage.*
+            FROM storage JOIN catalog ON catalog.storage=storage.id
+            WHERE catalog.id=$1
+            ",
+            catalog
+        )
+        .map(|row| from_row!(Storage(row)))
+        .fetch_one(conn)
+        .await?)
     }
 
     pub(crate) async fn lock_for_catalog(
@@ -409,31 +288,39 @@ impl Storage {
     ) -> Result<Storage> {
         conn.assert_in_transaction();
 
-        storage::table
-            .inner_join(catalog::table.on(catalog::storage.eq(storage::id)))
-            .filter(catalog::id.eq(catalog))
-            .select(storage::all_columns)
-            .for_update()
-            .get_result::<Storage>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            "
+            SELECT storage.*
+            FROM storage JOIN catalog ON catalog.storage=storage.id
+            WHERE catalog.id=$1
+            FOR UPDATE
+            ",
+            catalog
+        )
+        .map(|row| from_row!(Storage(row)))
+        .fetch_one(conn)
+        .await?)
     }
 
     pub(crate) async fn list_for_user(
         conn: &mut DbConnection<'_>,
         email: &str,
     ) -> Result<Vec<Storage>> {
-        Ok(storage::table
-            .filter(storage::owner.eq(email))
-            .select(storage::all_columns)
-            .load::<Storage>(conn)
-            .await?)
+        Ok(sqlx::query!(
+            "
+            SELECT storage.*
+            FROM storage
+            WHERE owner=$1
+            ",
+            email
+        )
+        .map(|row| from_row!(Storage(row)))
+        .fetch_all(conn)
+        .await?)
     }
 }
 
-#[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct Catalog {
     pub(crate) id: String,
     pub(crate) name: String,
@@ -448,53 +335,69 @@ impl Catalog {
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
-        let mut query = media_view!()
-            .filter(media_item::catalog.eq(&self.id))
-            .select(media_view_columns!())
-            .offset(offset.unwrap_or_default())
-            .into_boxed();
+        let views = if let Some(count) = count {
+            sqlx::query!(
+                "
+                SELECT *
+                FROM media_view
+                WHERE catalog=$1
+                ORDER BY datetime DESC
+                LIMIT $2
+                OFFSET $3
+                ",
+                self.id,
+                count,
+                offset.unwrap_or_default()
+            )
+            .try_map(|row| Ok(from_row!(MediaView(row))))
+            .fetch_all(conn)
+            .await?
+        } else {
+            sqlx::query!(
+                "
+                SELECT *
+                FROM media_view
+                WHERE catalog=$1
+                ORDER BY datetime DESC
+                OFFSET $2
+                ",
+                self.id,
+                offset.unwrap_or_default()
+            )
+            .try_map(|row| Ok(from_row!(MediaView(row))))
+            .fetch_all(conn)
+            .await?
+        };
 
-        if let Some(count) = count {
-            query = query.limit(count);
-        }
-
-        Ok(query.load::<MediaView>(conn).await?)
+        Ok(views)
     }
 
+    #[instrument(skip_all)]
     pub(crate) async fn stream_media(
         self,
-        store: Store,
-        offset: Option<i64>,
-        count: Option<i64>,
+        mut conn: DbConnection<'static>,
         sender: MediaViewSender,
     ) {
-        store
-            .with_connection(|conn| {
-                async move {
-                    let mut query = media_view!()
-                        .filter(media_item::catalog.eq(&self.id))
-                        .select(media_view_columns!())
-                        .offset(offset.unwrap_or_default())
-                        .into_boxed();
+        let stream = sqlx::query!(
+            "
+            SELECT media_view.*
+            FROM media_view
+                JOIN media_search ON media_search.media=media_view.id
+            WHERE media_view.catalog=$1
+            ORDER BY datetime DESC
+            ",
+            self.id
+        )
+        .try_map(|row| Ok(from_row!(MediaView(row))))
+        .fetch(&mut conn);
 
-                    if let Some(count) = count {
-                        query = query.limit(count);
-                    }
-
-                    sender
-                        .send_stream(query.load_stream::<MediaView>(conn))
-                        .await
-                }
-                .scope_boxed()
-            })
-            .await
-            .ignore()
+        sender.send_stream(stream).await
     }
 
-    pub(crate) async fn list(conn: &mut DbConnection<'_>) -> Result<Vec<Catalog>> {
-        Ok(catalog::table
-            .select(catalog::all_columns)
-            .load::<Catalog>(conn)
+    pub(crate) async fn list<'conn>(conn: &mut DbConnection<'_>) -> Result<Vec<Catalog>> {
+        Ok(sqlx::query!("SELECT * FROM catalog")
+            .map(|row| from_row!(Catalog(row)))
+            .fetch_all(conn)
             .await?)
     }
 
@@ -502,13 +405,18 @@ impl Catalog {
         conn: &mut DbConnection<'_>,
         email: &str,
     ) -> Result<Vec<(Catalog, bool)>> {
-        Ok(catalog::table
-            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(catalog::id)))
-            .filter(user_catalog::user.eq(email))
-            .select((catalog::all_columns, user_catalog::writable))
-            .order(catalog::name.asc())
-            .load::<(Catalog, bool)>(conn)
-            .await?)
+        Ok(sqlx::query!(
+            "
+            SELECT catalog.*, writable
+            FROM user_catalog JOIN catalog ON catalog.id = user_catalog.catalog
+            WHERE user_catalog.user = $1
+            ORDER BY catalog.name ASC
+            ",
+            email
+        )
+        .map(|row| (from_row!(Catalog(row)), row.writable.unwrap_or_default()))
+        .fetch_all(conn)
+        .await?)
     }
 
     pub(crate) async fn get_for_user(
@@ -517,16 +425,22 @@ impl Catalog {
         catalog: &str,
         want_writable: bool,
     ) -> Result<Catalog> {
-        user_catalog::table
-            .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .filter(catalog::id.eq(catalog))
-            .filter(user_catalog::writable.or(sql_bool(!want_writable)))
-            .select(catalog::all_columns)
-            .get_result::<Catalog>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            "
+            SELECT catalog.*
+            FROM catalog JOIN user_catalog ON catalog.id=user_catalog.catalog
+            WHERE
+                user_catalog.user=$1 AND
+                catalog.id=$2 AND
+                (user_catalog.writable OR $3)
+            ",
+            email,
+            catalog,
+            want_writable
+        )
+        .map(|row| from_row!(Catalog(row)))
+        .fetch_one(conn)
+        .await?)
     }
 
     pub(crate) async fn get_for_user_with_count(
@@ -534,30 +448,37 @@ impl Catalog {
         email: &str,
         catalog: &str,
     ) -> Result<(Catalog, bool, i64)> {
-        let count = media_item::table
-            .filter(media_item::catalog.eq(catalog))
-            .select(count_star())
-            .get_result::<i64>(conn)
-            .await
-            .unwrap_or_default();
+        let count = sqlx::query_scalar!(
+            r#"
+            SELECT COUNT(*) AS "count!"
+            FROM media_item
+            WHERE NOT deleted AND catalog=$1
+            "#,
+            catalog
+        )
+        .fetch_one(&mut *conn)
+        .await?;
 
-        let (catalog, writable) = user_catalog::table
-            .inner_join(catalog::table.on(catalog::id.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .filter(catalog::id.eq(catalog))
-            .select((catalog::all_columns, user_catalog::writable))
-            .get_result::<(Catalog, bool)>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)?;
+        let (catalog, writable) = sqlx::query!(
+            "
+            SELECT catalog.*, user_catalog.writable
+            FROM catalog JOIN user_catalog ON catalog.id=user_catalog.catalog
+            WHERE
+                user_catalog.user=$1 AND
+                catalog.id=$2
+            ",
+            email,
+            catalog
+        )
+        .map(|row| (from_row!(Catalog(row)), row.writable))
+        .fetch_one(conn)
+        .await?;
 
-        Ok((catalog, writable, count))
+        Ok((catalog, writable.unwrap_or_default(), count))
     }
 }
 
-#[typeshare]
-#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
-#[diesel(table_name = person)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct Person {
     pub(crate) id: String,
     pub(crate) name: String,
@@ -569,13 +490,20 @@ impl Person {
         conn: &mut DbConnection<'_>,
         email: &str,
     ) -> Result<Vec<Person>> {
-        Ok(user_catalog::table
-            .inner_join(person::table.on(person::catalog.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .select(person::all_columns)
-            .order(person::name.asc())
-            .load::<Person>(conn)
-            .await?)
+        Ok(sqlx::query!(
+            "
+            SELECT person.*
+            FROM person
+                JOIN user_catalog ON user_catalog.catalog=person.catalog
+            WHERE
+                user_catalog.user=$1
+            ORDER BY person.name ASC
+            ",
+            email
+        )
+        .map(|row| from_row!(Person(row)))
+        .fetch_all(conn)
+        .await?)
     }
 
     #[instrument(skip(conn))]
@@ -584,15 +512,22 @@ impl Person {
         catalog: &str,
         name: &str,
     ) -> Result<Person> {
-        let person = match person::table
-            .filter(person::catalog.eq(catalog))
-            .filter(lower(person::name).eq(&name.to_lowercase()))
-            .select(person::all_columns)
-            .get_result::<Person>(conn)
-            .await
-            .optional()?
+        match sqlx::query!(
+            "
+            SELECT *
+            FROM person
+            WHERE
+                catalog=$1 AND
+                LOWER(name)=$2
+            ",
+            catalog,
+            name.to_lowercase()
+        )
+        .map(|row| from_row!(Person(row)))
+        .fetch_optional(&mut *conn)
+        .await?
         {
-            Some(p) => p,
+            Some(p) => Ok(p),
             None => {
                 let new_person = Person {
                     id: short_id("P"),
@@ -600,21 +535,25 @@ impl Person {
                     catalog: catalog.to_owned(),
                 };
 
-                insert_into(person::table)
-                    .values(&new_person)
-                    .execute(conn)
-                    .await?;
+                sqlx::query!(
+                    "
+                    INSERT INTO person (id, name, catalog)
+                    VALUES ($1, $2, $3)
+                    ",
+                    new_person.id,
+                    name,
+                    catalog
+                )
+                .execute(conn)
+                .await?;
 
-                new_person
+                Ok(new_person)
             }
-        };
-
-        Ok(person)
+        }
     }
 }
 
-#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
-#[diesel(table_name = media_person)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct MediaPerson {
     pub(crate) catalog: String,
     pub(crate) media: String,
@@ -631,13 +570,20 @@ impl MediaPerson {
     ) -> Result {
         MediaPerson::upsert(conn, people).await?;
 
-        let people_ids: Vec<&String> = people.iter().map(|p| &p.person).collect();
+        let people_ids: Vec<String> = people.iter().map(|p| p.person.clone()).collect();
 
-        diesel::delete(media_person::table)
-            .filter(media_person::media.eq(media))
-            .filter(media_person::person.ne_all(people_ids))
-            .execute(conn)
-            .await?;
+        sqlx::query!(
+            "
+            DELETE FROM media_person
+            WHERE
+                media=$1 AND
+                person != ALL($2)
+            ",
+            media,
+            &people_ids
+        )
+        .execute(conn)
+        .await?;
 
         Ok(())
     }
@@ -645,22 +591,47 @@ impl MediaPerson {
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, people: &[MediaPerson]) -> Result {
         for records in batch(people, 500) {
-            diesel::insert_into(media_person::table)
-                .values(records)
-                .on_conflict((media_person::media, media_person::person))
-                .do_update()
-                .set((media_person::location.eq(excluded(media_person::location)),))
-                .execute(conn)
-                .await?;
+            let mut catalog: Vec<String> = Vec::new();
+            let mut media: Vec<String> = Vec::new();
+            let mut person: Vec<String> = Vec::new();
+            let mut location: Vec<Option<Location>> = Vec::new();
+
+            records.iter().for_each(|media_person| {
+                catalog.push(media_person.catalog.clone());
+                media.push(media_person.media.clone());
+                person.push(media_person.person.clone());
+                location.push(media_person.location);
+            });
+
+            sqlx::query!(
+                r#"
+                INSERT INTO media_person (
+                    "catalog",
+                    "media",
+                    "person",
+                    "location"."left",
+                    "location"."right",
+                    "location"."top",
+                    "location"."bottom"
+                )
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::location[])
+                ON CONFLICT(media, person) DO UPDATE SET
+                    "location"="excluded"."location"
+                "#,
+                &catalog,
+                &media,
+                &person,
+                &location as &[Option<Location>]
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         Ok(())
     }
 }
 
-#[typeshare]
-#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
-#[diesel(table_name = tag)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct Tag {
     pub(crate) id: String,
     pub(crate) parent: Option<String>,
@@ -673,13 +644,19 @@ impl Tag {
         conn: &mut DbConnection<'_>,
         email: &str,
     ) -> Result<Vec<Tag>> {
-        Ok(user_catalog::table
-            .inner_join(tag::table.on(tag::catalog.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .select(tag::all_columns)
-            .order(tag::name.asc())
-            .load::<Tag>(conn)
-            .await?)
+        Ok(sqlx::query!(
+            "
+            SELECT tag.*
+            FROM tag
+                JOIN user_catalog ON user_catalog.catalog=tag.catalog
+            WHERE user_catalog.user=$1
+            ORDER BY tag.name ASC
+            ",
+            email
+        )
+        .map(|row| from_row!(Tag(row)))
+        .fetch_all(conn)
+        .await?)
     }
 
     async fn get_or_create(
@@ -688,19 +665,36 @@ impl Tag {
         name: &str,
         parent: Option<&str>,
     ) -> Result<Tag> {
-        let mut query = tag::table
-            .filter(tag::catalog.eq(catalog))
-            .filter(lower(tag::name).eq(name.to_lowercase()))
-            .select(tag::all_columns)
-            .into_boxed();
-
-        query = if let Some(parent) = parent {
-            query.filter(tag::parent.eq(parent))
+        let tag = if let Some(parent) = parent {
+            sqlx::query!(
+                "
+                SELECT tag.*
+                FROM tag
+                WHERE tag.catalog=$1 AND LOWER(name)=$2 AND parent=$3
+                ",
+                catalog,
+                name.to_lowercase(),
+                parent
+            )
+            .map(|row| from_row!(Tag(row)))
+            .fetch_optional(&mut *conn)
+            .await?
         } else {
-            query
+            sqlx::query!(
+                "
+                SELECT tag.*
+                FROM tag
+                WHERE tag.catalog=$1 AND LOWER(name)=$2
+                ",
+                catalog,
+                name.to_lowercase()
+            )
+            .map(|row| from_row!(Tag(row)))
+            .fetch_optional(&mut *conn)
+            .await?
         };
 
-        match query.get_result::<Tag>(conn).await.optional()? {
+        match tag {
             Some(t) => Ok(t),
             None => {
                 let new_tag = Tag {
@@ -710,10 +704,18 @@ impl Tag {
                     catalog: catalog.to_owned(),
                 };
 
-                insert_into(tag::table)
-                    .values(&new_tag)
-                    .execute(conn)
-                    .await?;
+                sqlx::query!(
+                    "
+                    INSERT INTO tag (id, parent, catalog, name)
+                    VALUES ($1, $2, $3, $4)
+                    ",
+                    new_tag.id,
+                    parent,
+                    catalog,
+                    name
+                )
+                .execute(conn)
+                .await?;
 
                 Ok(new_tag)
             }
@@ -738,8 +740,7 @@ impl Tag {
     }
 }
 
-#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
-#[diesel(table_name = media_album)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct MediaAlbum {
     pub(crate) catalog: String,
     pub(crate) media: String,
@@ -753,11 +754,16 @@ impl MediaAlbum {
         album: &str,
         media: &[String],
     ) -> Result {
-        diesel::delete(media_album::table)
-            .filter(media_album::album.eq(album))
-            .filter(media_album::media.eq_any(media))
-            .execute(conn)
-            .await?;
+        sqlx::query!(
+            "
+            DELETE FROM media_album
+            WHERE album=$1 AND media=ANY($2)
+            ",
+            album,
+            media
+        )
+        .execute(conn)
+        .await?;
 
         Ok(())
     }
@@ -770,13 +776,18 @@ impl MediaAlbum {
     ) -> Result {
         MediaAlbum::upsert(conn, albums).await?;
 
-        let album_ids: Vec<&String> = albums.iter().map(|a| &a.album).collect();
+        let album_ids: Vec<String> = albums.iter().map(|a| a.album.clone()).collect();
 
-        diesel::delete(media_album::table)
-            .filter(media_album::media.eq(media))
-            .filter(media_album::album.ne_all(album_ids))
-            .execute(conn)
-            .await?;
+        sqlx::query!(
+            "
+            DELETE FROM media_album
+            WHERE media=$1 AND album!=ALL($2)
+            ",
+            media,
+            &album_ids
+        )
+        .execute(conn)
+        .await?;
 
         Ok(())
     }
@@ -784,20 +795,39 @@ impl MediaAlbum {
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, albums: &[MediaAlbum]) -> Result {
         for records in batch(albums, 500) {
-            diesel::insert_into(media_album::table)
-                .values(records)
-                .on_conflict_do_nothing()
-                .execute(conn)
-                .await?;
+            let mut catalog: Vec<String> = Vec::new();
+            let mut album: Vec<String> = Vec::new();
+            let mut media: Vec<String> = Vec::new();
+
+            records.iter().for_each(|media_album| {
+                catalog.push(media_album.catalog.clone());
+                media.push(media_album.media.clone());
+                album.push(media_album.album.clone());
+            });
+
+            sqlx::query!(
+                r#"
+                INSERT INTO media_album (
+                    "catalog",
+                    "album",
+                    "media"
+                )
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])
+                ON CONFLICT DO NOTHING
+                "#,
+                &catalog,
+                &album,
+                &media,
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         Ok(())
     }
 }
 
-#[typeshare]
-#[derive(Queryable, Insertable, Serialize, Clone, Debug)]
-#[diesel(table_name = album)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct Album {
     pub(crate) id: String,
     pub(crate) parent: Option<String>,
@@ -815,115 +845,151 @@ impl Album {
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
         if recursive {
-            let valid_ids = media_album::table
-                .inner_join(
-                    album_descendent::table.on(album_descendent::descendent.eq(media_album::album)),
+            Ok(if let Some(count) = count {
+                sqlx::query!(
+                    "
+                    SELECT *
+                    FROM media_view
+                    WHERE id IN (
+                        SELECT media_album.media
+                        FROM media_album
+                            JOIN album_descendent ON album_descendent.descendent=media_album.album
+                        WHERE album_descendent.id=$1
+                    )
+                    LIMIT $2
+                    OFFSET $3
+                    ",
+                    self.id,
+                    count,
+                    offset.unwrap_or_default()
                 )
-                .filter(album_descendent::id.eq(&self.id))
-                .select(media_album::media);
-
-            let mut query = media_view!()
-                .filter(media_item::id.eq_any(valid_ids))
-                .select(media_view_columns!())
-                .offset(offset.unwrap_or_default())
-                .into_boxed();
-
-            if let Some(count) = count {
-                query = query.limit(count);
-            }
-
-            Ok(query.load::<MediaView>(conn).await?)
+                .try_map(|row| Ok(from_row!(MediaView(row))))
+                .fetch_all(conn)
+                .await?
+            } else {
+                sqlx::query!(
+                    "
+                    SELECT *
+                    FROM media_view
+                    WHERE id IN (
+                        SELECT media_album.media
+                        FROM media_album
+                            JOIN album_descendent ON album_descendent.descendent=media_album.album
+                        WHERE album_descendent.id=$1
+                    )
+                    OFFSET $2
+                    ",
+                    self.id,
+                    offset.unwrap_or_default()
+                )
+                .try_map(|row| Ok(from_row!(MediaView(row))))
+                .fetch_all(conn)
+                .await?
+            })
         } else {
-            let valid_ids = media_album::table
-                .filter(media_album::album.eq(&self.id))
-                .select(media_album::media);
-
-            let mut query = media_view!()
-                .filter(media_item::id.eq_any(valid_ids))
-                .select(media_view_columns!())
-                .offset(offset.unwrap_or_default())
-                .into_boxed();
-
-            if let Some(count) = count {
-                query = query.limit(count);
-            }
-
-            Ok(query.load::<MediaView>(conn).await?)
+            Ok(if let Some(count) = count {
+                sqlx::query!(
+                    "
+                    SELECT *
+                    FROM media_view
+                    WHERE id IN (
+                        SELECT media_album.media
+                        FROM media_album
+                        WHERE media_album.album=$1
+                    )
+                    LIMIT $2
+                    OFFSET $3
+                    ",
+                    self.id,
+                    count,
+                    offset.unwrap_or_default()
+                )
+                .try_map(|row| Ok(from_row!(MediaView(row))))
+                .fetch_all(conn)
+                .await?
+            } else {
+                sqlx::query!(
+                    "
+                    SELECT *
+                    FROM media_view
+                    WHERE id IN (
+                        SELECT media_album.media
+                        FROM media_album
+                        WHERE media_album.album=$1
+                    )
+                    OFFSET $2
+                    ",
+                    self.id,
+                    offset.unwrap_or_default()
+                )
+                .try_map(|row| Ok(from_row!(MediaView(row))))
+                .fetch_all(conn)
+                .await?
+            })
         }
     }
 
+    #[instrument(skip_all)]
     pub(crate) async fn stream_media(
         self,
-        store: Store,
+        mut conn: DbConnection<'static>,
         recursive: bool,
-        offset: Option<i64>,
-        count: Option<i64>,
         sender: MediaViewSender,
     ) {
-        store
-            .with_connection(|conn| {
-                async move {
-                    if recursive {
-                        let valid_ids = media_album::table
-                            .inner_join(
-                                album_descendent::table
-                                    .on(album_descendent::descendent.eq(media_album::album)),
-                            )
-                            .filter(album_descendent::id.eq(&self.id))
-                            .select(media_album::media);
+        let stream = if recursive {
+            sqlx::query!(
+                "
+                SELECT media_view.*
+                FROM media_view
+                WHERE media_view.id IN (
+                    SELECT media_album.media
+                    FROM media_album
+                        JOIN album_descendent ON album_descendent.descendent=media_album.album
+                    WHERE album_descendent.id=$1
+                )
+                ORDER BY datetime DESC
+                ",
+                self.id
+            )
+            .try_map(|row| Ok(from_row!(MediaView(row))))
+            .fetch(&mut conn)
+        } else {
+            sqlx::query!(
+                "
+                SELECT media_view.*
+                FROM media_view
+                    JOIN media_album ON media_album.media=media_view.id
+                WHERE media_album.album=$1
+                ORDER BY datetime DESC
+                ",
+                self.id
+            )
+            .try_map(|row| Ok(from_row!(MediaView(row))))
+            .fetch(&mut conn)
+        };
 
-                        let mut query = media_view!()
-                            .filter(media_item::id.eq_any(valid_ids))
-                            .select(media_view_columns!())
-                            .offset(offset.unwrap_or_default())
-                            .into_boxed();
-
-                        if let Some(count) = count {
-                            query = query.limit(count);
-                        }
-
-                        sender
-                            .send_stream(query.load_stream::<MediaView>(conn))
-                            .await
-                    } else {
-                        let valid_ids = media_album::table
-                            .filter(media_album::album.eq(&self.id))
-                            .select(media_album::media);
-
-                        let mut query = media_view!()
-                            .filter(media_item::id.eq_any(valid_ids))
-                            .select(media_view_columns!())
-                            .offset(offset.unwrap_or_default())
-                            .into_boxed();
-
-                        if let Some(count) = count {
-                            query = query.limit(count);
-                        }
-
-                        sender
-                            .send_stream(query.load_stream::<MediaView>(conn))
-                            .await
-                    }
-                }
-                .scope_boxed()
-            })
-            .await
-            .ignore()
+        sender.send_stream(stream).await
     }
 
     pub(crate) async fn list_for_user_with_count(
         conn: &mut DbConnection<'_>,
         email: &str,
     ) -> Result<Vec<(Album, i64)>> {
-        Ok(user_catalog::table
-            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-            .left_join(media_album::table.on(media_album::album.eq(album::id)))
-            .filter(user_catalog::user.eq(email))
-            .group_by(album::id)
-            .select((album::all_columns, count(media_album::media.nullable())))
-            .order(album::name.asc())
-            .load::<(Album, i64)>(conn)
-            .await?)
+        Ok(sqlx::query!(
+            "
+            SELECT album.*, COUNT(media_album.media) AS count
+            FROM user_catalog
+                JOIN album USING (catalog)
+                LEFT JOIN media_album ON media_album.album=album.id
+            WHERE user_catalog.user=$1
+            GROUP BY album.id
+            ORDER BY album.name ASC
+            ",
+            email
+        )
+        .map(|row| (from_row!(Album(row)), row.count.unwrap_or_default()))
+        .fetch_all(conn)
+        .await?)
     }
 
     pub(crate) async fn get_for_user_for_update(
@@ -931,26 +997,23 @@ impl Album {
         email: &str,
         id: &str,
     ) -> Result<Album> {
-        let writable_catalogs = catalog::table
-            .inner_join(storage::table.on(storage::id.eq(catalog::storage)))
-            .filter(storage::owner.eq(email))
-            .select(catalog::id)
-            .union(
-                shared_catalog::table
-                    .filter(shared_catalog::user.eq(email))
-                    .filter(shared_catalog::writable.eq(true))
-                    .select(shared_catalog::catalog),
-            );
-
-        album::table
-            .filter(album::id.eq(id))
-            .filter(album::catalog.eq_any(writable_catalogs))
-            .select(album::all_columns)
-            .for_update()
-            .get_result::<Album>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            "
+            SELECT *
+            FROM album
+            WHERE id=$1 AND catalog IN (
+                SELECT user_catalog.catalog
+                FROM user_catalog
+                WHERE user_catalog.user=$2 AND user_catalog.writable
+            )
+            FOR UPDATE
+            ",
+            id,
+            email
+        )
+        .map(|row| from_row!(Album(row)))
+        .fetch_one(conn)
+        .await?)
     }
 
     pub(crate) async fn get_for_user(
@@ -958,16 +1021,19 @@ impl Album {
         email: &str,
         album: &str,
     ) -> Result<Album> {
-        user_catalog::table
-            .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .filter(album::id.eq(album))
-            .group_by(album::id)
-            .select(album::all_columns)
-            .get_result::<Album>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            "
+            SELECT album.*
+            FROM album
+                JOIN user_catalog ON user_catalog.catalog=album.catalog
+            WHERE user_catalog.user=$1 AND album.id=$2
+            ",
+            email,
+            album
+        )
+        .map(|row| from_row!(Album(row)))
+        .fetch_one(conn)
+        .await?)
     }
 
     pub(crate) async fn get_for_user_with_count(
@@ -977,48 +1043,75 @@ impl Album {
         recursive: bool,
     ) -> Result<(Album, i64)> {
         if recursive {
-            user_catalog::table
-                .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-                .inner_join(album_descendent::table.on(album::id.eq(album_descendent::id)))
-                .left_join(
-                    media_album::table.on(album_descendent::descendent.eq(media_album::album)),
-                )
-                .filter(user_catalog::user.eq(email))
-                .filter(album::id.eq(album))
-                .group_by(album::id)
-                .select((album::all_columns, count(media_album::media.nullable())))
-                .get_result::<(Album, i64)>(conn)
-                .await
-                .optional()?
-                .ok_or_else(|| Error::NotFound)
+            Ok(sqlx::query!(
+                "
+                SELECT album.*, COUNT(media_album.media) AS count
+                FROM user_catalog
+                    JOIN album USING (catalog)
+                    JOIN album_descendent USING (id)
+                    LEFT JOIN media_album ON album_descendent.descendent=media_album.album
+                WHERE
+                    user_catalog.user=$1 AND
+                    album.id=$2
+                GROUP BY album.id
+                ",
+                email,
+                album
+            )
+            .map(|row| (from_row!(Album(row)), row.count.unwrap_or_default()))
+            .fetch_one(conn)
+            .await?)
         } else {
-            user_catalog::table
-                .inner_join(album::table.on(album::catalog.eq(user_catalog::catalog)))
-                .left_join(media_album::table.on(album::id.eq(media_album::album)))
-                .filter(user_catalog::user.eq(email))
-                .filter(album::id.eq(album))
-                .group_by(album::id)
-                .select((album::all_columns, count(media_album::media.nullable())))
-                .get_result::<(Album, i64)>(conn)
-                .await
-                .optional()?
-                .ok_or_else(|| Error::NotFound)
+            Ok(sqlx::query!(
+                "
+                SELECT album.*, COUNT(media_album.media) AS count
+                FROM user_catalog
+                    JOIN album USING (catalog)
+                    LEFT JOIN media_album ON album.id=media_album.album
+                WHERE
+                    user_catalog.user=$1 AND
+                    album.id=$2
+                GROUP BY album.id
+                ",
+                email,
+                album
+            )
+            .map(|row| (from_row!(Album(row)), row.count.unwrap_or_default()))
+            .fetch_one(conn)
+            .await?)
         }
     }
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, albums: &[Album]) -> Result {
         for records in batch(albums, 500) {
-            diesel::insert_into(album::table)
-                .values(records)
-                .on_conflict(album::id)
-                .do_update()
-                .set((
-                    album::name.eq(excluded(album::name)),
-                    album::parent.eq(excluded(album::parent)),
-                ))
-                .execute(conn)
-                .await?;
+            let mut id: Vec<String> = Vec::new();
+            let mut catalog: Vec<String> = Vec::new();
+            let mut name: Vec<String> = Vec::new();
+            let mut parent: Vec<Option<String>> = Vec::new();
+
+            records.iter().for_each(|album| {
+                id.push(album.id.clone());
+                catalog.push(album.catalog.clone());
+                parent.push(album.parent.clone());
+                name.push(album.name.clone());
+            });
+
+            sqlx::query!(
+                r#"
+                INSERT INTO album (id, parent, name, catalog)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[])
+                ON CONFLICT(id) DO UPDATE SET
+                    name=excluded.name,
+                    parent=excluded.parent
+                "#,
+                &id,
+                &parent as &[Option<String>],
+                &name,
+                &catalog,
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         Ok(())
@@ -1026,8 +1119,7 @@ impl Album {
 
     #[instrument(skip_all)]
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, albums: &[String]) -> Result {
-        diesel::delete(album::table)
-            .filter(album::id.eq_any(albums))
+        sqlx::query!("DELETE FROM album WHERE id=ANY($1)", albums)
             .execute(conn)
             .await?;
 
@@ -1035,24 +1127,13 @@ impl Album {
     }
 }
 
-#[typeshare]
-#[derive(Queryable, Serialize, Insertable, Clone, Debug)]
-#[diesel(table_name = saved_search)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct SavedSearch {
     pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) shared: bool,
     pub(crate) query: SearchQuery,
     pub(crate) catalog: String,
-}
-
-#[derive(Insertable)]
-#[diesel(table_name = media_search)]
-struct MediaSearch {
-    catalog: String,
-    media: String,
-    search: String,
-    added: DateTime<Utc>,
 }
 
 impl SavedSearch {
@@ -1063,104 +1144,93 @@ impl SavedSearch {
         offset: Option<i64>,
         count: Option<i64>,
     ) -> Result<Vec<MediaView>> {
-        let valid_ids = media_search::table
-            .filter(media_search::search.eq(&self.id))
-            .select(media_search::media);
-
-        let mut query = media_view!()
-            .filter(media_item::id.eq_any(valid_ids))
-            .select(media_view_columns!())
-            .offset(offset.unwrap_or_default())
-            .into_boxed();
-
         if let Some(count) = count {
-            query = query.limit(count);
+            Ok(sqlx::query!(
+                "
+                SELECT media_view.*
+                FROM media_view
+                    JOIN media_search ON media_search.media=media_view.id
+                WHERE media_search.search=$1
+                LIMIT $2
+                OFFSET $3
+                ",
+                self.id,
+                count,
+                offset.unwrap_or_default()
+            )
+            .try_map(|row| Ok(from_row!(MediaView(row))))
+            .fetch_all(conn)
+            .await?)
+        } else {
+            Ok(sqlx::query!(
+                "
+                SELECT media_view.*
+                FROM media_view
+                    JOIN media_search ON media_search.media=media_view.id
+                WHERE media_search.search=$1
+                OFFSET $2
+                ",
+                self.id,
+                offset.unwrap_or_default()
+            )
+            .try_map(|row| Ok(from_row!(MediaView(row))))
+            .fetch_all(conn)
+            .await?)
         }
-
-        Ok(query.load::<MediaView>(conn).await?)
     }
 
-    pub(crate) async fn stream_media(
-        self,
-        store: Store,
-        offset: Option<i64>,
-        count: Option<i64>,
-        sender: MediaViewSender,
-    ) {
-        store
-            .with_connection(|conn| {
-                async move {
-                    let valid_ids = media_search::table
-                        .filter(media_search::search.eq(&self.id))
-                        .select(media_search::media);
+    #[instrument(skip_all)]
+    pub(crate) async fn stream_media(self, mut conn: DbConnection<'_>, sender: MediaViewSender) {
+        let stream = sqlx::query!(
+            "
+            SELECT media_view.*
+            FROM media_view
+                JOIN media_search ON media_search.media=media_view.id
+            WHERE media_search.search=$1
+            ORDER BY datetime DESC
+            ",
+            self.id
+        )
+        .try_map(|row| Ok(from_row!(MediaView(row))))
+        .fetch(&mut conn);
 
-                    let mut query = media_view!()
-                        .filter(media_item::id.eq_any(valid_ids))
-                        .select(media_view_columns!())
-                        .offset(offset.unwrap_or_default())
-                        .into_boxed();
-
-                    if let Some(count) = count {
-                        query = query.limit(count);
-                    }
-
-                    sender
-                        .send_stream(query.load_stream::<MediaView>(conn))
-                        .await
-                }
-                .scope_boxed()
-            })
-            .await
-            .ignore()
-    }
-
-    #[instrument(skip_all, err)]
-    pub(crate) async fn upgrade_queries(conn: &mut DbConnection<'_>) -> Result {
-        let search_data = saved_search::table
-            .select(saved_search::all_columns)
-            .for_update()
-            .load::<(String, String, bool, Value, String)>(conn)
-            .await?;
-
-        let mut searches = Vec::<SavedSearch>::new();
-
-        for (id, name, shared, query_data, catalog) in search_data {
-            let query = upgrade_query(query_data)?;
-
-            let search = SavedSearch {
-                id,
-                name,
-                shared,
-                query,
-                catalog,
-            };
-
-            searches.push(search);
-        }
-
-        Self::upsert(conn, &searches).await?;
-
-        for search in searches {
-            search.update(conn).await?;
-        }
-
-        Ok(())
+        sender.send_stream(stream).await
     }
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, searches: &[SavedSearch]) -> Result {
         for records in batch(searches, 500) {
-            diesel::insert_into(saved_search::table)
-                .values(records)
-                .on_conflict(saved_search::id)
-                .do_update()
-                .set((
-                    saved_search::name.eq(excluded(saved_search::name)),
-                    saved_search::shared.eq(excluded(saved_search::shared)),
-                    saved_search::query.eq(excluded(saved_search::query)),
-                ))
-                .execute(conn)
-                .await?;
+            let mut id: Vec<String> = Vec::new();
+            let mut catalog: Vec<String> = Vec::new();
+            let mut name: Vec<String> = Vec::new();
+            let mut shared: Vec<bool> = Vec::new();
+            let mut query: Vec<Json<&SearchQuery>> = Vec::new();
+
+            records.iter().for_each(|search| {
+                id.push(search.id.clone());
+                catalog.push(search.catalog.clone());
+                name.push(search.name.clone());
+                shared.push(search.shared);
+                query.push(Json(&search.query));
+            });
+
+            sqlx::query!(
+                r#"
+                INSERT INTO saved_search (id, name, shared, query, catalog)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::bool[], $4::jsonb[], $5::text[])
+                ON CONFLICT(id) DO UPDATE SET
+                    name=excluded.name,
+                    shared=excluded.shared,
+                    query=excluded.query
+                "#,
+                &id,
+                &name,
+                &shared,
+                &query as &[Json<&SearchQuery>],
+                &catalog,
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         Ok(())
@@ -1168,37 +1238,53 @@ impl SavedSearch {
 
     #[instrument(skip(self, conn), fields(search = self.id))]
     pub(crate) async fn update(&self, conn: &mut DbConnection<'_>) -> Result {
-        let select = media_view!()
-            .filter(media_item::catalog.eq(&self.catalog))
-            .filter(self.query.build_filter(&self.catalog))
-            .select(media_item::id)
-            .order_by(media_item::id)
-            .distinct();
+        let mut builder =
+            QueryBuilder::new("SELECT DISTINCT media_view.id FROM media_view WHERE catalog=");
+        builder.push_bind(&self.catalog);
+        builder.push(" AND ");
 
-        let matching_media = select.load::<String>(conn).await?;
+        self.query.bind_filter(&self.catalog, &mut builder);
 
-        let now = Utc::now();
-
-        let inserts: Vec<MediaSearch> = matching_media
-            .iter()
-            .map(|id| MediaSearch {
-                catalog: self.catalog.clone(),
-                media: id.to_owned(),
-                search: self.id.to_string(),
-                added: now,
-            })
-            .collect();
-
-        insert_into(media_search::table)
-            .values(inserts)
-            .on_conflict_do_nothing()
-            .execute(conn)
+        let matching_media: Vec<String> = builder
+            .build_query_scalar()
+            .persistent(false)
+            .fetch_all(&mut *conn)
             .await?;
 
-        delete(
-            media_search::table
-                .filter(media_search::search.eq(&self.id))
-                .filter(media_search::media.ne_all(matching_media)),
+        let mut catalog = Vec::<String>::new();
+        let mut media = Vec::<String>::new();
+        let mut search = Vec::<String>::new();
+        let mut added = Vec::<DateTime<Utc>>::new();
+
+        let now = Utc::now();
+        matching_media.iter().for_each(|id| {
+            catalog.push(self.catalog.clone());
+            media.push(id.to_owned());
+            search.push(self.id.to_string());
+            added.push(now);
+        });
+
+        sqlx::query!(
+            "
+            INSERT INTO media_search (catalog, media, search, added)
+            SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::timestamptz[])
+            ON CONFLICT DO NOTHING
+            ",
+            &catalog,
+            &media,
+            &search,
+            &added,
+        )
+        .execute(&mut *conn)
+        .await?;
+
+        sqlx::query!(
+            "
+            DELETE FROM media_search
+            WHERE search=$1 AND media!=ALL($2)
+            ",
+            &self.id,
+            &matching_media
         )
         .execute(conn)
         .await?;
@@ -1209,11 +1295,17 @@ impl SavedSearch {
     pub(crate) async fn update_for_catalog(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
         let was_public = MediaItem::list_public(conn, catalog).await?;
 
-        let searches = saved_search::table
-            .filter(saved_search::catalog.eq(catalog))
-            .select(saved_search::all_columns)
-            .load::<SavedSearch>(conn)
-            .await?;
+        let searches = sqlx::query!(
+            "
+            SELECT *
+            FROM saved_search
+            WHERE catalog=$1
+            ",
+            catalog
+        )
+        .try_map(|row| Ok(from_row!(SavedSearch(row))))
+        .fetch_all(&mut *conn)
+        .await?;
 
         for search in searches {
             search.update(conn).await?;
@@ -1250,23 +1342,27 @@ impl SavedSearch {
     ) -> Result<SavedSearch> {
         let email = email.unwrap_or_default().to_owned();
 
-        saved_search::table
-            .filter(saved_search::id.eq(search))
-            .filter(
-                saved_search::shared
-                    .eq(true)
-                    .or(saved_search::catalog.eq_any(
-                        user_catalog::table
-                            .filter(user_catalog::user.eq(email))
-                            .select(user_catalog::catalog),
-                    )),
-            )
-            .group_by(saved_search::id)
-            .select(saved_search::all_columns)
-            .get_result::<SavedSearch>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            "
+            SELECT *
+            FROM saved_search
+            WHERE
+                saved_search.id=$1 AND
+                (
+                    shared OR
+                    catalog IN (
+                        SELECT user_catalog.catalog
+                        FROM user_catalog
+                        WHERE user=$2
+                    )
+                )
+            ",
+            search,
+            email
+        )
+        .try_map(|row| Ok(from_row!(SavedSearch(row))))
+        .fetch_one(conn)
+        .await?)
     }
 
     pub(crate) async fn get_for_user_with_count(
@@ -1276,45 +1372,50 @@ impl SavedSearch {
     ) -> Result<(SavedSearch, i64)> {
         let email = email.unwrap_or_default().to_owned();
 
-        saved_search::table
-            .left_join(media_search::table.on(saved_search::id.eq(media_search::search)))
-            .filter(saved_search::id.eq(search))
-            .filter(
-                saved_search::shared
-                    .eq(true)
-                    .or(saved_search::catalog.eq_any(
-                        user_catalog::table
-                            .filter(user_catalog::user.eq(email))
-                            .select(user_catalog::catalog),
-                    )),
-            )
-            .group_by(saved_search::id)
-            .select((
-                saved_search::all_columns,
-                count(media_search::media.nullable()),
-            ))
-            .get_result::<(SavedSearch, i64)>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            "
+            SELECT saved_search.*, COUNT(media_search.media) AS count
+            FROM saved_search
+                LEFT JOIN media_search ON saved_search.id=media_search.search
+            WHERE
+                saved_search.id=$1 AND
+                (
+                    saved_search.shared OR
+                    saved_search.catalog IN (
+                        SELECT user_catalog.catalog
+                        FROM user_catalog
+                        WHERE user=$2
+                    )
+                )
+            GROUP BY saved_search.id
+            ",
+            search,
+            email
+        )
+        .try_map(|row| Ok((from_row!(SavedSearch(row)), row.count.unwrap_or_default())))
+        .fetch_one(conn)
+        .await?)
     }
 
     pub(crate) async fn list_for_user_with_count(
         conn: &mut DbConnection<'_>,
         email: &str,
     ) -> Result<Vec<(SavedSearch, i64)>> {
-        Ok(user_catalog::table
-            .inner_join(saved_search::table.on(saved_search::catalog.eq(user_catalog::catalog)))
-            .left_join(media_search::table.on(media_search::search.eq(saved_search::id)))
-            .filter(user_catalog::user.eq(email))
-            .group_by(saved_search::id)
-            .select((
-                saved_search::all_columns,
-                count(media_search::media.nullable()),
-            ))
-            .order(saved_search::name.asc())
-            .load::<(SavedSearch, i64)>(conn)
-            .await?)
+        Ok(sqlx::query!(
+            "
+            SELECT saved_search.*, COUNT(media_search.media) AS count
+            FROM user_catalog
+                JOIN saved_search USING (catalog)
+                LEFT JOIN media_search ON media_search.search=saved_search.id
+            WHERE user_catalog.user=$1
+            GROUP BY saved_search.id
+            ORDER BY saved_search.name ASC
+            ",
+            email
+        )
+        .try_map(|row| Ok((from_row!(SavedSearch(row)), row.count.unwrap_or_default())))
+        .fetch_all(conn)
+        .await?)
     }
 }
 
@@ -1324,8 +1425,7 @@ fn clear_matching<T: PartialEq>(field: &mut Option<T>, reference: &Option<T>) {
     }
 }
 
-#[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = media_tag)]
+#[derive(Clone, Debug)]
 pub(crate) struct MediaTag {
     pub(crate) catalog: String,
     pub(crate) media: String,
@@ -1341,13 +1441,18 @@ impl MediaTag {
     ) -> Result {
         MediaTag::upsert(conn, tags).await?;
 
-        let tag_ids: Vec<&String> = tags.iter().map(|t| &t.tag).collect();
+        let tag_ids = tags.iter().map(|t| t.tag.clone()).collect_vec();
 
-        diesel::delete(media_tag::table)
-            .filter(media_tag::media.eq(media))
-            .filter(media_tag::tag.ne_all(tag_ids))
-            .execute(conn)
-            .await?;
+        sqlx::query!(
+            "
+            DELETE FROM media_tag
+            WHERE media=$1 AND tag!=ANY($2)
+            ",
+            media,
+            &tag_ids
+        )
+        .execute(conn)
+        .await?;
 
         Ok(())
     }
@@ -1355,21 +1460,37 @@ impl MediaTag {
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, tags: &[MediaTag]) -> Result {
         for records in batch(tags, 500) {
-            diesel::insert_into(media_tag::table)
-                .values(records)
-                .on_conflict_do_nothing()
-                .execute(conn)
-                .await?;
+            let mut catalog: Vec<String> = Vec::new();
+            let mut media: Vec<String> = Vec::new();
+            let mut tag: Vec<String> = Vec::new();
+
+            records.iter().for_each(|media_tag| {
+                catalog.push(media_tag.catalog.clone());
+                media.push(media_tag.media.clone());
+                tag.push(media_tag.tag.clone());
+            });
+
+            sqlx::query!(
+                r#"
+                INSERT INTO media_tag (catalog, media, tag)
+                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])
+                ON CONFLICT DO NOTHING
+                "#,
+                &catalog,
+                &media,
+                &tag,
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         Ok(())
     }
 }
 
-#[derive(Insertable, Serialize, PartialEq, Default, Clone, Debug)]
-#[diesel(table_name = media_item, table_name = media_file)]
+#[derive(Serialize, PartialEq, Default, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct MediaMetadata {
+pub(crate) struct MediaMetadata {
     pub filename: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
@@ -1384,7 +1505,7 @@ pub struct MediaMetadata {
     pub lens: Option<String>,
     pub photographer: Option<String>,
     pub shutter_speed: Option<f32>,
-    pub orientation: Option<i32>,
+    pub orientation: Option<Orientation>,
     pub iso: Option<i32>,
     pub rating: Option<i32>,
     pub longitude: Option<f32>,
@@ -1393,6 +1514,38 @@ pub struct MediaMetadata {
     pub aperture: Option<f32>,
     pub focal_length: Option<f32>,
     pub taken: Option<NaiveDateTime>,
+}
+
+impl<'q> FromRow<'q, PgRow> for MediaMetadata {
+    fn from_row(row: &'q PgRow) -> SqlxResult<Self> {
+        let orientation: Option<i32> = row.try_get("orientation")?;
+
+        Ok(MediaMetadata {
+            filename: row.try_get("filename")?,
+            title: row.try_get("title")?,
+            description: row.try_get("description")?,
+            label: row.try_get("label")?,
+            category: row.try_get("category")?,
+            location: row.try_get("location")?,
+            city: row.try_get("city")?,
+            state: row.try_get("state")?,
+            country: row.try_get("country")?,
+            make: row.try_get("make")?,
+            model: row.try_get("model")?,
+            lens: row.try_get("lens")?,
+            photographer: row.try_get("photographer")?,
+            shutter_speed: row.try_get("shutter_speed")?,
+            orientation: orientation.and_then(Orientation::from_repr),
+            iso: row.try_get("iso")?,
+            rating: row.try_get("rating")?,
+            longitude: row.try_get("longitude")?,
+            latitude: row.try_get("latitude")?,
+            altitude: row.try_get("altitude")?,
+            aperture: row.try_get("aperture")?,
+            focal_length: row.try_get("focal_length")?,
+            taken: row.try_get("taken")?,
+        })
+    }
 }
 
 impl MediaMetadata {
@@ -1429,96 +1582,12 @@ impl MediaMetadata {
     }
 }
 
-type MediaMetadataRow = (
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Text>,
-    sql_types::Nullable<sql_types::Float>,
-    sql_types::Nullable<sql_types::Integer>,
-    sql_types::Nullable<sql_types::Integer>,
-    sql_types::Nullable<sql_types::Integer>,
-    sql_types::Nullable<sql_types::Float>,
-    sql_types::Nullable<sql_types::Float>,
-    sql_types::Nullable<sql_types::Float>,
-    sql_types::Nullable<sql_types::Float>,
-    sql_types::Nullable<sql_types::Float>,
-    sql_types::Nullable<sql_types::Timestamp>,
-);
-
-impl Queryable<MediaMetadataRow, Backend> for MediaMetadata {
-    type Row = (
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<f32>,
-        Option<i32>,
-        Option<i32>,
-        Option<i32>,
-        Option<f32>,
-        Option<f32>,
-        Option<f32>,
-        Option<f32>,
-        Option<f32>,
-        Option<NaiveDateTime>,
-    );
-
-    fn build(row: Self::Row) -> deserialize::Result<Self> {
-        Ok(MediaMetadata {
-            filename: row.0,
-            title: row.1,
-            description: row.2,
-            label: row.3,
-            category: row.4,
-            location: row.5,
-            city: row.6,
-            state: row.7,
-            country: row.8,
-            make: row.9,
-            model: row.10,
-            lens: row.11,
-            photographer: row.12,
-            shutter_speed: row.13,
-            orientation: row.14,
-            iso: row.15,
-            rating: row.16,
-            longitude: row.17,
-            latitude: row.18,
-            altitude: row.19,
-            aperture: row.20,
-            focal_length: row.21,
-            taken: row.22,
-        })
-    }
-}
-
-#[derive(Queryable, Insertable, Clone, Debug)]
-#[diesel(table_name = media_item)]
-pub struct MediaItem {
+#[derive(Clone, Debug)]
+pub(crate) struct MediaItem {
     pub id: String,
     pub deleted: bool,
     pub created: DateTime<Utc>,
     pub updated: DateTime<Utc>,
-    #[diesel(embed)]
     pub metadata: MediaMetadata,
     pub taken_zone: Option<String>,
     pub catalog: String,
@@ -1528,7 +1597,7 @@ pub struct MediaItem {
 }
 
 impl MediaItem {
-    pub fn new(catalog: &str) -> Self {
+    pub(crate) fn new(catalog: &str) -> Self {
         let now = Utc::now();
 
         Self {
@@ -1549,12 +1618,17 @@ impl MediaItem {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<MediaItem>> {
-        let media = media_item::table
-            .filter(media_item::deleted.eq(true))
-            .filter(media_item::catalog.eq(catalog))
-            .select(media_item_columns!())
-            .load::<MediaItem>(conn)
-            .await?;
+        let media = sqlx::query!(
+            "
+            SELECT *
+            FROM media_item
+            WHERE deleted AND catalog=$1
+            ",
+            catalog
+        )
+        .map(|row| from_row!(MediaItem(row)))
+        .fetch_all(conn)
+        .await?;
 
         Ok(media)
     }
@@ -1563,31 +1637,40 @@ impl MediaItem {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<HashSet<String>> {
-        let public_searches = media_search::table
-            .inner_join(saved_search::table.on(saved_search::id.eq(media_search::search)))
-            .filter(saved_search::shared.eq(true))
-            .filter(saved_search::catalog.eq(catalog))
-            .select(media_search::media);
-
-        let media = media_item::table
-            .filter(
-                media_item::public
-                    .eq(true)
-                    .or(media_item::id.eq_any(public_searches)),
-            )
-            .select(media_item::id)
-            .load::<String>(conn)
-            .await?;
+        let media = sqlx::query_scalar!(
+            "
+            SELECT id
+            FROM media_item
+            WHERE catalog=$1 AND
+                (
+                    public OR
+                    id IN (
+                        SELECT media_search.media
+                        FROM media_search
+                            JOIN saved_search ON saved_search.id=media_search.search
+                        WHERE saved_search.shared
+                    )
+                )
+            ",
+            catalog
+        )
+        .fetch_all(conn)
+        .await?;
 
         Ok(media.into_iter().collect())
     }
 
     pub(crate) async fn mark_deleted(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
-        diesel::update(media_item::table)
-            .filter(media_item::id.eq_any(media))
-            .set(media_item::deleted.eq(true))
-            .execute(conn)
-            .await?;
+        sqlx::query!(
+            "
+            UPDATE media_item
+            SET deleted=TRUE
+            WHERE id=ANY($1)
+            ",
+            media
+        )
+        .execute(conn)
+        .await?;
 
         Ok(())
     }
@@ -1597,17 +1680,22 @@ impl MediaItem {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<(MediaItem, MediaItemStore)>> {
-        let timeout = Utc::now() - Duration::weeks(1);
-
         // Lists the items with no media_files.
-        let items = media_item::table
-            .left_join(media_file::table.on(media_item::id.eq(media_file::media_item)))
-            .filter(media_item::catalog.eq(catalog))
-            .filter(media_file::id.is_null())
-            .filter(media_item::created.lt(timeout))
-            .select(media_item_columns!())
-            .load::<MediaItem>(conn)
-            .await?;
+        let items = sqlx::query!(
+            "
+            SELECT media_item.*
+            FROM media_item
+                LEFT JOIN media_file ON media_item.id=media_file.media_item
+            WHERE
+                media_item.catalog=$1 AND
+                media_file.id IS NULL AND
+                media_item.created < (CURRENT_TIMESTAMP - interval '1 week')
+            ",
+            catalog
+        )
+        .map(|row| from_row!(MediaItem(row)))
+        .fetch_all(conn)
+        .await?;
 
         Ok(items
             .into_iter()
@@ -1622,8 +1710,7 @@ impl MediaItem {
     }
 
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
-        diesel::delete(media_item::table)
-            .filter(media_item::id.eq_any(media))
+        sqlx::query!("DELETE FROM media_item WHERE id=ANY($1)", media)
             .execute(conn)
             .await?;
 
@@ -1635,29 +1722,76 @@ impl MediaItem {
         email: &str,
         ids: &[String],
     ) -> Result<Vec<Self>> {
-        Ok(media_item::table
-            .inner_join(user_catalog::table.on(user_catalog::catalog.eq(media_item::catalog)))
-            .filter(user_catalog::user.eq(email))
-            .filter(user_catalog::writable)
-            .filter(media_item::id.eq_any(ids))
-            .select(media_item_columns!())
-            .load::<Self>(conn)
-            .await?)
+        Ok(sqlx::query!(
+            "
+            SELECT media_item.*
+            FROM media_item
+                JOIN user_catalog USING (catalog)
+            WHERE
+                user_catalog.user=$1 AND
+                user_catalog.writable AND
+                media_item.id=ANY($2)
+            ",
+            email,
+            ids
+        )
+        .try_map(|row| Ok(from_row!(MediaItem(row))))
+        .fetch_all(conn)
+        .await?)
     }
 
     pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-        let items = media_item::table
-            .left_outer_join(
-                latest_media_file::table.on(media_item::id.eq(latest_media_file::media_item)),
-            )
-            .filter(media_item::catalog.eq(catalog))
-            .filter(media_item::media_file.is_distinct_from(latest_media_file::id.nullable()))
-            .select((
-                media_item_columns!(),
-                media_file_columns!(latest_media_file).nullable(),
-            ))
-            .load::<(MediaItem, Option<MediaFile>)>(conn)
-            .await?;
+        let items = sqlx::query!(
+            "
+            SELECT
+                media_item.*,
+                latest_media_file.id AS media_file_id,
+                latest_media_file.uploaded AS media_file_uploaded,
+                latest_media_file.file_name AS media_file_file_name,
+                latest_media_file.file_size AS media_file_file_size,
+                latest_media_file.mimetype AS media_file_mimetype,
+                latest_media_file.width AS media_file_width,
+                latest_media_file.height AS media_file_height,
+                latest_media_file.duration AS media_file_duration,
+                latest_media_file.frame_rate AS media_file_frame_rate,
+                latest_media_file.bit_rate AS media_file_bit_rate,
+                latest_media_file.filename AS media_file_filename,
+                latest_media_file.title AS media_file_title,
+                latest_media_file.description AS media_file_description,
+                latest_media_file.label AS media_file_label,
+                latest_media_file.category AS media_file_category,
+                latest_media_file.location AS media_file_location,
+                latest_media_file.city AS media_file_city,
+                latest_media_file.state AS media_file_state,
+                latest_media_file.country AS media_file_country,
+                latest_media_file.make AS media_file_make,
+                latest_media_file.model AS media_file_model,
+                latest_media_file.lens AS media_file_lens,
+                latest_media_file.photographer AS media_file_photographer,
+                latest_media_file.orientation AS media_file_orientation,
+                latest_media_file.iso AS media_file_iso,
+                latest_media_file.rating AS media_file_rating,
+                latest_media_file.longitude AS media_file_longitude,
+                latest_media_file.latitude AS media_file_latitude,
+                latest_media_file.altitude AS media_file_altitude,
+                latest_media_file.aperture AS media_file_aperture,
+                latest_media_file.focal_length AS media_file_focal_length,
+                latest_media_file.taken AS media_file_taken,
+                latest_media_file.media_item AS media_file_media_item,
+                latest_media_file.shutter_speed AS media_file_shutter_speed,
+                latest_media_file.needs_metadata AS media_file_needs_metadata,
+                latest_media_file.stored AS media_file_stored
+            FROM media_item
+                LEFT JOIN latest_media_file ON media_item.id=latest_media_file.media_item
+            WHERE
+                media_item.catalog=$1 AND
+                media_item.media_file IS DISTINCT FROM latest_media_file.id
+            ",
+            catalog
+        )
+        .try_map(|row| Ok((from_row!(MediaItem(row)), from_row!(MaybeMediaFile(row)))))
+        .fetch_all(&mut *conn)
+        .await?;
 
         let updated: Vec<MediaItem> = items
             .into_iter()
@@ -1678,44 +1812,215 @@ impl MediaItem {
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_items: &[MediaItem]) -> Result {
         for records in batch(media_items, 500) {
-            diesel::insert_into(media_item::table)
-                .values(records)
-                .on_conflict(media_item::id)
-                .do_update()
-                .set((
-                    media_item::deleted.eq(excluded(media_item::deleted)),
-                    media_item::created.eq(excluded(media_item::created)),
-                    media_item::updated.eq(excluded(media_item::updated)),
-                    media_item::datetime.eq(excluded(media_item::datetime)),
-                    media_item::filename.eq(excluded(media_item::filename)),
-                    media_item::title.eq(excluded(media_item::title)),
-                    media_item::description.eq(excluded(media_item::description)),
-                    media_item::label.eq(excluded(media_item::label)),
-                    media_item::category.eq(excluded(media_item::category)),
-                    media_item::location.eq(excluded(media_item::location)),
-                    media_item::city.eq(excluded(media_item::city)),
-                    media_item::state.eq(excluded(media_item::state)),
-                    media_item::country.eq(excluded(media_item::country)),
-                    media_item::make.eq(excluded(media_item::make)),
-                    media_item::model.eq(excluded(media_item::model)),
-                    media_item::lens.eq(excluded(media_item::lens)),
-                    media_item::photographer.eq(excluded(media_item::photographer)),
-                    media_item::shutter_speed.eq(excluded(media_item::shutter_speed)),
-                    media_item::taken_zone.eq(excluded(media_item::taken_zone)),
-                    media_item::orientation.eq(excluded(media_item::orientation)),
-                    media_item::iso.eq(excluded(media_item::iso)),
-                    media_item::rating.eq(excluded(media_item::rating)),
-                    media_item::longitude.eq(excluded(media_item::longitude)),
-                    media_item::latitude.eq(excluded(media_item::latitude)),
-                    media_item::altitude.eq(excluded(media_item::altitude)),
-                    media_item::aperture.eq(excluded(media_item::aperture)),
-                    media_item::focal_length.eq(excluded(media_item::focal_length)),
-                    media_item::taken.eq(excluded(media_item::taken)),
-                    media_item::media_file.eq(excluded(media_item::media_file)),
-                    media_item::public.eq(excluded(media_item::public)),
-                ))
-                .execute(conn)
-                .await?;
+            let mut id = Vec::<String>::new();
+            let mut deleted = Vec::<bool>::new();
+            let mut created = Vec::<DateTime<Utc>>::new();
+            let mut updated = Vec::<DateTime<Utc>>::new();
+            let mut taken_zone = Vec::<Option<String>>::new();
+            let mut catalog = Vec::<String>::new();
+            let mut media_file = Vec::<Option<String>>::new();
+            let mut datetime = Vec::<DateTime<Utc>>::new();
+            let mut public = Vec::<bool>::new();
+            let mut filename = Vec::<Option<String>>::new();
+            let mut title = Vec::<Option<String>>::new();
+            let mut description = Vec::<Option<String>>::new();
+            let mut label = Vec::<Option<String>>::new();
+            let mut category = Vec::<Option<String>>::new();
+            let mut location = Vec::<Option<String>>::new();
+            let mut city = Vec::<Option<String>>::new();
+            let mut state = Vec::<Option<String>>::new();
+            let mut country = Vec::<Option<String>>::new();
+            let mut make = Vec::<Option<String>>::new();
+            let mut model = Vec::<Option<String>>::new();
+            let mut lens = Vec::<Option<String>>::new();
+            let mut photographer = Vec::<Option<String>>::new();
+            let mut shutter_speed = Vec::<Option<f32>>::new();
+            let mut orientation = Vec::<Option<i32>>::new();
+            let mut iso = Vec::<Option<i32>>::new();
+            let mut rating = Vec::<Option<i32>>::new();
+            let mut longitude = Vec::<Option<f32>>::new();
+            let mut latitude = Vec::<Option<f32>>::new();
+            let mut altitude = Vec::<Option<f32>>::new();
+            let mut aperture = Vec::<Option<f32>>::new();
+            let mut focal_length = Vec::<Option<f32>>::new();
+            let mut taken = Vec::<Option<NaiveDateTime>>::new();
+
+            records.iter().for_each(|media_item| {
+                id.push(media_item.id.clone());
+                deleted.push(media_item.deleted);
+                created.push(media_item.created);
+                updated.push(media_item.updated);
+                taken_zone.push(media_item.taken_zone.clone());
+                catalog.push(media_item.catalog.clone());
+                media_file.push(media_item.media_file.clone());
+                datetime.push(media_item.datetime);
+                public.push(media_item.public);
+                filename.push(media_item.metadata.filename.clone());
+                title.push(media_item.metadata.title.clone());
+                description.push(media_item.metadata.description.clone());
+                label.push(media_item.metadata.label.clone());
+                category.push(media_item.metadata.category.clone());
+                location.push(media_item.metadata.location.clone());
+                city.push(media_item.metadata.city.clone());
+                state.push(media_item.metadata.state.clone());
+                country.push(media_item.metadata.country.clone());
+                make.push(media_item.metadata.make.clone());
+                model.push(media_item.metadata.model.clone());
+                lens.push(media_item.metadata.lens.clone());
+                photographer.push(media_item.metadata.photographer.clone());
+                shutter_speed.push(media_item.metadata.shutter_speed);
+                orientation.push(media_item.metadata.orientation.map(|o| o.repr()));
+                iso.push(media_item.metadata.iso);
+                rating.push(media_item.metadata.rating);
+                longitude.push(media_item.metadata.longitude);
+                latitude.push(media_item.metadata.latitude);
+                altitude.push(media_item.metadata.altitude);
+                aperture.push(media_item.metadata.aperture);
+                focal_length.push(media_item.metadata.focal_length);
+                taken.push(media_item.metadata.taken);
+            });
+
+            sqlx::query!(
+                r#"
+                INSERT INTO media_item (
+                    id,
+                    deleted,
+                    created,
+                    updated,
+                    taken_zone,
+                    catalog,
+                    media_file,
+                    datetime,
+                    public,
+
+                    filename,
+                    title,
+                    description,
+                    label,
+                    category,
+                    location,
+                    city,
+                    state,
+                    country,
+                    make,
+                    model,
+                    lens,
+                    photographer,
+                    shutter_speed,
+                    orientation,
+                    iso,
+                    rating,
+                    longitude,
+                    latitude,
+                    altitude,
+                    aperture,
+                    focal_length,
+                    taken
+                )
+                SELECT * FROM UNNEST(
+                    $1::text[],
+                    $2::bool[],
+                    $3::timestamptz[],
+                    $4::timestamptz[],
+                    $5::text[],
+                    $6::text[],
+                    $7::text[],
+                    $8::timestamptz[],
+                    $9::bool[],
+
+                    $10::text[],
+                    $11::text[],
+                    $12::text[],
+                    $13::text[],
+                    $14::text[],
+                    $15::text[],
+                    $16::text[],
+                    $17::text[],
+                    $18::text[],
+                    $19::text[],
+                    $20::text[],
+                    $21::text[],
+                    $22::text[],
+                    $23::real[],
+                    $24::integer[],
+                    $25::integer[],
+                    $26::integer[],
+                    $27::real[],
+                    $28::real[],
+                    $29::real[],
+                    $30::real[],
+                    $31::real[],
+                    $32::timestamp[]
+                )
+                ON CONFLICT (id) DO UPDATE SET
+                    deleted=excluded.deleted,
+                    created=excluded.created,
+                    updated=excluded.updated,
+                    taken_zone=excluded.taken_zone,
+                    catalog=excluded.catalog,
+                    media_file=excluded.media_file,
+                    datetime=excluded.datetime,
+                    public=excluded.public,
+
+                    filename=excluded.filename,
+                    title=excluded.title,
+                    description=excluded.description,
+                    label=excluded.label,
+                    category=excluded.category,
+                    location=excluded.location,
+                    city=excluded.city,
+                    state=excluded.state,
+                    country=excluded.country,
+                    make=excluded.make,
+                    model=excluded.model,
+                    lens=excluded.lens,
+                    photographer=excluded.photographer,
+                    shutter_speed=excluded.shutter_speed,
+                    orientation=excluded.orientation,
+                    iso=excluded.iso,
+                    rating=excluded.rating,
+                    longitude=excluded.longitude,
+                    latitude=excluded.latitude,
+                    altitude=excluded.altitude,
+                    aperture=excluded.aperture,
+                    focal_length=excluded.focal_length,
+                    taken=excluded.taken
+                "#,
+                &id,
+                &deleted,
+                &created,
+                &updated,
+                &taken_zone as &[Option<String>],
+                &catalog,
+                &media_file as &[Option<String>],
+                &datetime,
+                &public,
+                &filename as &[Option<String>],
+                &title as &[Option<String>],
+                &description as &[Option<String>],
+                &label as &[Option<String>],
+                &category as &[Option<String>],
+                &location as &[Option<String>],
+                &city as &[Option<String>],
+                &state as &[Option<String>],
+                &country as &[Option<String>],
+                &make as &[Option<String>],
+                &model as &[Option<String>],
+                &lens as &[Option<String>],
+                &photographer as &[Option<String>],
+                &shutter_speed as &[Option<f32>],
+                &orientation as &[Option<i32>],
+                &iso as &[Option<i32>],
+                &rating as &[Option<i32>],
+                &longitude as &[Option<f32>],
+                &latitude as &[Option<f32>],
+                &altitude as &[Option<f32>],
+                &aperture as &[Option<f32>],
+                &focal_length as &[Option<f32>],
+                &taken as &[Option<NaiveDateTime>]
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         Ok(())
@@ -1754,21 +2059,18 @@ impl MediaItem {
     }
 }
 
-#[derive(Queryable, Insertable, Clone, Debug)]
-#[diesel(table_name = media_file)]
+#[derive(Clone, Debug)]
 pub(crate) struct MediaFile {
     pub(crate) id: String,
     pub(crate) uploaded: DateTime<Utc>,
     pub(crate) file_name: String,
     pub(crate) file_size: i64,
-    #[diesel(deserialize_as = MimeField, serialize_as = MimeField)]
     pub(crate) mimetype: Mime,
     pub(crate) width: i32,
     pub(crate) height: i32,
     pub(crate) duration: Option<f32>,
     pub(crate) frame_rate: Option<f32>,
     pub(crate) bit_rate: Option<f32>,
-    #[diesel(embed)]
     pub(crate) metadata: MediaMetadata,
     pub(crate) media_item: String,
     pub(crate) needs_metadata: bool,
@@ -1800,24 +2102,140 @@ impl MediaFile {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn maybe(
+        id: Option<String>,
+        uploaded: Option<DateTime<Utc>>,
+        file_name: Option<String>,
+        file_size: Option<i64>,
+        mimetype: Option<String>,
+        width: Option<i32>,
+        height: Option<i32>,
+        duration: Option<f32>,
+        frame_rate: Option<f32>,
+        bit_rate: Option<f32>,
+        media_item: Option<String>,
+        needs_metadata: Option<bool>,
+        stored: Option<DateTime<Utc>>,
+        filename: Option<String>,
+        title: Option<String>,
+        description: Option<String>,
+        label: Option<String>,
+        category: Option<String>,
+        location: Option<String>,
+        city: Option<String>,
+        state: Option<String>,
+        country: Option<String>,
+        make: Option<String>,
+        model: Option<String>,
+        lens: Option<String>,
+        photographer: Option<String>,
+        shutter_speed: Option<f32>,
+        orientation: Option<i32>,
+        iso: Option<i32>,
+        rating: Option<i32>,
+        longitude: Option<f32>,
+        latitude: Option<f32>,
+        altitude: Option<f32>,
+        aperture: Option<f32>,
+        focal_length: Option<f32>,
+        taken: Option<NaiveDateTime>,
+    ) -> SqlxResult<Option<Self>> {
+        match (
+            id,
+            uploaded,
+            file_name,
+            file_size,
+            mimetype,
+            width,
+            height,
+            media_item,
+            needs_metadata,
+        ) {
+            (
+                Some(id),
+                Some(uploaded),
+                Some(file_name),
+                Some(file_size),
+                Some(mimetype),
+                Some(width),
+                Some(height),
+                Some(media_item),
+                Some(needs_metadata),
+            ) => Ok(Some(Self {
+                id,
+                uploaded,
+                needs_metadata,
+                stored,
+                file_name,
+                file_size,
+                mimetype: from_mime(&mimetype)?,
+                width,
+                height,
+                duration,
+                frame_rate,
+                bit_rate,
+                media_item,
+                metadata: MediaMetadata {
+                    filename,
+                    title,
+                    description,
+                    label,
+                    category,
+                    location,
+                    city,
+                    state,
+                    country,
+                    make,
+                    model,
+                    lens,
+                    photographer,
+                    shutter_speed,
+                    orientation: orientation.and_then(Orientation::from_repr),
+                    iso,
+                    rating,
+                    longitude,
+                    latitude,
+                    altitude,
+                    aperture,
+                    focal_length,
+                    taken,
+                },
+            })),
+            _ => Ok(None),
+        }
+    }
+
     pub(crate) async fn mark_stored(&mut self, conn: &mut DbConnection<'_>) -> Result {
         self.stored = Some(Utc::now());
 
-        *self = diesel::update(media_file::table)
-            .filter(media_file::id.eq(&self.id))
-            .set((
-                media_file::stored.eq(self.stored),
-                media_file::file_size.eq(self.file_size),
-                media_file::width.eq(self.width),
-                media_file::height.eq(self.height),
-                media_file::mimetype.eq(self.mimetype.to_string()),
-                media_file::duration.eq(self.duration),
-                media_file::frame_rate.eq(self.frame_rate),
-                media_file::bit_rate.eq(self.bit_rate),
-            ))
-            .returning(media_file_columns!())
-            .get_result::<MediaFile>(conn)
-            .await?;
+        *self = sqlx::query!(
+            "
+            UPDATE media_file SET
+                stored=$1,
+                file_size=$2,
+                width=$3,
+                height=$4,
+                mimetype=$5,
+                duration=$6,
+                frame_rate=$7,
+                bit_rate=$8
+            WHERE id=$9
+            RETURNING *
+            ",
+            self.stored,
+            self.file_size,
+            self.width,
+            self.height,
+            self.mimetype.to_string(),
+            self.duration,
+            self.frame_rate,
+            self.bit_rate,
+            self.id,
+        )
+        .try_map(|row| Ok(from_row!(MediaFile(row))))
+        .fetch_one(conn)
+        .await?;
 
         Ok(())
     }
@@ -1827,13 +2245,20 @@ impl MediaFile {
         conn: &mut DbConnection<'_>,
         items: &[String],
     ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
-        let files = media_file::table
-            .inner_join(media_item::table.on(media_item::media_file.eq(media_file::id.nullable())))
-            .filter(media_item::id.eq_any(items))
-            .filter(media_item::deleted.eq(false))
-            .select((media_file_columns!(), media_item::catalog))
-            .load::<(MediaFile, String)>(conn)
-            .await?;
+        let files = sqlx::query!(
+            "
+            SELECT media_file.*, media_item.catalog
+            FROM media_file
+                JOIN media_item ON media_item.media_file=media_file.id
+            WHERE
+                media_item.id=ANY($1) AND
+                NOT media_item.deleted
+            ",
+            items
+        )
+        .try_map(|row| Ok((from_row!(MediaFile(row)), row.catalog)))
+        .fetch_all(conn)
+        .await?;
 
         Ok(files
             .into_iter()
@@ -1853,21 +2278,27 @@ impl MediaFile {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
-        let files = media_file::table
-            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
-            .filter(media_item::catalog.eq(catalog))
-            .filter(media_item::deleted.eq(false))
-            .order_by((media_file::media_item, media_file::uploaded.desc()))
-            .distinct_on(media_file::media_item)
-            .select((media_file_columns!(), media_item::catalog))
-            .load::<(MediaFile, String)>(conn)
-            .await?;
+        let files = sqlx::query!(
+            "
+            SELECT DISTINCT ON (media_file.media_item) media_file.*
+            FROM media_file
+                JOIN media_item ON media_item.media_file=media_file.id
+            WHERE
+                media_item.catalog=$1 AND
+                NOT media_item.deleted
+            ORDER BY media_file.media_item, media_file.uploaded DESC
+            ",
+            catalog
+        )
+        .try_map(|row| Ok(from_row!(MediaFile(row))))
+        .fetch_all(conn)
+        .await?;
 
         Ok(files
             .into_iter()
-            .map(|(media_file, catalog)| {
+            .map(|media_file| {
                 let media_file_store = MediaFileStore {
-                    catalog,
+                    catalog: catalog.to_owned(),
                     item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
                 };
@@ -1881,25 +2312,29 @@ impl MediaFile {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<String>> {
-        let missing_alternates = alternate_file::table
-            .filter(alternate_file::stored.is_null())
-            .select(alternate_file::media_file);
-
-        Ok(media_file::table
-            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
-            .filter(media_item::catalog.eq(catalog))
-            .filter(media_item::deleted.eq(false))
-            .filter(
-                media_file::stored
-                    .is_null()
-                    .or(media_file::needs_metadata)
-                    .or(media_file::id.eq_any(missing_alternates)),
-            )
-            .order_by((media_file::media_item, media_file::uploaded.desc()))
-            .distinct_on(media_file::media_item)
-            .select(media_file::id)
-            .load::<String>(conn)
-            .await?)
+        Ok(sqlx::query_scalar!(
+            "
+            SELECT DISTINCT ON (media_file.media_item) media_file.id
+            FROM media_file
+                JOIN media_item ON media_item.id=media_file.media_item
+            WHERE
+                media_item.catalog=$1 AND
+                NOT media_item.deleted AND
+                (
+                    media_file.stored IS NULL OR
+                    media_file.needs_metadata OR
+                    media_file.id IN (
+                        SELECT media_file
+                        FROM alternate_file
+                        WHERE stored IS NULL
+                    )
+                )
+            ORDER BY media_file.media_item, media_file.uploaded DESC
+            ",
+            catalog
+        )
+        .fetch_all(conn)
+        .await?)
     }
 
     #[instrument(skip_all)]
@@ -1907,28 +2342,28 @@ impl MediaFile {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
-        // Lists the files that are older than the current valid media file.
-        let current_file = alias!(media_file as current_file);
-        let files = media_file::table
-            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
-            .inner_join(
-                current_file.on(current_file
-                    .field(media_file::id)
-                    .nullable()
-                    .eq(media_item::media_file)),
-            )
-            .filter(media_item::catalog.eq(catalog))
-            .filter(media_file::id.ne(current_file.field(media_file::id)))
-            .filter(media_file::uploaded.lt(current_file.field(media_file::uploaded)))
-            .select((media_file_columns!(), media_item::catalog))
-            .load::<(MediaFile, String)>(conn)
-            .await?;
+        let files = sqlx::query!(
+            "
+            SELECT media_file.*
+            FROM media_file
+                JOIN media_item ON media_item.id=media_file.media_item
+                JOIN media_file AS current_file ON current_file.id=media_item.media_file
+            WHERE
+                media_item.catalog=$1 AND
+                media_file.id <> current_file.id AND
+                media_file.uploaded < current_file.uploaded
+            ",
+            catalog
+        )
+        .try_map(|row| Ok(from_row!(MediaFile(row))))
+        .fetch_all(conn)
+        .await?;
 
         Ok(files
             .into_iter()
-            .map(|(media_file, catalog)| {
+            .map(|media_file| {
                 let media_file_store = MediaFileStore {
-                    catalog,
+                    catalog: catalog.to_owned(),
                     item: media_file.media_item.clone(),
                     file: media_file.id.clone(),
                 };
@@ -1941,12 +2376,18 @@ impl MediaFile {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
-        let files = media_file::table
-            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
-            .filter(media_item::catalog.eq(&catalog))
-            .select(media_file_columns!())
-            .load::<MediaFile>(conn)
-            .await?;
+        let files = sqlx::query!(
+            "
+            SELECT media_file.*
+            FROM media_file
+                JOIN media_item ON media_file.media_item=media_item.id
+            WHERE media_item.catalog=$1
+            ",
+            catalog
+        )
+        .try_map(|row| Ok(from_row!(MediaFile(row))))
+        .fetch_all(conn)
+        .await?;
 
         Ok(files
             .into_iter()
@@ -1969,32 +2410,36 @@ impl MediaFile {
     ) -> Result<(MediaFile, MediaFileStore)> {
         let email = email.unwrap_or_default().to_owned();
 
-        let (media_file, catalog) = media_file::table
-            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
-            .filter(
-                media_item::id
-                    .eq_any(
-                        saved_search::table
-                            .inner_join(
-                                media_search::table.on(media_search::search.eq(saved_search::id)),
-                            )
-                            .filter(saved_search::shared.eq(true))
-                            .select(media_search::media),
+        let (media_file, catalog) = sqlx::query!(
+            "
+            SELECT media_file.*, media_item.catalog
+            FROM media_file
+                JOIN media_item ON media_item.id=media_file.media_item
+            WHERE
+                NOT media_item.deleted AND
+                media_item.id=$1 AND
+                media_file.id=$2 AND
+                (
+                    media_item.id IN (
+                        SELECT media_search.media
+                        FROM saved_search
+                            JOIN media_search ON media_search.search=saved_search.id
+                        WHERE saved_search.shared
+                    ) OR
+                    media_item.catalog IN (
+                        SELECT catalog
+                        FROM user_catalog
+                        WHERE user=$3
                     )
-                    .or(media_item::catalog.eq_any(
-                        user_catalog::table
-                            .filter(user_catalog::user.eq(email))
-                            .select(user_catalog::catalog),
-                    )),
-            )
-            .filter(media_item::deleted.eq(false))
-            .filter(media_item::id.eq(media))
-            .filter(media_file::id.eq(file))
-            .select((media_file_columns!(), media_item::catalog))
-            .get_result::<(MediaFile, String)>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)?;
+                )
+            ",
+            media,
+            file,
+            email
+        )
+        .try_map(|row| Ok((from_row!(MediaFile(row)), row.catalog)))
+        .fetch_one(conn)
+        .await?;
 
         let file_path = MediaFileStore {
             catalog,
@@ -2008,14 +2453,19 @@ impl MediaFile {
         conn: &mut DbConnection<'_>,
         id: &str,
     ) -> Result<(MediaFile, MediaFileStore)> {
-        let (media_file, catalog) = media_file::table
-            .inner_join(media_item::table.on(media_item::id.eq(media_file::media_item)))
-            .filter(media_file::id.eq(id))
-            .select((media_file_columns!(), media_item::catalog))
-            .get_result::<(MediaFile, String)>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)?;
+        let (media_file, catalog) = sqlx::query!(
+            "
+            SELECT media_file.*, media_item.catalog
+            FROM media_file
+                JOIN media_item ON media_item.id=media_file.media_item
+            WHERE
+                media_file.id=$1
+            ",
+            id
+        )
+        .try_map(|row| Ok((from_row!(MediaFile(row)), row.catalog)))
+        .fetch_one(conn)
+        .await?;
 
         let file_path = MediaFileStore {
             catalog,
@@ -2027,26 +2477,37 @@ impl MediaFile {
     }
 
     pub(crate) async fn get_for_update(conn: &mut DbConnection<'_>, id: &str) -> Result<MediaFile> {
-        media_file::table
-            .filter(media_file::id.eq(id))
-            .select(media_file_columns!())
-            .for_update()
-            .get_result::<MediaFile>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)
+        Ok(sqlx::query!(
+            "
+            SELECT media_file.*
+            FROM media_file
+            WHERE media_file.id=$1
+            FOR UPDATE
+            ",
+            id
+        )
+        .try_map(|row| Ok(from_row!(MediaFile(row))))
+        .fetch_one(conn)
+        .await?)
     }
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: Vec<MediaFile>) -> Result {
-        let media_file_map: HashMap<&String, &MediaFile> =
-            media_files.iter().map(|m| (&m.id, m)).collect();
-        let media_file_ids: Vec<&&String> = media_file_map.keys().collect();
-        let mut items = media_item::table
-            .filter(media_item::media_file.eq_any(media_file_ids))
-            .select(media_item_columns!())
-            .load::<MediaItem>(conn)
-            .await?;
+        let media_file_map: HashMap<String, &MediaFile> =
+            media_files.iter().map(|m| (m.id.clone(), m)).collect();
+        let media_file_ids: Vec<String> = media_file_map.keys().cloned().collect();
+
+        let mut items = sqlx::query!(
+            "
+            SELECT *
+            FROM media_item
+            WHERE media_file=ANY($1)
+            ",
+            &media_file_ids
+        )
+        .map(|row| from_row!(MediaItem(row)))
+        .fetch_all(&mut *conn)
+        .await?;
 
         items.iter_mut().for_each(|item| {
             if let Some(file) = item.media_file.as_ref().and_then(|f| media_file_map.get(f)) {
@@ -2054,49 +2515,242 @@ impl MediaFile {
             }
         });
 
-        for records in owned_batch(media_files, 500) {
-            diesel::insert_into(media_file::table)
-                .values(records)
-                .on_conflict(media_file::id)
-                .do_update()
-                .set((
-                    media_file::uploaded.eq(excluded(media_file::uploaded)),
-                    media_file::needs_metadata.eq(excluded(media_file::needs_metadata)),
-                    media_file::stored.eq(excluded(media_file::stored)),
-                    media_file::file_name.eq(excluded(media_file::file_name)),
-                    media_file::file_size.eq(excluded(media_file::file_size)),
-                    media_file::mimetype.eq(excluded(media_file::mimetype)),
-                    media_file::width.eq(excluded(media_file::width)),
-                    media_file::height.eq(excluded(media_file::height)),
-                    media_file::duration.eq(excluded(media_file::duration)),
-                    media_file::frame_rate.eq(excluded(media_file::frame_rate)),
-                    media_file::bit_rate.eq(excluded(media_file::bit_rate)),
-                    media_file::filename.eq(excluded(media_file::filename)),
-                    media_file::title.eq(excluded(media_file::title)),
-                    media_file::description.eq(excluded(media_file::description)),
-                    media_file::label.eq(excluded(media_file::label)),
-                    media_file::category.eq(excluded(media_file::category)),
-                    media_file::location.eq(excluded(media_file::location)),
-                    media_file::city.eq(excluded(media_file::city)),
-                    media_file::state.eq(excluded(media_file::state)),
-                    media_file::country.eq(excluded(media_file::country)),
-                    media_file::make.eq(excluded(media_file::make)),
-                    media_file::model.eq(excluded(media_file::model)),
-                    media_file::lens.eq(excluded(media_file::lens)),
-                    media_file::photographer.eq(excluded(media_file::photographer)),
-                    media_file::shutter_speed.eq(excluded(media_file::shutter_speed)),
-                    media_file::orientation.eq(excluded(media_file::orientation)),
-                    media_file::iso.eq(excluded(media_file::iso)),
-                    media_file::rating.eq(excluded(media_file::rating)),
-                    media_file::longitude.eq(excluded(media_file::longitude)),
-                    media_file::latitude.eq(excluded(media_file::latitude)),
-                    media_file::altitude.eq(excluded(media_file::altitude)),
-                    media_file::aperture.eq(excluded(media_file::aperture)),
-                    media_file::focal_length.eq(excluded(media_file::focal_length)),
-                    media_file::taken.eq(excluded(media_file::taken)),
-                ))
-                .execute(conn)
-                .await?;
+        for records in batch(&media_files, 500) {
+            let mut id = Vec::<String>::new();
+            let mut uploaded = Vec::<DateTime<Utc>>::new();
+            let mut file_name = Vec::<String>::new();
+            let mut file_size = Vec::<i64>::new();
+            let mut mimetype = Vec::<String>::new();
+            let mut width = Vec::<i32>::new();
+            let mut height = Vec::<i32>::new();
+            let mut duration = Vec::<Option<f32>>::new();
+            let mut frame_rate = Vec::<Option<f32>>::new();
+            let mut bit_rate = Vec::<Option<f32>>::new();
+            let mut media_item = Vec::<String>::new();
+            let mut needs_metadata = Vec::<bool>::new();
+            let mut stored = Vec::<Option<DateTime<Utc>>>::new();
+
+            let mut filename = Vec::<Option<String>>::new();
+            let mut title = Vec::<Option<String>>::new();
+            let mut description = Vec::<Option<String>>::new();
+            let mut label = Vec::<Option<String>>::new();
+            let mut category = Vec::<Option<String>>::new();
+            let mut location = Vec::<Option<String>>::new();
+            let mut city = Vec::<Option<String>>::new();
+            let mut state = Vec::<Option<String>>::new();
+            let mut country = Vec::<Option<String>>::new();
+            let mut make = Vec::<Option<String>>::new();
+            let mut model = Vec::<Option<String>>::new();
+            let mut lens = Vec::<Option<String>>::new();
+            let mut photographer = Vec::<Option<String>>::new();
+            let mut shutter_speed = Vec::<Option<f32>>::new();
+            let mut orientation = Vec::<Option<i32>>::new();
+            let mut iso = Vec::<Option<i32>>::new();
+            let mut rating = Vec::<Option<i32>>::new();
+            let mut longitude = Vec::<Option<f32>>::new();
+            let mut latitude = Vec::<Option<f32>>::new();
+            let mut altitude = Vec::<Option<f32>>::new();
+            let mut aperture = Vec::<Option<f32>>::new();
+            let mut focal_length = Vec::<Option<f32>>::new();
+            let mut taken = Vec::<Option<NaiveDateTime>>::new();
+
+            records.iter().for_each(|media_file| {
+                id.push(media_file.id.clone());
+                uploaded.push(media_file.uploaded);
+                file_name.push(media_file.file_name.clone());
+                file_size.push(media_file.file_size);
+                mimetype.push(media_file.mimetype.to_string());
+                width.push(media_file.width);
+                height.push(media_file.height);
+                duration.push(media_file.duration);
+                frame_rate.push(media_file.frame_rate);
+                bit_rate.push(media_file.bit_rate);
+                media_item.push(media_file.media_item.clone());
+                needs_metadata.push(media_file.needs_metadata);
+                stored.push(media_file.stored);
+
+                filename.push(media_file.metadata.filename.clone());
+                title.push(media_file.metadata.title.clone());
+                description.push(media_file.metadata.description.clone());
+                label.push(media_file.metadata.label.clone());
+                category.push(media_file.metadata.category.clone());
+                location.push(media_file.metadata.location.clone());
+                city.push(media_file.metadata.city.clone());
+                state.push(media_file.metadata.state.clone());
+                country.push(media_file.metadata.country.clone());
+                make.push(media_file.metadata.make.clone());
+                model.push(media_file.metadata.model.clone());
+                lens.push(media_file.metadata.lens.clone());
+                photographer.push(media_file.metadata.photographer.clone());
+                shutter_speed.push(media_file.metadata.shutter_speed);
+                orientation.push(media_file.metadata.orientation.map(|o| o.repr()));
+                iso.push(media_file.metadata.iso);
+                rating.push(media_file.metadata.rating);
+                longitude.push(media_file.metadata.longitude);
+                latitude.push(media_file.metadata.latitude);
+                altitude.push(media_file.metadata.altitude);
+                aperture.push(media_file.metadata.aperture);
+                focal_length.push(media_file.metadata.focal_length);
+                taken.push(media_file.metadata.taken);
+            });
+
+            sqlx::query!(
+                r#"
+                INSERT INTO media_file (
+                    id,
+                    uploaded,
+                    file_name,
+                    file_size,
+                    mimetype,
+                    width,
+                    height,
+                    duration,
+                    frame_rate,
+                    bit_rate,
+                    media_item,
+                    needs_metadata,
+                    stored,
+
+                    filename,
+                    title,
+                    description,
+                    label,
+                    category,
+                    location,
+                    city,
+                    state,
+                    country,
+                    make,
+                    model,
+                    lens,
+                    photographer,
+                    shutter_speed,
+                    orientation,
+                    iso,
+                    rating,
+                    longitude,
+                    latitude,
+                    altitude,
+                    aperture,
+                    focal_length,
+                    taken
+                )
+                SELECT * FROM UNNEST(
+                    $1::text[],
+                    $2::timestamptz[],
+                    $3::text[],
+                    $4::bigint[],
+                    $5::text[],
+                    $6::integer[],
+                    $7::integer[],
+                    $8::real[],
+                    $9::real[],
+                    $10::real[],
+                    $11::text[],
+                    $12::bool[],
+                    $13::timestamptz[],
+
+                    $14::text[],
+                    $15::text[],
+                    $16::text[],
+                    $17::text[],
+                    $18::text[],
+                    $19::text[],
+                    $20::text[],
+                    $21::text[],
+                    $22::text[],
+                    $23::text[],
+                    $24::text[],
+                    $25::text[],
+                    $26::text[],
+                    $27::real[],
+                    $28::integer[],
+                    $29::integer[],
+                    $30::integer[],
+                    $31::real[],
+                    $32::real[],
+                    $33::real[],
+                    $34::real[],
+                    $35::real[],
+                    $36::timestamp[]
+                )
+                ON CONFLICT (id) DO UPDATE SET
+                    uploaded=excluded.uploaded,
+                    file_name=excluded.file_name,
+                    file_size=excluded.file_size,
+                    mimetype=excluded.mimetype,
+                    width=excluded.width,
+                    height=excluded.height,
+                    duration=excluded.duration,
+                    frame_rate=excluded.frame_rate,
+                    bit_rate=excluded.bit_rate,
+                    media_item=excluded.media_item,
+                    needs_metadata=excluded.needs_metadata,
+
+                    stored=excluded.stored,
+                    filename=excluded.filename,
+                    title=excluded.title,
+                    description=excluded.description,
+                    label=excluded.label,
+                    category=excluded.category,
+                    location=excluded.location,
+                    city=excluded.city,
+                    state=excluded.state,
+                    country=excluded.country,
+                    make=excluded.make,
+                    model=excluded.model,
+                    lens=excluded.lens,
+                    photographer=excluded.photographer,
+                    shutter_speed=excluded.shutter_speed,
+                    orientation=excluded.orientation,
+                    iso=excluded.iso,
+                    rating=excluded.rating,
+                    longitude=excluded.longitude,
+                    latitude=excluded.latitude,
+                    altitude=excluded.altitude,
+                    aperture=excluded.aperture,
+                    focal_length=excluded.focal_length,
+                    taken=excluded.taken
+                "#,
+                &id,
+                &uploaded,
+                &file_name,
+                &file_size,
+                &mimetype,
+                &width,
+                &height,
+                &duration as &[Option<f32>],
+                &frame_rate as &[Option<f32>],
+                &bit_rate as &[Option<f32>],
+                &media_item,
+                &needs_metadata,
+                &stored as &[Option<DateTime<Utc>>],
+                &filename as &[Option<String>],
+                &title as &[Option<String>],
+                &description as &[Option<String>],
+                &label as &[Option<String>],
+                &category as &[Option<String>],
+                &location as &[Option<String>],
+                &city as &[Option<String>],
+                &state as &[Option<String>],
+                &country as &[Option<String>],
+                &make as &[Option<String>],
+                &model as &[Option<String>],
+                &lens as &[Option<String>],
+                &photographer as &[Option<String>],
+                &shutter_speed as &[Option<f32>],
+                &orientation as &[Option<i32>],
+                &iso as &[Option<i32>],
+                &rating as &[Option<i32>],
+                &longitude as &[Option<f32>],
+                &latitude as &[Option<f32>],
+                &altitude as &[Option<f32>],
+                &aperture as &[Option<f32>],
+                &focal_length as &[Option<f32>],
+                &taken as &[Option<NaiveDateTime>]
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         MediaItem::upsert(conn, &items).await?;
@@ -2106,24 +2760,27 @@ impl MediaFile {
 
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, ids: &[String]) -> Result {
         for records in batch(ids, 500) {
-            diesel::delete(media_file::table.filter(media_file::id.eq_any(records)))
-                .execute(conn)
-                .await?;
+            sqlx::query!(
+                "
+                DELETE FROM media_file
+                WHERE id=ANY($1)
+                ",
+                records
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         Ok(())
     }
 }
 
-#[derive(Queryable, Insertable, Clone, Debug)]
-#[diesel(table_name = alternate_file)]
+#[derive(Clone, Debug)]
 pub(crate) struct AlternateFile {
     pub(crate) id: String,
-    #[diesel(column_name = type_)]
     pub(crate) file_type: AlternateFileType,
     pub(crate) file_name: String,
     pub(crate) file_size: i64,
-    #[diesel(deserialize_as = MimeField, serialize_as = MimeField)]
     pub(crate) mimetype: Mime,
     pub(crate) width: i32,
     pub(crate) height: i32,
@@ -2158,27 +2815,31 @@ impl AlternateFile {
         conn: &mut DbConnection<'_>,
         media_item: &str,
     ) -> Result<(Self, FilePath)> {
-        let public_items = media_search::table
-            .inner_join(saved_search::table.on(saved_search::id.eq(media_search::search)))
-            .filter(saved_search::shared.eq(true))
-            .select(media_search::media);
-
-        let (alternate, catalog) = alternate_file::table
-            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_item::media_file.eq(media_file::id.nullable())))
-            .filter(
-                media_item::public
-                    .eq(true)
-                    .or(media_item::id.eq_any(public_items)),
-            )
-            .filter(alternate_file::type_.eq(AlternateFileType::Social))
-            .filter(media_item::id.eq(media_item))
-            .filter(alternate_file::stored.is_not_null())
-            .select((alternate_file::all_columns, media_item::catalog))
-            .get_result::<(AlternateFile, String)>(conn)
-            .await
-            .optional()?
-            .ok_or_else(|| Error::NotFound)?;
+        let (alternate, catalog) = sqlx::query!(
+            "
+            SELECT alternate_file.*, media_item.catalog
+            FROM alternate_file
+                JOIN media_file ON media_file.id=alternate_file.media_file
+                JOIN media_item ON media_item.media_file=media_file.id
+            WHERE
+                (
+                    media_item.public OR
+                    media_item IN (
+                        SELECT media_search.media
+                        FROM media_search
+                            JOIN saved_search ON saved_search.id=media_search.search
+                        WHERE saved_search.shared
+                    )
+                ) AND
+                alternate_file.type='social' AND
+                media_item.id=$1 AND
+                alternate_file.stored IS NOT NULL
+            ",
+            media_item
+        )
+        .try_map(|row| Ok((from_row!(AlternateFile(row)), row.catalog)))
+        .fetch_one(conn)
+        .await?;
 
         let path = FilePath {
             catalog,
@@ -2200,21 +2861,27 @@ impl AlternateFile {
         {
             let file_ids = media_files
                 .iter()
-                .map(|(mf, _, _)| mf.id.as_str())
-                .collect::<Vec<&str>>();
+                .map(|(mf, _, _)| mf.id.clone())
+                .collect_vec();
 
-            alternate_file::table
-                .filter(alternate_file::media_file.eq_any(file_ids))
-                .select(alternate_file::all_columns)
-                .load::<AlternateFile>(conn)
-                .await?
-                .into_iter()
-                .for_each(|af| {
-                    existing_alternates
-                        .entry(af.media_file.clone())
-                        .or_default()
-                        .push(af)
-                });
+            sqlx::query!(
+                "
+                SELECT *
+                FROM alternate_file
+                WHERE media_file=ANY($1)
+                ",
+                &file_ids
+            )
+            .try_map(|row| Ok(from_row!(AlternateFile(row))))
+            .fetch_all(&mut *conn)
+            .await?
+            .into_iter()
+            .for_each(|af| {
+                existing_alternates
+                    .entry(af.media_file.clone())
+                    .or_default()
+                    .push(af)
+            });
         }
 
         let mut to_delete: Vec<String> = Vec::new();
@@ -2263,13 +2930,19 @@ impl AlternateFile {
         conn: &mut DbConnection<'_>,
         catalog: &str,
     ) -> Result<Vec<(AlternateFile, FilePath)>> {
-        let files = alternate_file::table
-            .inner_join(media_file::table.on(media_file::id.eq(alternate_file::media_file)))
-            .inner_join(media_item::table.on(media_file::media_item.eq(media_item::id)))
-            .filter(media_item::catalog.eq(&catalog))
-            .select((alternate_file::all_columns, media_item::id))
-            .load::<(AlternateFile, String)>(conn)
-            .await?;
+        let files = sqlx::query!(
+            "
+            SELECT alternate_file.*, media_file.media_item
+            FROM alternate_file
+                JOIN media_file ON media_file.id=alternate_file.media_file
+                JOIN media_item ON media_item.id=media_file.media_item
+            WHERE media_item.catalog=$1
+            ",
+            catalog
+        )
+        .try_map(|row| Ok((from_row!(AlternateFile(row)), row.media_item)))
+        .fetch_all(conn)
+        .await?;
 
         Ok(files
             .into_iter()
@@ -2289,11 +2962,17 @@ impl AlternateFile {
         conn: &mut DbConnection<'_>,
         media_file: &str,
     ) -> Result<Vec<AlternateFile>> {
-        Ok(alternate_file::table
-            .filter(alternate_file::media_file.eq(media_file))
-            .select(alternate_file::all_columns)
-            .load::<AlternateFile>(conn)
-            .await?)
+        Ok(sqlx::query!(
+            "
+            SELECT *
+            FROM alternate_file
+            WHERE media_file=$1
+            ",
+            media_file
+        )
+        .try_map(|row| Ok(from_row!(AlternateFile(row))))
+        .fetch_all(conn)
+        .await?)
     }
 
     pub(crate) async fn list_for_user_media(
@@ -2306,37 +2985,40 @@ impl AlternateFile {
     ) -> Result<Vec<(AlternateFile, FilePath)>> {
         let email = email.unwrap_or_default().to_owned();
 
-        let files = media_item::table
-            .left_join(media_search::table.on(media_search::media.eq(media_item::id)))
-            .filter(media_item::id.eq(item))
-            .filter(media_item::media_file.eq(file))
-            .filter(
-                media_search::search
-                    .eq_any(
-                        saved_search::table
-                            .filter(saved_search::shared.eq(true))
-                            .select(saved_search::id),
+        let files = sqlx::query!(
+            "
+            SELECT alternate_file.*, media_item.id AS media_item, media_item.catalog
+            FROM media_item
+                LEFT JOIN media_search ON media_search.media=media_item.id
+                JOIN alternate_file USING (media_file)
+            WHERE
+                media_item.id=$1 AND
+                media_item.media_file=$2 AND
+                alternate_file.mimetype=$3 AND
+                alternate_file.type=$4 AND
+                (
+                    media_item.public OR
+                    media_search.search IN (
+                        SELECT id
+                        FROM saved_search
+                        WHERE shared
+                    ) OR
+                    media_item.catalog IN (
+                        SELECT catalog
+                        FROM user_catalog
+                        WHERE user=$5
                     )
-                    .or(media_item::catalog.eq_any(
-                        user_catalog::table
-                            .filter(user_catalog::user.eq(email))
-                            .select(user_catalog::catalog),
-                    ))
-                    .or(media_item::public.eq(true)),
-            )
-            .inner_join(
-                alternate_file::table
-                    .on(media_item::media_file.eq(alternate_file::media_file.nullable())),
-            )
-            .filter(alternate_file::mimetype.eq(mimetype.as_ref()))
-            .filter(alternate_file::type_.eq(alternate_type))
-            .select((
-                alternate_file::all_columns,
-                media_item::id,
-                media_item::catalog,
-            ))
-            .load::<(AlternateFile, String, String)>(conn)
-            .await?;
+                )
+            ",
+            item,
+            file,
+            &mimetype.to_string(),
+            &alternate_type.to_string(),
+            email
+        )
+        .try_map(|row| Ok((from_row!(AlternateFile(row)), row.media_item, row.catalog)))
+        .fetch_all(conn)
+        .await?;
 
         if !files.is_empty() {
             return Ok(files
@@ -2359,30 +3041,49 @@ impl AlternateFile {
     pub(crate) async fn mark_stored(&mut self, conn: &mut DbConnection<'_>) -> Result {
         self.stored = Some(Utc::now());
 
-        *self = diesel::update(alternate_file::table)
-            .filter(alternate_file::id.eq(&self.id))
-            .set((
-                alternate_file::stored.eq(self.stored),
-                alternate_file::file_size.eq(self.file_size),
-                alternate_file::width.eq(self.width),
-                alternate_file::height.eq(self.height),
-                alternate_file::mimetype.eq(self.mimetype.to_string()),
-                alternate_file::duration.eq(self.duration),
-                alternate_file::frame_rate.eq(self.frame_rate),
-                alternate_file::bit_rate.eq(self.bit_rate),
-            ))
-            .get_result::<AlternateFile>(conn)
-            .await?;
+        *self = sqlx::query!(
+            "
+            UPDATE alternate_file
+            SET
+                stored=$1,
+                file_size=$2,
+                width=$3,
+                height=$4,
+                mimetype=$5,
+                duration=$6,
+                frame_rate=$7,
+                bit_rate=$8
+            WHERE id=$9
+            RETURNING *
+            ",
+            self.stored,
+            self.file_size,
+            self.width,
+            self.height,
+            self.mimetype.to_string(),
+            self.duration,
+            self.frame_rate,
+            self.bit_rate,
+            self.id,
+        )
+        .try_map(|row| Ok(from_row!(AlternateFile(row))))
+        .fetch_one(conn)
+        .await?;
 
         Ok(())
     }
 
     #[instrument(skip_all)]
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, alternate_files: &[String]) -> Result {
-        diesel::delete(alternate_file::table)
-            .filter(alternate_file::id.eq_any(alternate_files))
-            .execute(conn)
-            .await?;
+        sqlx::query!(
+            "
+            DELETE FROM alternate_file
+            WHERE id=ANY($1)
+            ",
+            alternate_files
+        )
+        .execute(conn)
+        .await?;
 
         Ok(())
     }
@@ -2392,27 +3093,98 @@ impl AlternateFile {
         conn: &mut DbConnection<'_>,
         alternate_files: Vec<AlternateFile>,
     ) -> Result {
-        for records in owned_batch(alternate_files, 500) {
-            diesel::insert_into(alternate_file::table)
-                .values(records)
-                .on_conflict(alternate_file::id)
-                .do_update()
-                .set((
-                    alternate_file::type_.eq(excluded(alternate_file::type_)),
-                    alternate_file::file_name.eq(excluded(alternate_file::file_name)),
-                    alternate_file::file_size.eq(excluded(alternate_file::file_size)),
-                    alternate_file::mimetype.eq(excluded(alternate_file::mimetype)),
-                    alternate_file::width.eq(excluded(alternate_file::width)),
-                    alternate_file::height.eq(excluded(alternate_file::height)),
-                    alternate_file::duration.eq(excluded(alternate_file::duration)),
-                    alternate_file::frame_rate.eq(excluded(alternate_file::frame_rate)),
-                    alternate_file::bit_rate.eq(excluded(alternate_file::bit_rate)),
-                    alternate_file::media_file.eq(excluded(alternate_file::media_file)),
-                    alternate_file::local.eq(excluded(alternate_file::local)),
-                    alternate_file::stored.eq(excluded(alternate_file::stored)),
-                ))
-                .execute(conn)
-                .await?;
+        for records in batch(&alternate_files, 500) {
+            let mut id = Vec::<String>::new();
+            let mut file_type = Vec::<String>::new();
+            let mut file_name = Vec::<String>::new();
+            let mut file_size = Vec::<i64>::new();
+            let mut mimetype = Vec::<String>::new();
+            let mut width = Vec::<i32>::new();
+            let mut height = Vec::<i32>::new();
+            let mut duration = Vec::<Option<f32>>::new();
+            let mut frame_rate = Vec::<Option<f32>>::new();
+            let mut bit_rate = Vec::<Option<f32>>::new();
+            let mut media_file = Vec::<String>::new();
+            let mut local = Vec::<bool>::new();
+            let mut stored = Vec::<Option<DateTime<Utc>>>::new();
+
+            records.iter().for_each(|alternate_file| {
+                id.push(alternate_file.id.clone());
+                file_type.push(alternate_file.file_type.to_string());
+                file_name.push(alternate_file.file_name.clone());
+                file_size.push(alternate_file.file_size);
+                mimetype.push(alternate_file.mimetype.to_string());
+                width.push(alternate_file.width);
+                height.push(alternate_file.height);
+                duration.push(alternate_file.duration);
+                frame_rate.push(alternate_file.frame_rate);
+                bit_rate.push(alternate_file.bit_rate);
+                media_file.push(alternate_file.media_file.clone());
+                local.push(alternate_file.local);
+                stored.push(alternate_file.stored);
+            });
+
+            sqlx::query!(
+                r#"
+                INSERT INTO alternate_file (
+                    id,
+                    type,
+                    file_name,
+                    file_size,
+                    mimetype,
+                    width,
+                    height,
+                    duration,
+                    frame_rate,
+                    bit_rate,
+                    media_file,
+                    local,
+                    stored
+                )
+                SELECT * FROM UNNEST(
+                    $1::text[],
+                    $2::text[],
+                    $3::text[],
+                    $4::bigint[],
+                    $5::text[],
+                    $6::integer[],
+                    $7::integer[],
+                    $8::real[],
+                    $9::real[],
+                    $10::real[],
+                    $11::text[],
+                    $12::bool[],
+                    $13::timestamptz[]
+                )
+                ON CONFLICT (id) DO UPDATE SET
+                    type=excluded.type,
+                    file_name=excluded.file_name,
+                    file_size=excluded.file_size,
+                    mimetype=excluded.mimetype,
+                    width=excluded.width,
+                    height=excluded.height,
+                    duration=excluded.duration,
+                    frame_rate=excluded.frame_rate,
+                    bit_rate=excluded.bit_rate,
+                    local=excluded.local,
+                    stored=excluded.stored
+                "#,
+                &id,
+                &file_type,
+                &file_name,
+                &file_size,
+                &mimetype,
+                &width,
+                &height,
+                &duration as &[Option<f32>],
+                &frame_rate as &[Option<f32>],
+                &bit_rate as &[Option<f32>],
+                &media_file,
+                &local,
+                &stored as &[Option<DateTime<Utc>>],
+            )
+            .execute(&mut *conn)
+            .await?;
         }
 
         Ok(())
@@ -2429,13 +3201,11 @@ pub(crate) struct MediaViewFileAlternate {
     pub(crate) height: i32,
 }
 
-#[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct MediaViewFile {
     pub(crate) id: String,
     pub(crate) file_size: i64,
-    #[diesel(deserialize_as = MimeField)]
     #[serde(with = "crate::shared::mime")]
     pub(crate) mimetype: Mime,
     pub(crate) width: i32,
@@ -2445,12 +3215,66 @@ pub(crate) struct MediaViewFile {
     pub(crate) bit_rate: Option<f32>,
     pub(crate) uploaded: DateTime<Utc>,
     pub(crate) file_name: String,
-    #[diesel(deserialize_as = Option<Value>)]
-    pub(crate) alternates: MaybeVec<MediaViewFileAlternate>,
+    pub(crate) alternates: Vec<MediaViewFileAlternate>,
 }
 
-#[typeshare]
-#[derive(Queryable, Serialize, Clone, Debug)]
+impl MediaViewFile {
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn from_maybe(
+        id: Option<String>,
+        file_size: Option<i64>,
+        mimetype: Option<String>,
+        width: Option<i32>,
+        height: Option<i32>,
+        duration: Option<f32>,
+        frame_rate: Option<f32>,
+        bit_rate: Option<f32>,
+        uploaded: Option<DateTime<Utc>>,
+        file_name: Option<String>,
+        alternates: Option<Value>,
+    ) -> SqlxResult<Option<Self>> {
+        match (
+            id, file_size, mimetype, width, height, uploaded, file_name, alternates,
+        ) {
+            (
+                Some(id),
+                Some(file_size),
+                Some(mimetype),
+                Some(width),
+                Some(height),
+                Some(uploaded),
+                Some(file_name),
+                Some(alternates),
+            ) => {
+                let alternates: Vec<MediaViewFileAlternate> =
+                    match serde_json::from_value(alternates) {
+                        Ok(a) => a,
+                        Err(e) => {
+                            error!(error = %e, "Invalid alternate media JSON in media_view");
+                            Vec::new()
+                        }
+                    };
+
+                Ok(Some(Self {
+                    id,
+                    file_size,
+                    mimetype: from_mime(&mimetype)?,
+                    width,
+                    height,
+                    bit_rate,
+                    duration,
+                    frame_rate,
+                    uploaded,
+                    file_name,
+                    alternates,
+                }))
+            }
+            _ => Ok(None),
+        }
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct MediaView {
     pub(crate) id: String,
@@ -2476,7 +3300,34 @@ impl MediaView {
     }
 }
 
-#[typeshare]
+impl<'r> FromRow<'r, PgRow> for MediaView {
+    fn from_row(row: &'r PgRow) -> SqlxResult<MediaView> {
+        Ok(MediaView {
+            id: row.try_get("id")?,
+            catalog: row.try_get("catalog")?,
+            created: row.try_get("created")?,
+            updated: row.try_get("updated")?,
+            datetime: row.try_get("datetime")?,
+            public: row.try_get("public")?,
+            taken_zone: row.try_get("taken_zone")?,
+            metadata: MediaMetadata::from_row(row)?,
+            file: MediaViewFile::from_maybe(
+                row.try_get("media_file")?,
+                row.try_get("file_size")?,
+                row.try_get("mimetype")?,
+                row.try_get("width")?,
+                row.try_get("height")?,
+                row.try_get("duration")?,
+                row.try_get("frame_rate")?,
+                row.try_get("bit_rate")?,
+                row.try_get("uploaded")?,
+                row.try_get("file_name")?,
+                row.try_get("alternates")?,
+            )?,
+        })
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct AlbumRelation {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2484,7 +3335,6 @@ pub(crate) struct AlbumRelation {
     pub(crate) name: String,
 }
 
-#[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct TagRelation {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2492,9 +3342,8 @@ pub(crate) struct TagRelation {
     pub(crate) name: String,
 }
 
-#[typeshare]
-#[derive(Serialize, Deserialize, Clone, Debug, deserialize::FromSqlRow, AsExpression)]
-#[diesel(sql_type = db::schema::sql_types::Location)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, sqlx::Type)]
+#[sqlx(type_name = "location")]
 pub(crate) struct Location {
     pub(crate) left: f32,
     pub(crate) right: f32,
@@ -2502,21 +3351,20 @@ pub(crate) struct Location {
     pub(crate) bottom: f32,
 }
 
-impl serialize::ToSql<db::schema::sql_types::Location, Backend> for Location {
-    fn to_sql<'b>(&'b self, out: &mut serialize::Output<'b, '_, Backend>) -> serialize::Result {
-        serialize::WriteTuple::<(
-            sql_types::Float,
-            sql_types::Float,
-            sql_types::Float,
-            sql_types::Float,
-        )>::write_tuple(
-            &(self.left, self.right, self.top, self.bottom),
-            &mut out.reborrow(),
-        )
-    }
-}
+// impl<'q> Encode<'q, SqlxDatabase> for Location {
+//     fn encode_by_ref(
+//         &self,
+//         buf: &mut <SqlxDatabase as Database>::ArgumentBuffer<'q>,
+//     ) -> result::Result<IsNull, sqlx::error::BoxDynError> {
+//         let slice = [self.left, self.right, self.top, self.bottom];
+//         slice.encode_by_ref(buf)
+//     }
 
-#[typeshare]
+//     fn produces(&self) -> Option<<SqlxDatabase as Database>::TypeInfo> {
+//         Some(PgTypeInfo::with_name("location"))
+//     }
+// }
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct PersonRelation {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2525,7 +3373,6 @@ pub(crate) struct PersonRelation {
     pub(crate) location: Option<Location>,
 }
 
-#[typeshare]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct SearchRelation {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2549,20 +3396,35 @@ impl<T: DeserializeOwned> TryFrom<Option<Value>> for MaybeVec<T> {
     }
 }
 
-#[derive(Queryable, Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Relations {
-    #[diesel(deserialize_as = Option<Value>)]
-    pub(crate) albums: MaybeVec<AlbumRelation>,
-    #[diesel(deserialize_as = Option<Value>)]
-    pub(crate) tags: MaybeVec<TagRelation>,
-    #[diesel(deserialize_as = Option<Value>)]
-    pub(crate) people: MaybeVec<PersonRelation>,
-    #[diesel(deserialize_as = Option<Value>)]
-    pub(crate) searches: MaybeVec<SearchRelation>,
+    pub(crate) albums: Vec<AlbumRelation>,
+    pub(crate) tags: Vec<TagRelation>,
+    pub(crate) people: Vec<PersonRelation>,
+    pub(crate) searches: Vec<SearchRelation>,
 }
 
-#[typeshare]
+impl Relations {
+    fn decode(
+        albums: Option<Value>,
+        tags: Option<Value>,
+        people: Option<Value>,
+        searches: Option<Value>,
+    ) -> SqlxResult<Self> {
+        Ok(Self {
+            albums: from_value(albums.unwrap_or(Value::Null))
+                .map_err(|e| SqlxError::Decode(Box::new(e)))?,
+            tags: from_value(tags.unwrap_or(Value::Null))
+                .map_err(|e| SqlxError::Decode(Box::new(e)))?,
+            people: from_value(people.unwrap_or(Value::Null))
+                .map_err(|e| SqlxError::Decode(Box::new(e)))?,
+            searches: from_value(searches.unwrap_or(Value::Null))
+                .map_err(|e| SqlxError::Decode(Box::new(e)))?,
+        })
+    }
+}
+
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct MediaRelations {
@@ -2578,43 +3440,38 @@ impl MediaRelations {
         conn: &mut DbConnection<'_>,
         email: Option<&str>,
         search: Option<&str>,
-        media: &[&str],
+        media: &[String],
     ) -> Result<Vec<MediaRelations>> {
         let email = email.unwrap_or_default().to_owned();
 
-        let mut valid_searches = saved_search::table
-            .inner_join(media_search::table.on(media_search::search.eq(saved_search::id)))
-            .filter(saved_search::shared.eq(true))
-            .into_boxed();
-
-        if let Some(search) = search {
-            valid_searches = valid_searches.filter(saved_search::id.eq(search))
-        }
-
-        let media = media_view!()
-            .left_join(
-                user_catalog::table.on(user_catalog::catalog
-                    .eq(media_item::catalog)
-                    .and(user_catalog::user.eq(email))),
-            )
-            .left_join(album_relation::table.on(album_relation::media.eq(media_item::id)))
-            .left_join(tag_relation::table.on(tag_relation::media.eq(media_item::id)))
-            .left_join(person_relation::table.on(person_relation::media.eq(media_item::id)))
-            .left_join(search_relation::table.on(search_relation::media.eq(media_item::id)))
-            .filter(media_item::id.eq_any(media))
-            .select((
-                media_view_columns!(),
-                user_catalog::writable.nullable(),
-                (
-                    album_relation::albums.nullable(),
-                    tag_relation::tags.nullable(),
-                    person_relation::people.nullable(),
-                    search_relation::searches.nullable(),
-                ),
-                media_item::id.eq_any(valid_searches.select(media_search::media)),
-            ))
-            .load::<(MediaView, Option<bool>, Relations, bool)>(conn)
-            .await?;
+        let media = sqlx::query!(
+            "
+            SELECT
+                media_view.*,
+                user_catalog.writable,
+                album_relation.albums,
+                tag_relation.tags,
+                person_relation.people,
+                search_relation.searches,
+                media_view.id IN (
+                    SELECT media_search.media
+                    FROM saved_search
+                        JOIN media_search ON media_search.search=saved_search.id
+                    WHERE saved_search.shared AND
+                    (
+                        saved_search.id=$1 OR
+                        $1 IS NULL
+                    )
+                ) AS in_public_search
+            FROM media_view
+                LEFT JOIN user_catalog ON user_catalog.catalog=media_view.catalog AND user_catalog.user=$2
+                LEFT JOIN album_relation ON album_relation.media=media_view.id
+                LEFT JOIN tag_relation ON tag_relation.media=media_view.id
+                LEFT JOIN person_relation ON person_relation.media=media_view.id
+                LEFT JOIN search_relation ON search_relation.media=media_view.id
+            WHERE media_view.id=ANY($3)
+            ",search,email,media
+        ).try_map(|row| Ok((from_row!(MediaView(row)), row.writable, from_row!(Relations(row)), row.in_public_search.unwrap_or_default()))).fetch_all(conn).await?;
 
         Ok(media
             .into_iter()
@@ -2630,12 +3487,12 @@ impl MediaRelations {
                 media.amend_for_access(access);
 
                 if matches!(access, MediaAccess::PublicSearch | MediaAccess::PublicMedia) {
-                    relations.tags.0.iter_mut().for_each(|r| r.id = None);
-                    relations.albums.0 = vec![];
-                    relations.searches.0 = vec![];
+                    relations.tags.iter_mut().for_each(|r| r.id = None);
+                    relations.albums = vec![];
+                    relations.searches = vec![];
 
                     if access == MediaAccess::PublicMedia {
-                        relations.people.0 = vec![];
+                        relations.people = vec![];
                     }
                 }
 
@@ -2647,12 +3504,4 @@ impl MediaRelations {
             })
             .collect())
     }
-}
-
-#[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = auth_token)]
-pub struct AuthToken {
-    pub email: String,
-    pub token: String,
-    pub expiry: Option<DateTime<Utc>>,
 }

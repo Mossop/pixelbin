@@ -1,294 +1,46 @@
-use diesel::{
-    backend, deserialize,
-    dsl::{self, not, sql},
-    expression::AsExpression,
-    helper_types::LeftJoinQuerySource,
-    prelude::*,
-    serialize,
-    sql_types::{
-        self, Bool, Double, Float, Integer, Nullable, SingleValue, SqlType, Text, Timestamptz,
-    },
-};
-use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_value, Value};
+use serde_json::Value;
 use serde_plain::derive_display_from_serialize;
+use sqlx::{Error as SqlxError, QueryBuilder, Result as SqlxResult};
 use tracing::instrument;
-use typeshare::typeshare;
 
-use crate::{
-    shared::json::{expect_string, map, prop, Object},
-    store::{
-        db::{
-            functions::{
-                char_length, extract, media_field, media_view, media_view_columns,
-                media_view_tables,
-            },
-            schema::*,
-            Backend, DbConnection,
-        },
-        models,
-    },
-    Result,
+use crate::store::{
+    db::{DbConnection, SqlxDatabase},
+    models::{MediaView, MediaViewSender},
 };
-
-type MediaViewQS = LeftJoinQuerySource<
-    LeftJoinQuerySource<
-        media_item::table,
-        media_file::table,
-        dsl::Eq<media_item::media_file, dsl::Nullable<media_file::id>>,
-    >,
-    media_file_alternates::table,
-    dsl::Eq<media_item::media_file, dsl::Nullable<media_file_alternates::media_file>>,
->;
-type Boxed<QS, T = Bool> = Box<dyn BoxableExpression<QS, Backend, SqlType = T>>;
 
 pub(crate) type SearchQuery = CompoundQuery<CompoundItem>;
 
 pub(crate) trait Filterable {
-    type QuerySource;
-
-    fn build_filter(&self, catalog: &str) -> Boxed<Self::QuerySource>;
+    fn bind_filter(&self, catalog: &str, builder: &mut QueryBuilder<SqlxDatabase>);
 }
 
-#[derive(Debug, Clone)]
-enum FieldType {
+pub(crate) enum FieldType {
     Text,
-    Number,
+    Float,
+    Integer,
     Date,
-}
-
-fn field_query<F, FT>(
-    field: F,
-    field_type: FieldType,
-    operator: Operator,
-    invert: bool,
-) -> field_query::HelperType<F, FT>
-where
-    F: AsExpression<FT>,
-    FT: SingleValue + SqlType,
-{
-    field_query::FieldQuery {
-        field: field.as_expression(),
-        field_type,
-        operator,
-        invert,
-    }
-}
-
-pub(crate) mod field_query {
-    use diesel::{
-        expression::{
-            is_aggregate, AppearsOnTable, Expression, SelectableExpression, ValidGrouping,
-        },
-        query_builder::{AstPass, QueryFragment, QueryId},
-        QueryResult,
-    };
-
-    use super::*;
-
-    #[derive(Debug, Clone, QueryId)]
-    pub(crate) struct FieldQuery<F> {
-        pub(super) field: F,
-        pub(super) field_type: FieldType,
-        pub(super) operator: Operator,
-        pub(super) invert: bool,
-    }
-
-    impl<F> FieldQuery<F>
-    where
-        F: QueryFragment<Backend>,
-    {
-        fn walk_field<'__b>(&'__b self, mut out: AstPass<'_, '__b, Backend>) -> QueryResult<()> {
-            if matches!(self.field_type, FieldType::Text) {
-                out.push_sql("COALESCE(");
-                self.field.walk_ast(out.reborrow())?;
-                out.push_sql(", ");
-                out.push_bind_param::<Text, _>("")?;
-                out.push_sql(")");
-            } else {
-                self.field.walk_ast(out.reborrow())?;
-            }
-
-            Ok(())
-        }
-
-        fn bind_value<'__b>(
-            &'__b self,
-            value: &'__b SqlValue,
-            out: &mut AstPass<'_, '__b, Backend>,
-        ) -> QueryResult<()> {
-            match value {
-                SqlValue::String(f) => {
-                    out.push_bind_param::<Text, _>(f)?;
-                    if matches!(self.field_type, FieldType::Date) {
-                        out.push_sql("::timestamptz");
-                    }
-                    Ok(())
-                }
-                SqlValue::Bool(f) => out.push_bind_param::<Bool, _>(f),
-                SqlValue::Integer(f) => out.push_bind_param::<Integer, _>(f),
-                SqlValue::Double(f) => out.push_bind_param::<Double, _>(f),
-            }
-        }
-    }
-
-    impl<F, GroupByClause> ValidGrouping<GroupByClause> for FieldQuery<F> {
-        type IsAggregate = is_aggregate::Never;
-    }
-
-    pub(crate) type HelperType<F, FT> = FieldQuery<<F as AsExpression<FT>>::Expression>;
-
-    impl<F> Expression for FieldQuery<F>
-    where
-        F: Expression,
-    {
-        type SqlType = Bool;
-    }
-
-    impl<F, QS> SelectableExpression<QS> for FieldQuery<F>
-    where
-        F: SelectableExpression<QS>,
-        Self: AppearsOnTable<QS>,
-    {
-    }
-
-    impl<F, QS> AppearsOnTable<QS> for FieldQuery<F>
-    where
-        F: AppearsOnTable<QS>,
-        Self: Expression,
-    {
-    }
-
-    impl<F> QueryFragment<Backend> for FieldQuery<F>
-    where
-        F: QueryFragment<Backend>,
-    {
-        #[allow(unused_assignments)]
-        fn walk_ast<'__b>(&'__b self, mut out: AstPass<'_, '__b, Backend>) -> QueryResult<()> {
-            match (&self.operator, self.invert) {
-                (Operator::Empty, false) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" IS NULL");
-                }
-                (Operator::Empty, true) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" IS NOT NULL");
-                }
-                (Operator::Equal(v), false) => {
-                    self.walk_field(out.reborrow())?;
-                    out.push_sql(" IS NOT DISTINCT FROM ");
-                    self.bind_value(v, &mut out)?;
-                }
-                (Operator::Equal(v), true) => {
-                    self.walk_field(out.reborrow())?;
-                    out.push_sql(" IS DISTINCT FROM ");
-                    self.bind_value(v, &mut out)?;
-                }
-                (Operator::LessThan(v), false) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" < ");
-                    self.bind_value(v, &mut out)?;
-                }
-                (Operator::LessThan(v), true) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" >= ");
-                    self.bind_value(v, &mut out)?;
-                }
-                (Operator::LessThanOrEqual(v), false) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" <= ");
-                    self.bind_value(v, &mut out)?;
-                }
-                (Operator::LessThanOrEqual(v), true) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" > ");
-                    self.bind_value(v, &mut out)?;
-                }
-                (Operator::Contains(v), false) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" LIKE '%' || ");
-                    out.push_bind_param::<Text, _>(v)?;
-                    out.push_sql(" || '%'");
-                }
-                (Operator::Contains(v), true) => {
-                    out.push_sql("(");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" IS NULL OR ");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" NOT LIKE  '%' || ");
-                    out.push_bind_param::<Text, _>(v)?;
-                    out.push_sql(" || '%')");
-                }
-                (Operator::StartsWith(v), false) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" LIKE ");
-                    out.push_bind_param::<Text, _>(v)?;
-                    out.push_sql(" || '%'");
-                }
-                (Operator::StartsWith(v), true) => {
-                    out.push_sql("(");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" IS NULL OR ");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" NOT LIKE ");
-                    out.push_bind_param::<Text, _>(v)?;
-                    out.push_sql(" || '%')");
-                }
-                (Operator::EndsWith(v), false) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" LIKE '%' || ");
-                    out.push_bind_param::<Text, _>(v)?;
-                }
-                (Operator::EndsWith(v), true) => {
-                    out.push_sql("(");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" IS NULL OR ");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" NOT LIKE '%' || ");
-                    out.push_bind_param::<Text, _>(v)?;
-                    out.push_sql(")");
-                }
-                (Operator::Matches(v), false) => {
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" ~ ");
-                    out.push_bind_param::<Text, _>(v)?;
-                }
-                (Operator::Matches(v), true) => {
-                    out.push_sql("(");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" IS NULL OR ");
-                    self.field.walk_ast(out.reborrow())?;
-                    out.push_sql(" !~ ");
-                    out.push_bind_param::<Text, _>(v)?;
-                    out.push_sql(")");
-                }
-            }
-
-            Ok(())
-        }
-    }
-}
-
-pub(crate) enum TypedField<QS> {
-    Text(Boxed<QS, Nullable<Text>>),
-    Float(Boxed<QS, Nullable<Float>>),
-    Integer(Boxed<QS, Nullable<Integer>>),
-    Date(Boxed<QS, Nullable<Timestamptz>>),
+    Reference,
 }
 
 pub(crate) trait Field {
-    type QuerySource: 'static;
+    fn field_name(&self) -> String;
+    fn field_type(&self) -> FieldType;
 
-    fn field(&self) -> TypedField<Self::QuerySource>;
+    fn push_field(&self, builder: &mut QueryBuilder<SqlxDatabase>) {
+        builder.push(format!("\"{}\"", self.field_name()));
+    }
 }
 
-pub(crate) trait RelationField: Field {
-    fn build_media_filter(
+pub(crate) trait RelationField: Field
+where
+    Self: Sized,
+{
+    fn bind_media_filter(
         catalog: &str,
-        recursive: bool,
-        filter: Boxed<Self::QuerySource>,
-    ) -> Boxed<MediaViewQS>;
+        query: &RelationQuery<Self>,
+        builder: &mut QueryBuilder<SqlxDatabase>,
+    );
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -300,7 +52,17 @@ pub(crate) enum SqlValue {
     Double(f64),
 }
 
-#[typeshare]
+impl SqlValue {
+    fn bind_value(&self, builder: &mut QueryBuilder<SqlxDatabase>) {
+        match self {
+            SqlValue::String(v) => builder.push_bind(v.clone()),
+            SqlValue::Bool(v) => builder.push_bind(*v),
+            SqlValue::Integer(v) => builder.push_bind(*v),
+            SqlValue::Double(v) => builder.push_bind(*v),
+        };
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase", tag = "operator", content = "value")]
 pub(crate) enum Operator {
@@ -315,8 +77,7 @@ pub(crate) enum Operator {
     Matches(String),
 }
 
-#[typeshare]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Modifier {
     Length,
@@ -328,7 +89,32 @@ pub(crate) enum Modifier {
 
 derive_display_from_serialize!(Modifier);
 
-#[typeshare]
+impl Modifier {
+    fn bind_field<F: Field>(&self, field: &F, builder: &mut QueryBuilder<SqlxDatabase>) {
+        match (field.field_type(), self) {
+            (FieldType::Text, Self::Length) => {
+                builder.push("CHAR_LENGTH(");
+                field.push_field(builder);
+                builder.push(")");
+            }
+            (FieldType::Date, Self::Year | Self::Month | Self::Day | Self::DayOfWeek) => {
+                builder.push("EXTRACT(");
+                match self {
+                    Self::Year => builder.push("YEAR"),
+                    Self::Month => builder.push("MONTH"),
+                    Self::Day => builder.push("DAY"),
+                    Self::DayOfWeek => builder.push("DOW"),
+                    _ => unreachable!(),
+                };
+                builder.push("FROM TIMESTAMP ");
+                field.push_field(builder);
+                builder.push(")");
+            }
+            _ => field.push_field(builder),
+        }
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Copy)]
 pub(crate) enum Join {
     #[default]
@@ -338,7 +124,6 @@ pub(crate) enum Join {
     Or,
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum MediaField {
@@ -368,44 +153,35 @@ pub(crate) enum MediaField {
     TakenZone,
 }
 
+derive_display_from_serialize!(MediaField);
+
 impl Field for MediaField {
-    type QuerySource = MediaViewQS;
-
-    fn field(&self) -> TypedField<Self::QuerySource> {
+    fn field_name(&self) -> String {
         match self {
-            MediaField::Title => TypedField::Text(Box::new(media_field!(title))),
-            MediaField::Filename => TypedField::Text(Box::new(media_field!(filename))),
-            MediaField::Description => TypedField::Text(Box::new(media_field!(description))),
-            MediaField::Category => TypedField::Text(Box::new(media_field!(category))),
-            MediaField::Label => TypedField::Text(Box::new(media_field!(label))),
-            MediaField::Location => TypedField::Text(Box::new(media_field!(location))),
-            MediaField::City => TypedField::Text(Box::new(media_field!(city))),
-            MediaField::State => TypedField::Text(Box::new(media_field!(state))),
-            MediaField::Country => TypedField::Text(Box::new(media_field!(country))),
-            MediaField::Make => TypedField::Text(Box::new(media_field!(make))),
-            MediaField::Model => TypedField::Text(Box::new(media_field!(model))),
-            MediaField::Lens => TypedField::Text(Box::new(media_field!(lens))),
-            MediaField::Photographer => TypedField::Text(Box::new(media_field!(photographer))),
-            MediaField::ShutterSpeed => TypedField::Float(Box::new(media_field!(shutter_speed))),
+            MediaField::ShutterSpeed => "shutter_speed".to_string(),
+            MediaField::FocalLength => "focal_length".to_string(),
+            MediaField::TakenZone => "taken_zone".to_string(),
 
-            MediaField::Longitude => TypedField::Float(Box::new(media_field!(longitude))),
-            MediaField::Latitude => TypedField::Float(Box::new(media_field!(latitude))),
-            MediaField::Altitude => TypedField::Float(Box::new(media_field!(altitude))),
-            MediaField::Aperture => TypedField::Float(Box::new(media_field!(aperture))),
-            MediaField::FocalLength => TypedField::Float(Box::new(media_field!(focal_length))),
+            o => o.to_string(),
+        }
+    }
 
-            MediaField::Orientation => TypedField::Integer(Box::new(media_field!(orientation))),
-            MediaField::Iso => TypedField::Integer(Box::new(media_field!(iso))),
-            MediaField::Rating => TypedField::Integer(Box::new(media_field!(rating))),
+    fn field_type(&self) -> FieldType {
+        match self {
+            MediaField::ShutterSpeed
+            | MediaField::Longitude
+            | MediaField::Latitude
+            | MediaField::Altitude
+            | MediaField::Aperture
+            | MediaField::FocalLength => FieldType::Float,
+            MediaField::Orientation | MediaField::Iso | MediaField::Rating => FieldType::Integer,
+            MediaField::Taken => FieldType::Date,
 
-            MediaField::Taken => TypedField::Date(Box::new(media_item::datetime.nullable())),
-
-            MediaField::TakenZone => TypedField::Text(Box::new(media_item::taken_zone)),
+            _ => FieldType::Text,
         }
     }
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum TagField {
@@ -413,47 +189,56 @@ pub(crate) enum TagField {
     Name,
 }
 
-impl Field for TagField {
-    type QuerySource = tag::table;
+derive_display_from_serialize!(TagField);
 
-    fn field(&self) -> TypedField<Self::QuerySource> {
+impl Field for TagField {
+    fn field_name(&self) -> String {
+        self.to_string()
+    }
+
+    fn field_type(&self) -> FieldType {
         match self {
-            Self::Id => TypedField::Text(Box::new(tag::id.nullable())),
-            Self::Name => TypedField::Text(Box::new(tag::name.nullable())),
+            Self::Id => FieldType::Reference,
+            Self::Name => FieldType::Text,
         }
     }
 }
 
 impl RelationField for TagField {
-    fn build_media_filter(
+    fn bind_media_filter(
         catalog: &str,
-        recursive: bool,
-        filter: Boxed<Self::QuerySource>,
-    ) -> Boxed<MediaViewQS> {
-        if recursive {
-            let select = tag::table
-                .filter(tag::catalog.eq(catalog.to_owned()))
-                .filter(filter)
-                .into_boxed()
-                .inner_join(tag_descendent::table.on(tag_descendent::id.eq(tag::id)))
-                .inner_join(media_tag::table.on(media_tag::tag.eq(tag_descendent::descendent)))
-                .select(media_tag::media);
+        query: &RelationQuery<TagField>,
+        builder: &mut QueryBuilder<SqlxDatabase>,
+    ) {
+        builder.push("media_view.id IN (");
 
-            Box::new(media_item::id.eq_any(select))
+        if query.recursive {
+            builder.push(
+                "
+                SELECT media_tag.media
+                FROM tag
+                    JOIN tag_descendent ON tag_descendent.id=tag.id
+                    JOIN media_tag ON media_tag.tag=tag_descendent.descendent
+                ",
+            );
         } else {
-            let select = tag::table
-                .filter(tag::catalog.eq(catalog.to_owned()))
-                .filter(filter)
-                .into_boxed()
-                .inner_join(media_tag::table.on(media_tag::tag.eq(tag::id)))
-                .select(media_tag::media);
-
-            Box::new(media_item::id.eq_any(select))
+            builder.push(
+                "
+                SELECT media_tag.media
+                FROM tag
+                    JOIN media_tag ON media_tag.tag=tag.id
+                ",
+            );
         }
+
+        builder.push("WHERE tag.catalog=");
+        builder.push_bind(catalog.to_owned());
+        builder.push(" AND ");
+        query.query.bind_filter(catalog, builder);
+        builder.push(")");
     }
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum PersonField {
@@ -461,35 +246,45 @@ pub(crate) enum PersonField {
     Name,
 }
 
-impl Field for PersonField {
-    type QuerySource = person::table;
+derive_display_from_serialize!(PersonField);
 
-    fn field(&self) -> TypedField<Self::QuerySource> {
+impl Field for PersonField {
+    fn field_name(&self) -> String {
+        self.to_string()
+    }
+
+    fn field_type(&self) -> FieldType {
         match self {
-            Self::Id => TypedField::Text(Box::new(person::id.nullable())),
-            Self::Name => TypedField::Text(Box::new(person::name.nullable())),
+            Self::Id => FieldType::Reference,
+            Self::Name => FieldType::Text,
         }
     }
 }
 
 impl RelationField for PersonField {
-    fn build_media_filter(
+    fn bind_media_filter(
         catalog: &str,
-        _recursive: bool,
-        filter: Boxed<Self::QuerySource>,
-    ) -> Boxed<MediaViewQS> {
-        let select = person::table
-            .filter(person::catalog.eq(catalog.to_owned()))
-            .filter(filter)
-            .into_boxed()
-            .inner_join(media_person::table.on(media_person::person.eq(person::id)))
-            .select(media_person::media);
+        query: &RelationQuery<PersonField>,
+        builder: &mut QueryBuilder<SqlxDatabase>,
+    ) {
+        builder.push("media_view.id IN (");
 
-        Box::new(media_item::id.eq_any(select))
+        builder.push(
+            "
+            SELECT media_person.media
+            FROM person
+                JOIN media_person ON media_person.person=person.id
+            ",
+        );
+
+        builder.push("WHERE person.catalog=");
+        builder.push_bind(catalog.to_owned());
+        builder.push(" AND ");
+        query.query.bind_filter(catalog, builder);
+        builder.push(")");
     }
 }
 
-#[typeshare]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum AlbumField {
@@ -497,45 +292,53 @@ pub(crate) enum AlbumField {
     Name,
 }
 
-impl Field for AlbumField {
-    type QuerySource = album::table;
+derive_display_from_serialize!(AlbumField);
 
-    fn field(&self) -> TypedField<Self::QuerySource> {
+impl Field for AlbumField {
+    fn field_name(&self) -> String {
+        self.to_string()
+    }
+
+    fn field_type(&self) -> FieldType {
         match self {
-            Self::Id => TypedField::Text(Box::new(album::id.nullable())),
-            Self::Name => TypedField::Text(Box::new(album::name.nullable())),
+            Self::Id => FieldType::Reference,
+            Self::Name => FieldType::Text,
         }
     }
 }
 
 impl RelationField for AlbumField {
-    fn build_media_filter(
+    fn bind_media_filter(
         catalog: &str,
-        recursive: bool,
-        filter: Boxed<Self::QuerySource>,
-    ) -> Boxed<MediaViewQS> {
-        if recursive {
-            let select = album::table
-                .filter(album::catalog.eq(catalog.to_owned()))
-                .filter(filter)
-                .into_boxed()
-                .inner_join(album_descendent::table.on(album_descendent::id.eq(album::id)))
-                .inner_join(
-                    media_album::table.on(media_album::album.eq(album_descendent::descendent)),
-                )
-                .select(media_album::media);
+        query: &RelationQuery<AlbumField>,
+        builder: &mut QueryBuilder<SqlxDatabase>,
+    ) {
+        builder.push("media_view.id IN (");
 
-            Box::new(media_item::id.eq_any(select))
+        if query.recursive {
+            builder.push(
+                "
+                SELECT media_album.media
+                FROM album
+                    JOIN album_descendent ON album_descendent.id=album.id
+                    JOIN media_album ON media_album.album=album_descendent.descendent
+                ",
+            );
         } else {
-            let select = album::table
-                .filter(album::catalog.eq(catalog.to_owned()))
-                .filter(filter)
-                .into_boxed()
-                .inner_join(media_album::table.on(media_album::album.eq(album::id)))
-                .select(media_album::media);
-
-            Box::new(media_item::id.eq_any(select))
+            builder.push(
+                "
+                SELECT media_album.media
+                FROM album
+                    JOIN media_album ON media_album.album=album.id
+                ",
+            );
         }
+
+        builder.push("WHERE album.catalog=");
+        builder.push_bind(catalog.to_owned());
+        builder.push(" AND ");
+        query.query.bind_filter(catalog, builder);
+        builder.push(")");
     }
 }
 
@@ -551,85 +354,126 @@ pub(crate) struct FieldQuery<F> {
     pub(crate) operator: Operator,
 }
 
+impl<F> FieldQuery<F>
+where
+    F: Field,
+{
+    fn push_field(&self, builder: &mut QueryBuilder<SqlxDatabase>) {
+        if let Some(modifier) = self.modifier {
+            modifier.bind_field(&self.field, builder);
+        } else {
+            self.field.push_field(builder);
+        }
+    }
+
+    fn bind_query(&self, builder: &mut QueryBuilder<SqlxDatabase>) {
+        match (&self.operator, self.invert) {
+            (Operator::Empty, false) => {
+                self.push_field(builder);
+                builder.push(" IS NULL");
+            }
+            (Operator::Empty, true) => {
+                self.push_field(builder);
+                builder.push(" IS NOT NULL");
+            }
+            (Operator::Equal(v), false) => {
+                self.push_field(builder);
+                builder.push(" IS NOT DISTINCT FROM ");
+                v.bind_value(builder);
+            }
+            (Operator::Equal(v), true) => {
+                self.push_field(builder);
+                builder.push(" IS DISTINCT FROM ");
+                v.bind_value(builder);
+            }
+            (Operator::LessThan(v), false) => {
+                self.push_field(builder);
+                builder.push(" < ");
+                v.bind_value(builder);
+            }
+            (Operator::LessThan(v), true) => {
+                self.push_field(builder);
+                builder.push(" >= ");
+                v.bind_value(builder);
+            }
+            (Operator::LessThanOrEqual(v), false) => {
+                self.push_field(builder);
+                builder.push(" <= ");
+                v.bind_value(builder);
+            }
+            (Operator::LessThanOrEqual(v), true) => {
+                self.push_field(builder);
+                builder.push(" > ");
+                v.bind_value(builder);
+            }
+            (Operator::Contains(v), false) => {
+                self.push_field(builder);
+                builder.push(" LIKE '%' || ");
+                builder.push_bind(v.clone());
+                builder.push(" || '%'");
+            }
+            (Operator::Contains(v), true) => {
+                builder.push("(");
+                self.push_field(builder);
+                builder.push(" IS NULL OR ");
+                self.push_field(builder);
+                builder.push(" NOT LIKE  '%' || ");
+                builder.push_bind(v.clone());
+                builder.push(" || '%')");
+            }
+            (Operator::StartsWith(v), false) => {
+                self.push_field(builder);
+                builder.push(" LIKE ");
+                builder.push_bind(v.clone());
+                builder.push(" || '%'");
+            }
+            (Operator::StartsWith(v), true) => {
+                builder.push("(");
+                self.push_field(builder);
+                builder.push(" IS NULL OR ");
+                self.push_field(builder);
+                builder.push(" NOT LIKE ");
+                builder.push_bind(v.clone());
+                builder.push(" || '%')");
+            }
+            (Operator::EndsWith(v), false) => {
+                self.push_field(builder);
+                builder.push(" LIKE '%' || ");
+                builder.push_bind(v.clone());
+            }
+            (Operator::EndsWith(v), true) => {
+                builder.push("(");
+                self.push_field(builder);
+                builder.push(" IS NULL OR ");
+                self.push_field(builder);
+                builder.push(" NOT LIKE '%' || ");
+                builder.push_bind(v.clone());
+                builder.push(")");
+            }
+            (Operator::Matches(v), false) => {
+                self.push_field(builder);
+                builder.push(" ~ ");
+                builder.push_bind(v.clone());
+            }
+            (Operator::Matches(v), true) => {
+                builder.push("(");
+                self.push_field(builder);
+                builder.push(" IS NULL OR ");
+                self.push_field(builder);
+                builder.push(" !~ ");
+                builder.push_bind(v.clone());
+                builder.push(")");
+            }
+        }
+    }
+}
+
 impl<F> Filterable for FieldQuery<F>
 where
     F: Field,
 {
-    type QuerySource = F::QuerySource;
-
-    fn build_filter(&self, _catalog: &str) -> Boxed<Self::QuerySource> {
-        match self.field.field() {
-            TypedField::Text(f) => match self.modifier {
-                Some(Modifier::Length) => Box::new(field_query(
-                    char_length(f),
-                    FieldType::Number,
-                    self.operator.clone(),
-                    self.invert,
-                )),
-                Some(ref m) => panic!("Unexpected modifier {m} for text"),
-                None => Box::new(field_query(
-                    f,
-                    FieldType::Text,
-                    self.operator.clone(),
-                    self.invert,
-                )),
-            },
-            TypedField::Float(f) => {
-                if let Some(ref m) = self.modifier {
-                    panic!("Unexpected modifier {m} for float");
-                }
-                Box::new(field_query(
-                    f,
-                    FieldType::Number,
-                    self.operator.clone(),
-                    self.invert,
-                ))
-            }
-            TypedField::Integer(f) => {
-                if let Some(ref m) = self.modifier {
-                    panic!("Unexpected modifier {m} for integer");
-                }
-                Box::new(field_query(
-                    f,
-                    FieldType::Number,
-                    self.operator.clone(),
-                    self.invert,
-                ))
-            }
-            TypedField::Date(f) => match self.modifier {
-                Some(Modifier::DayOfWeek) => Box::new(field_query(
-                    extract(f, super::functions::DateComponent::DoW),
-                    FieldType::Number,
-                    self.operator.clone(),
-                    self.invert,
-                )),
-                Some(Modifier::Day) => Box::new(field_query(
-                    extract(f, super::functions::DateComponent::Day),
-                    FieldType::Number,
-                    self.operator.clone(),
-                    self.invert,
-                )),
-                Some(Modifier::Month) => Box::new(field_query(
-                    extract(f, super::functions::DateComponent::Month),
-                    FieldType::Number,
-                    self.operator.clone(),
-                    self.invert,
-                )),
-                Some(Modifier::Year) => Box::new(field_query(
-                    extract(f, super::functions::DateComponent::Year),
-                    FieldType::Number,
-                    self.operator.clone(),
-                    self.invert,
-                )),
-                Some(ref m) => panic!("Unexpected modifier {m} for date"),
-                None => Box::new(field_query(
-                    f,
-                    FieldType::Date,
-                    self.operator.clone(),
-                    self.invert,
-                )),
-            },
-        }
+    fn bind_filter(&self, _catalog: &str, builder: &mut QueryBuilder<SqlxDatabase>) {
+        self.bind_query(builder);
     }
 }
 
@@ -647,12 +491,10 @@ impl<F> Filterable for RelationCompoundItem<F>
 where
     F: Field,
 {
-    type QuerySource = <F as Field>::QuerySource;
-
-    fn build_filter(&self, catalog: &str) -> Boxed<Self::QuerySource> {
+    fn bind_filter(&self, catalog: &str, builder: &mut QueryBuilder<SqlxDatabase>) {
         match self {
-            RelationCompoundItem::Field(f) => f.build_filter(catalog),
-            RelationCompoundItem::Compound(f) => f.build_filter(catalog),
+            RelationCompoundItem::Field(f) => f.bind_filter(catalog, builder),
+            RelationCompoundItem::Compound(f) => f.bind_filter(catalog, builder),
         }
     }
 }
@@ -680,10 +522,8 @@ impl<F> Filterable for RelationQuery<F>
 where
     F: RelationField,
 {
-    type QuerySource = MediaViewQS;
-
-    fn build_filter(&self, catalog: &str) -> Boxed<MediaViewQS> {
-        F::build_media_filter(catalog, self.recursive, self.query.build_filter(catalog))
+    fn bind_filter(&self, catalog: &str, builder: &mut QueryBuilder<SqlxDatabase>) {
+        F::bind_media_filter(catalog, self, builder);
     }
 }
 
@@ -698,21 +538,18 @@ pub(crate) enum CompoundItem {
 }
 
 impl Filterable for CompoundItem {
-    type QuerySource = MediaViewQS;
-
-    fn build_filter(&self, catalog: &str) -> Boxed<MediaViewQS> {
+    fn bind_filter(&self, catalog: &str, builder: &mut QueryBuilder<SqlxDatabase>) {
         match self {
-            CompoundItem::Field(f) => f.build_filter(catalog),
-            CompoundItem::Tag(f) => f.build_filter(catalog),
-            CompoundItem::Person(f) => f.build_filter(catalog),
-            CompoundItem::Album(f) => f.build_filter(catalog),
-            CompoundItem::Compound(f) => f.build_filter(catalog),
+            CompoundItem::Field(f) => f.bind_filter(catalog, builder),
+            CompoundItem::Tag(f) => f.bind_filter(catalog, builder),
+            CompoundItem::Person(f) => f.bind_filter(catalog, builder),
+            CompoundItem::Album(f) => f.bind_filter(catalog, builder),
+            CompoundItem::Compound(f) => f.bind_filter(catalog, builder),
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, AsExpression, deserialize::FromSqlRow)]
-#[diesel(sql_type = sql_types::Json)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct CompoundQuery<Q> {
     #[serde(default, skip_serializing_if = "is_false")]
     pub(crate) invert: bool,
@@ -722,166 +559,65 @@ pub(crate) struct CompoundQuery<Q> {
 }
 
 impl CompoundQuery<CompoundItem> {
-    #[instrument(skip_all)]
-    pub(crate) async fn count(&self, conn: &mut DbConnection<'_>, catalog: &str) -> Result<i64> {
-        let count = media_view_tables!()
-            .filter(media_item::deleted.eq(false))
-            .filter(media_item::catalog.eq(catalog))
-            .filter(self.build_filter(catalog))
-            .count()
-            .get_result::<i64>(conn)
-            .await?;
-
-        Ok(count)
+    pub(crate) fn decode(value: Value) -> SqlxResult<Self> {
+        serde_json::from_value(value).map_err(|e| SqlxError::Decode(Box::new(e)))
     }
 
-    #[instrument(skip(self, conn, catalog))]
-    pub(crate) async fn list(
-        &self,
-        conn: &mut DbConnection<'_>,
-        catalog: &str,
-        offset: Option<i64>,
-        count: Option<i64>,
-    ) -> Result<Vec<models::MediaView>> {
-        let mut query = media_view!()
-            .filter(media_item::catalog.eq(catalog))
-            .filter(self.build_filter(catalog))
-            .select(media_view_columns!())
-            .offset(offset.unwrap_or_default())
-            .into_boxed();
+    #[instrument(skip_all)]
+    pub(crate) async fn stream_media(
+        self,
+        mut conn: DbConnection<'static>,
+        catalog: String,
+        sender: MediaViewSender,
+    ) {
+        let mut builder = QueryBuilder::new("SELECT media_view.* FROM media_view WHERE catalog=");
+        builder.push_bind(&catalog);
+        builder.push(" AND ");
+        self.bind_filter(&catalog, &mut builder);
+        builder.push(" ORDER BY datetime DESC");
 
-        if let Some(count) = count {
-            query = query.limit(count);
-        }
-
-        Ok(query.load::<models::MediaView>(conn).await?)
+        let stream = builder.build_query_as::<MediaView>().fetch(&mut conn);
+        sender.send_stream(stream).await
     }
 }
 
 impl<Q> Filterable for CompoundQuery<Q>
 where
     Q: Filterable,
-    Q::QuerySource: 'static,
 {
-    type QuerySource = Q::QuerySource;
-
-    fn build_filter(&self, catalog: &str) -> Boxed<Self::QuerySource> {
+    fn bind_filter(&self, catalog: &str, builder: &mut QueryBuilder<SqlxDatabase>) {
         if self.queries.is_empty() {
             if matches!(
                 (self.invert, self.join),
                 (false, Join::And) | (true, Join::Or)
             ) {
-                return Box::new(sql::<Bool>("TRUE"));
+                builder.push("TRUE");
             } else {
-                return Box::new(sql::<Bool>("FALSE"));
+                builder.push("FALSE");
             }
-        }
-
-        let mut filter: Boxed<Self::QuerySource> = self.queries[0].build_filter(catalog);
-
-        for query in self.queries.iter().skip(1) {
-            filter = match self.join {
-                Join::And => Box::new(filter.and(query.build_filter(catalog))),
-                Join::Or => Box::new(filter.or(query.build_filter(catalog))),
-            };
+            return;
         }
 
         if self.invert {
-            Box::new(not(filter))
-        } else {
-            filter
+            builder.push("NOT(");
+        } else if self.queries.len() > 1 {
+            builder.push("(");
         }
-    }
-}
 
-fn upgrade_compound(obj: &mut Object) {
-    if let Some(val) = obj.remove("relation") {
-        obj.insert("type".to_string(), val);
-    } else if let Some(Value::Array(list)) = obj.get_mut("queries") {
-        for val in list {
-            if let Value::Object(ref mut obj) = val {
-                if matches!(
-                    map!(prop!(obj, "type"), expect_string).as_deref(),
-                    Some("compound")
-                ) {
-                    upgrade_compound(obj);
-                }
-            }
+        self.queries[0].bind_filter(catalog, builder);
+
+        for query in self.queries.iter().skip(1) {
+            match self.join {
+                Join::And => builder.push(" AND "),
+                Join::Or => builder.push(" OR "),
+            };
+
+            query.bind_filter(catalog, builder);
         }
-    }
-}
 
-pub(crate) fn upgrade_query(query: Value) -> Result<SearchQuery> {
-    if let Value::Object(mut obj) = query {
-        match map!(prop!(obj, "type"), expect_string).as_deref() {
-            Some("compound") => {
-                upgrade_compound(&mut obj);
-
-                if !matches!(
-                    map!(prop!(obj, "type"), expect_string).as_deref(),
-                    Some("compound"),
-                ) {
-                    // We must wrap this in a new compound query.
-                    let inner_query: CompoundItem = from_value(Value::Object(obj))?;
-
-                    let query = SearchQuery {
-                        invert: false,
-                        join: Join::default(),
-                        queries: vec![inner_query],
-                    };
-
-                    Ok(query)
-                } else {
-                    Ok(from_value(Value::Object(obj))?)
-                }
-            }
-            Some("field") => {
-                // We must wrap this in a new compound query.
-                let inner_query: CompoundItem = from_value(Value::Object(obj))?;
-
-                let query = SearchQuery {
-                    invert: false,
-                    join: Join::default(),
-                    queries: vec![inner_query],
-                };
-
-                Ok(query)
-            }
-            _ => {
-                // This is unexpected. Just try to parse it.
-                Ok(from_value(Value::Object(obj))?)
-            }
+        if self.invert || self.queries.len() > 1 {
+            builder.push(")");
         }
-    } else {
-        // This is unexpected. Just try to parse it.
-        Ok(from_value(query)?)
-    }
-}
-
-impl<DB> deserialize::FromSql<sql_types::Json, DB> for SearchQuery
-where
-    DB: backend::Backend,
-    Value: deserialize::FromSql<sql_types::Json, DB>,
-{
-    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
-        let value = Value::from_sql(bytes)?;
-        Ok(serde_json::from_value(value)?)
-    }
-}
-
-impl serialize::ToSql<sql_types::Json, diesel::pg::Pg> for SearchQuery
-where
-    Value: serialize::ToSql<sql_types::Json, diesel::pg::Pg>,
-{
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut serialize::Output<'b, '_, diesel::pg::Pg>,
-    ) -> serialize::Result {
-        let value = serde_json::to_value(self)?;
-        <Value as serialize::ToSql<sql_types::Json, diesel::pg::Pg>>::to_sql(
-            &value,
-            &mut out.reborrow(),
-        )
     }
 }
 

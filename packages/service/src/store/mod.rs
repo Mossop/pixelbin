@@ -9,22 +9,24 @@ use std::{
 };
 
 use async_trait::async_trait;
-use diesel_async::scoped_futures::ScopedBoxFuture;
 
 pub(crate) mod aws;
 pub(crate) mod db;
 pub(crate) mod path;
 
 pub(crate) use db::models;
-use db::{connect, DbConnection, DbPool};
+use db::{connect, DbConnection};
 use mime::Mime;
-use scoped_futures::ScopedFutureExt;
+use pixelbin_shared::Ignorable;
 use tempfile::TempPath;
 use tokio::fs;
-use tracing::{instrument, span::Id};
+use tracing::{debug, instrument, span::Id};
 
 use self::path::{FilePath, PathLike, ResourcePath};
-use crate::{shared::error::Ignorable, Config, Result, Task, TaskQueue};
+use crate::{
+    store::db::{Connection, SqlxPool},
+    Config, Result, Task, TaskQueue,
+};
 
 #[async_trait]
 pub trait FileStore {
@@ -49,9 +51,24 @@ pub trait FileStore {
 
 pub(crate) struct DiskStore {
     pub(crate) root: PathBuf,
+    testing: bool,
 }
 
 impl DiskStore {
+    pub(crate) fn local_store(config: &Config) -> Self {
+        Self {
+            root: config.local_storage.clone(),
+            testing: config.testing,
+        }
+    }
+
+    pub(crate) fn temp_store(config: &Config) -> Self {
+        Self {
+            root: config.temp_storage.clone(),
+            testing: config.testing,
+        }
+    }
+
     pub(crate) fn local_path<P: PathLike>(&self, path: &P) -> PathBuf {
         let mut local_path = self.root.clone();
         for part in path.path_parts() {
@@ -202,6 +219,11 @@ impl FileStore for DiskStore {
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
+        if self.testing {
+            debug!("Not deleting in testing mode.");
+            return Ok(());
+        }
+
         let local_path = self.local_path(path);
 
         if Self::prune_path(&local_path).await? {
@@ -238,6 +260,11 @@ impl FileStore for DiskStore {
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
+        if self.testing {
+            debug!("Not deleting in testing mode.");
+            return Ok(());
+        }
+
         let local = self.local_path(path);
 
         let stats = match fs::metadata(&local).await {
@@ -300,7 +327,7 @@ pub enum Isolation {
 #[derive(Clone)]
 pub struct Store {
     config: Config,
-    pool: DbPool,
+    pool: SqlxPool,
     task_queue: TaskQueue,
 }
 
@@ -335,37 +362,17 @@ impl Store {
         &self.config
     }
 
-    pub async fn with_connection<'a, R, F>(&self, cb: F) -> Result<R>
+    pub async fn isolated<'a, 'c>(&'c self, level: Isolation) -> Result<DbConnection<'a>>
     where
-        R: 'a + Send,
-        F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
-            + Send
-            + 'a,
+        'c: 'a,
     {
-        let mut db_conn = self.connect().await?;
-        cb(&mut db_conn).await
-    }
+        let inner = self.pool.begin().await?;
 
-    pub async fn isolated<'a, R, F>(&self, level: Isolation, cb: F) -> Result<R>
-    where
-        R: 'a + Send,
-        F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
-            + Send
-            + 'a,
-    {
-        let mut db_conn = self.connect().await?;
-        db_conn
-            .isolated(level, |conn| async move { cb(conn).await }.scope_boxed())
-            .await
-    }
-
-    pub async fn in_transaction<'a, R, F>(&self, cb: F) -> Result<R>
-    where
-        R: 'a + Send,
-        F: for<'b> FnOnce(&'b mut DbConnection<'b>) -> ScopedBoxFuture<'a, 'b, Result<R>>
-            + Send
-            + 'a,
-    {
-        self.isolated(Default::default(), cb).await
+        Ok(DbConnection {
+            connection: Connection::Transaction((level, inner)),
+            pool: self.pool.clone(),
+            config: self.config.clone(),
+            task_queue: self.task_queue.clone(),
+        })
     }
 }

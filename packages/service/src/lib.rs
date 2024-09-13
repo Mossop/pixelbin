@@ -1,4 +1,5 @@
 #![deny(unreachable_pub)]
+pub use pixelbin_shared::{Config, Error, Result};
 
 mod metadata;
 #[cfg(feature = "webserver")]
@@ -7,12 +8,6 @@ mod shared;
 mod store;
 mod task_queue;
 
-use shared::error::Ignorable;
-pub use shared::{
-    config::Config,
-    error::{Error, Result},
-    load_config,
-};
 pub use store::{FileStore, Store};
 pub use task_queue::Task;
 pub(crate) use task_queue::TaskQueue;

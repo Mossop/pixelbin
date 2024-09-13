@@ -7,7 +7,6 @@ use actix_web::{
     web::{self},
     HttpResponse, HttpResponseBuilder,
 };
-use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, OneOrMany};
 use tracing::instrument;
@@ -15,7 +14,6 @@ use tracing::instrument;
 use crate::{
     server::{
         auth::{MaybeSession, Session},
-        media::GetMediaRequest,
         ApiResponse, ApiResult, AppState,
     },
     shared::short_id,
@@ -45,34 +43,21 @@ async fn create_album(
     session: Session,
     request: web::Json<CreateAlbumRequest>,
 ) -> ApiResult<web::Json<models::Album>> {
-    let response = app_state
-        .store
-        .with_connection(|conn| {
-            async move {
-                let catalog = models::Catalog::get_for_user(
-                    conn,
-                    &session.user.email,
-                    &request.catalog,
-                    true,
-                )
-                .await?;
+    let mut conn = app_state.store.connect().await?;
+    let catalog =
+        models::Catalog::get_for_user(&mut conn, &session.user.email, &request.catalog, true)
+            .await?;
 
-                let album = models::Album {
-                    id: short_id("A"),
-                    catalog: catalog.id.clone(),
-                    name: request.album.name.clone(),
-                    parent: request.album.parent.clone(),
-                };
+    let album = models::Album {
+        id: short_id("A"),
+        catalog: catalog.id.clone(),
+        name: request.album.name.clone(),
+        parent: request.album.parent.clone(),
+    };
 
-                models::Album::upsert(conn, &[album.clone()]).await?;
+    models::Album::upsert(&mut conn, &[album.clone()]).await?;
 
-                Ok(album)
-            }
-            .scope_boxed()
-        })
-        .await?;
-
-    Ok(web::Json(response))
+    Ok(web::Json(album))
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -88,24 +73,15 @@ async fn edit_album(
     session: Session,
     request: web::Json<EditAlbumRequest>,
 ) -> ApiResult<web::Json<models::Album>> {
-    let album = app_state
-        .store
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                let mut album =
-                    models::Album::get_for_user_for_update(conn, &session.user.email, &request.id)
-                        .await?;
+    let mut conn = app_state.store.isolated(Isolation::Committed).await?;
+    let mut album =
+        models::Album::get_for_user_for_update(&mut conn, &session.user.email, &request.id).await?;
 
-                album.name.clone_from(&request.album.name);
-                album.parent.clone_from(&request.album.parent);
+    album.name.clone_from(&request.album.name);
+    album.parent.clone_from(&request.album.parent);
 
-                models::Album::upsert(conn, &[album.clone()]).await?;
-
-                Ok(album)
-            }
-            .scope_boxed()
-        })
-        .await?;
+    models::Album::upsert(&mut conn, &[album.clone()]).await?;
+    conn.commit().await?;
 
     app_state
         .store
@@ -124,28 +100,19 @@ async fn delete_album(
     session: Session,
     albums: web::Json<Vec<String>>,
 ) -> ApiResult<web::Json<ApiResponse>> {
-    let catalogs = app_state
-        .store
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                let mut ids: Vec<String> = Vec::new();
-                let mut catalogs: HashSet<String> = HashSet::new();
+    let mut conn = app_state.store.isolated(Isolation::Committed).await?;
+    let mut ids: Vec<String> = Vec::new();
+    let mut catalogs: HashSet<String> = HashSet::new();
 
-                for id in albums.iter() {
-                    let album =
-                        models::Album::get_for_user_for_update(conn, &session.user.email, id)
-                            .await?;
-                    catalogs.insert(album.catalog);
-                    ids.push(album.id);
-                }
+    for id in albums.iter() {
+        let album =
+            models::Album::get_for_user_for_update(&mut conn, &session.user.email, id).await?;
+        catalogs.insert(album.catalog);
+        ids.push(album.id);
+    }
 
-                models::Album::delete(conn, &ids).await?;
-
-                Ok(catalogs)
-            }
-            .scope_boxed()
-        })
-        .await?;
+    models::Album::delete(&mut conn, &ids).await?;
+    conn.commit().await?;
 
     for catalog in catalogs {
         app_state
@@ -180,48 +147,36 @@ async fn album_media_change(
     session: Session,
     updates: web::Json<Vec<AlbumMediaChange>>,
 ) -> ApiResult<web::Json<ApiResponse>> {
-    let catalogs = app_state
-        .store
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                let mut catalogs: HashSet<String> = HashSet::new();
+    let mut conn = app_state.store.isolated(Isolation::Committed).await?;
+    let mut catalogs: HashSet<String> = HashSet::new();
 
-                for update in updates.into_inner() {
-                    let album = models::Album::get_for_user_for_update(
-                        conn,
-                        &session.user.email,
-                        &update.album,
-                    )
-                    .await?;
+    for update in updates.into_inner() {
+        let album =
+            models::Album::get_for_user_for_update(&mut conn, &session.user.email, &update.album)
+                .await?;
 
-                    catalogs.insert(album.catalog.clone());
+        catalogs.insert(album.catalog.clone());
 
-                    match update.operation {
-                        RelationOperation::Add => {
-                            let media_albums: Vec<models::MediaAlbum> = update
-                                .media
-                                .into_iter()
-                                .map(|m| models::MediaAlbum {
-                                    catalog: album.catalog.clone(),
-                                    album: album.id.clone(),
-                                    media: m,
-                                })
-                                .collect();
+        match update.operation {
+            RelationOperation::Add => {
+                let media_albums: Vec<models::MediaAlbum> = update
+                    .media
+                    .into_iter()
+                    .map(|m| models::MediaAlbum {
+                        catalog: album.catalog.clone(),
+                        album: album.id.clone(),
+                        media: m,
+                    })
+                    .collect();
 
-                            models::MediaAlbum::upsert(conn, &media_albums).await?;
-                        }
-                        RelationOperation::Delete => {
-                            models::MediaAlbum::remove_media(conn, &album.id, &update.media)
-                                .await?;
-                        }
-                    }
-                }
-
-                Ok(catalogs)
+                models::MediaAlbum::upsert(&mut conn, &media_albums).await?;
             }
-            .scope_boxed()
-        })
-        .await?;
+            RelationOperation::Delete => {
+                models::MediaAlbum::remove_media(&mut conn, &album.id, &update.media).await?;
+            }
+        }
+    }
+    conn.commit().await?;
 
     for catalog in catalogs {
         app_state
@@ -258,25 +213,16 @@ async fn get_album(
     album_id: web::Path<String>,
     query: web::Query<AlbumListRequest>,
 ) -> ApiResult<web::Json<AlbumResponse>> {
-    let response = app_state
-        .store
-        .with_connection(|conn| {
-            async move {
-                let (album, media) = models::Album::get_for_user_with_count(
-                    conn,
-                    &session.user.email,
-                    &album_id,
-                    query.recursive,
-                )
-                .await?;
+    let mut conn = app_state.store.connect().await?;
+    let (album, media) = models::Album::get_for_user_with_count(
+        &mut conn,
+        &session.user.email,
+        &album_id,
+        query.recursive,
+    )
+    .await?;
 
-                Ok(AlbumResponse { album, media })
-            }
-            .scope_boxed()
-        })
-        .await?;
-
-    Ok(web::Json(response))
+    Ok(web::Json(AlbumResponse { album, media }))
 }
 
 #[derive(Serialize)]
@@ -295,20 +241,11 @@ async fn get_search(
 ) -> ApiResult<web::Json<SearchResponse>> {
     let email = session.session().map(|s| s.user.email.as_str());
 
-    let response = app_state
-        .store
-        .with_connection(|conn| {
-            async move {
-                let (search, media) =
-                    models::SavedSearch::get_for_user_with_count(conn, email, &search_id).await?;
+    let mut conn = app_state.store.connect().await?;
+    let (search, media) =
+        models::SavedSearch::get_for_user_with_count(&mut conn, email, &search_id).await?;
 
-                Ok(SearchResponse { search, media })
-            }
-            .scope_boxed()
-        })
-        .await?;
-
-    Ok(web::Json(response))
+    Ok(web::Json(SearchResponse { search, media }))
 }
 
 #[derive(Serialize)]
@@ -326,28 +263,16 @@ async fn get_catalog(
     session: Session,
     catalog_id: web::Path<String>,
 ) -> ApiResult<web::Json<CatalogResponse>> {
-    let response = app_state
-        .store
-        .with_connection(|conn| {
-            async move {
-                let (catalog, writable, media) = models::Catalog::get_for_user_with_count(
-                    conn,
-                    &session.user.email,
-                    &catalog_id,
-                )
-                .await?;
+    let mut conn = app_state.store.connect().await?;
+    let (catalog, writable, media) =
+        models::Catalog::get_for_user_with_count(&mut conn, &session.user.email, &catalog_id)
+            .await?;
 
-                Ok(CatalogResponse {
-                    catalog,
-                    writable,
-                    media,
-                })
-            }
-            .scope_boxed()
-        })
-        .await?;
-
-    Ok(web::Json(response))
+    Ok(web::Json(CatalogResponse {
+        catalog,
+        writable,
+        media,
+    }))
 }
 
 #[get("/catalog/{catalog_id}/media")]
@@ -356,20 +281,15 @@ async fn get_catalog_media(
     app_state: web::Data<AppState>,
     session: Session,
     catalog_id: web::Path<String>,
-    query: web::Query<GetMediaRequest>,
 ) -> ApiResult<HttpResponse> {
-    let catalog = app_state
-        .store
-        .with_connection(|conn| {
-            models::Catalog::get_for_user(conn, &session.user.email, &catalog_id, false)
-                .scope_boxed()
-        })
-        .await?;
+    let mut conn = app_state.store.connect().await?;
+    let catalog =
+        models::Catalog::get_for_user(&mut conn, &session.user.email, &catalog_id, false).await?;
 
     let (stream, sender) = MediaViewStream::new();
 
-    let store = app_state.store.clone();
-    tokio::spawn(catalog.stream_media(store, query.offset, query.count, sender));
+    let conn = app_state.store.connect().await?;
+    tokio::spawn(catalog.stream_media(conn, sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)
         .append_header((header::CONTENT_TYPE, "application/x-ndjson"))
@@ -378,8 +298,6 @@ async fn get_catalog_media(
 
 #[derive(Debug, Deserialize)]
 struct GetRecursiveMediaRequest {
-    offset: Option<i64>,
-    count: Option<i64>,
     #[serde(default = "default_true")]
     recursive: bool,
 }
@@ -392,17 +310,13 @@ async fn get_album_media(
     album_id: web::Path<String>,
     query: web::Query<GetRecursiveMediaRequest>,
 ) -> ApiResult<HttpResponse> {
-    let album = app_state
-        .store
-        .isolated(Isolation::ReadOnly, |conn| {
-            models::Album::get_for_user(conn, &session.user.email, &album_id).scope_boxed()
-        })
-        .await?;
+    let mut conn = app_state.store.connect().await?;
+    let album = models::Album::get_for_user(&mut conn, &session.user.email, &album_id).await?;
 
     let (stream, sender) = MediaViewStream::new();
 
-    let store = app_state.store.clone();
-    tokio::spawn(album.stream_media(store, query.recursive, query.offset, query.count, sender));
+    let conn = app_state.store.connect().await?;
+    tokio::spawn(album.stream_media(conn, query.recursive, sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)
         .append_header((header::CONTENT_TYPE, "application/x-ndjson"))
@@ -415,21 +329,16 @@ async fn get_search_media(
     app_state: web::Data<AppState>,
     session: MaybeSession,
     search_id: web::Path<String>,
-    query: web::Query<GetMediaRequest>,
 ) -> ApiResult<HttpResponse> {
     let email = session.session().map(|s| s.user.email.as_str());
 
-    let search = app_state
-        .store
-        .isolated(Isolation::ReadOnly, |conn| {
-            models::SavedSearch::get_for_user(conn, email, &search_id).scope_boxed()
-        })
-        .await?;
+    let mut conn = app_state.store.connect().await?;
+    let search = models::SavedSearch::get_for_user(&mut conn, email, &search_id).await?;
 
     let (stream, sender) = MediaViewStream::new();
 
-    let store = app_state.store.clone();
-    tokio::spawn(search.stream_media(store, query.offset, query.count, sender));
+    let conn = app_state.store.connect().await?;
+    tokio::spawn(search.stream_media(conn, sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)
         .append_header((header::CONTENT_TYPE, "application/x-ndjson"))

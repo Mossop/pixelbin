@@ -7,10 +7,11 @@ use actix_web::{
     middleware::from_fn,
     web, App, HttpResponse, HttpServer, ResponseError,
 };
+use pixelbin_shared::ThumbnailConfig;
 use serde::Serialize;
 use tracing::instrument;
 
-use crate::{shared::config::ThumbnailConfig, store::Store, Error, Result};
+use crate::{store::Store, Error, Result};
 
 mod auth;
 mod media;

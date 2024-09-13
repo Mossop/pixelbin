@@ -87,7 +87,7 @@ pub(super) async fn middleware(
     Span::current().set_parent(parent_context);
 
     let span = span!(
-        Level::INFO,
+        Level::TRACE,
         "api request",
         "duration" = field::Empty,
         "otel.name" = format!("HTTP {}", req.method()),

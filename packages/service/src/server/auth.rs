@@ -1,9 +1,7 @@
 use actix_web::{dev::Payload, get, http::header, post, web, FromRequest, HttpRequest};
 use futures::{future::LocalBoxFuture, join, TryFutureExt};
-use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tracing::{instrument, warn, Instrument};
-use typeshare::typeshare;
 
 use crate::{
     server::{ApiErrorCode, ApiResult, AppState},
@@ -88,28 +86,21 @@ impl FromRequest for MaybeSession {
                 return Ok(MaybeSession(None));
             };
 
-            let otoken = token.clone();
             let data = web::Data::<AppState>::extract(&req).await.unwrap();
-            let user = data
-                .store
-                .with_connection(|conn| {
-                    async move { conn.verify_token(&otoken).await }.scope_boxed()
-                })
-                .await?;
+            let mut conn = data.store.connect().await?;
+            let user = conn.verify_token(&token).await?;
 
             Ok(MaybeSession(user.map(|user| Session { user })))
         })
     }
 }
 
-#[typeshare]
 #[derive(Deserialize)]
 struct LoginRequest {
     email: String,
     password: String,
 }
 
-#[typeshare]
 #[derive(Serialize)]
 struct LoginResponse {
     token: Option<String>,
@@ -121,18 +112,15 @@ async fn login(
     app_state: web::Data<AppState>,
     credentials: web::Json<LoginRequest>,
 ) -> ApiResult<web::Json<LoginResponse>> {
-    match app_state
-        .store
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                conn.verify_credentials(&credentials.email, &credentials.password)
-                    .await
-            }
-            .scope_boxed()
-        })
+    let mut conn = app_state.store.isolated(Isolation::Committed).await?;
+    match conn
+        .verify_credentials(&credentials.email, &credentials.password)
         .await
     {
-        Ok((_, token)) => Ok(web::Json(LoginResponse { token: Some(token) })),
+        Ok((_, token)) => {
+            conn.commit().await?;
+            Ok(web::Json(LoginResponse { token: Some(token) }))
+        }
         Err(Error::NotFound) => Err(ApiErrorCode::NotLoggedIn),
         Err(e) => Err(e.into()),
     }
@@ -145,10 +133,8 @@ async fn logout(
     token: AuthToken,
 ) -> ApiResult<web::Json<LoginResponse>> {
     if let Some(token) = token.0 {
-        app_state
-            .store
-            .with_connection(|conn| async move { conn.delete_token(&token).await }.scope_boxed())
-            .await?;
+        let mut conn = app_state.store.connect().await?;
+        conn.delete_token(&token).await?;
     }
 
     Ok(web::Json(LoginResponse { token: None }))
@@ -200,9 +186,8 @@ async fn state(
     let store = &app_state.store;
     let email = &session.user.email;
 
-    let user = store
-        .with_connection(|conn| models::User::get(conn, email).scope_boxed())
-        .await?;
+    let mut conn = store.connect().await?;
+    let user = models::User::get(&mut conn, email).await?;
 
     let (storage, catalogs, albums, people, tags, searches) = join!(
         store

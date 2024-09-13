@@ -1,25 +1,16 @@
 //! Shared functionality for the Pixelbin server
-
-pub(crate) mod config;
-pub(crate) mod error;
 pub(crate) mod json;
 pub(crate) mod mime;
 
 use std::{io::ErrorKind, path::Path};
 
-use config::Config;
-use error::Result;
 use nano_id::base62;
 use tokio::fs::metadata;
-use tracing::{Instrument, Span};
+use tracing::{error, Instrument, Span};
 
-use crate::Error;
+use crate::{Error, Result};
 
 pub(crate) const DEFAULT_STATUS: &str = "Ok";
-
-pub fn load_config(config_file: Option<&str>) -> Result<Config> {
-    Config::load(config_file)
-}
 
 pub(crate) fn long_id(prefix: &str) -> String {
     format!("{prefix}:{}", base62::<25>())
@@ -75,4 +66,5 @@ pub(crate) fn record_result<T>(span: &Span, result: &Result<T>) {
 pub(crate) fn record_error(span: &Span, error: &str) {
     span.record("otel.status_code", "Error");
     span.record("otel.status_description", error);
+    error!(parent: span, "{}", error);
 }

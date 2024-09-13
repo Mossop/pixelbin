@@ -1,11 +1,14 @@
 use std::str::FromStr;
 
 use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
-use actix_web::{get, http::header, post, web, Either, HttpRequest, HttpResponse, Responder};
+use actix_web::{
+    get,
+    http::{header, StatusCode},
+    post, web, Either, HttpRequest, HttpResponse, HttpResponseBuilder, Responder,
+};
 use chrono::NaiveDateTime;
 use file_format::FileFormat;
 use mime::Mime;
-use scoped_futures::ScopedFutureExt;
 use serde::{Deserialize, Serialize};
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
@@ -20,8 +23,8 @@ use crate::{
     },
     store::{
         db::{search::SearchQuery, DbConnection},
-        models::{self, AlternateFile, AlternateFileType, Location},
-        Isolation,
+        models::{self, AlternateFile, AlternateFileType, Location, MediaViewStream, Orientation},
+        DiskStore, Isolation,
     },
     Error, Result, Task,
 };
@@ -43,19 +46,14 @@ async fn social_handler(
     app_state: web::Data<AppState>,
     path: web::Path<SocialPath>,
 ) -> ApiResult<impl Responder> {
-    let (alternate, path) = match app_state
-        .store
-        .with_connection(|conn| {
-            async move { models::AlternateFile::get_social(conn, &path.item).await }.scope_boxed()
-        })
-        .await
-    {
+    let mut conn = app_state.store.connect().await?;
+    let (alternate, path) = match models::AlternateFile::get_social(&mut conn, &path.item).await {
         Ok(alternates) => alternates,
         Err(Error::NotFound) => return not_found(),
         Err(e) => return Err(e.into()),
     };
 
-    let path = app_state.store.config().local_store().local_path(&path);
+    let path = DiskStore::local_store(app_state.store.config()).local_path(&path);
     let file = File::open(&path).await?;
     let stream = ReaderStream::new(file);
 
@@ -82,37 +80,17 @@ async fn download_handler(
     let email = session.session().map(|s| s.user.email.as_str());
     let filename = path.filename.clone();
 
-    let (media_file_store, storage, mimetype, file_name) = match app_state
-        .store
-        .with_connection(|conn| {
-            async move {
-                let (media_file, file_path) =
-                    models::MediaFile::get_for_user_media(conn, email, &path.item, &path.file)
-                        .await?;
+    let mut conn = app_state.store.connect().await?;
+    let (media_file, media_file_store) =
+        models::MediaFile::get_for_user_media(&mut conn, email, &path.item, &path.file).await?;
 
-                let storage = models::Storage::get_for_catalog(conn, &file_path.catalog).await?;
+    let storage = models::Storage::get_for_catalog(&mut conn, &media_file_store.catalog).await?;
 
-                Ok((
-                    file_path,
-                    storage,
-                    media_file.mimetype,
-                    media_file.file_name,
-                ))
-            }
-            .scope_boxed()
-        })
-        .await
-    {
-        Ok(result) => result,
-        Err(Error::NotFound) => return not_found(),
-        Err(e) => return Err(e.into()),
-    };
-
-    let file_path = media_file_store.file(&file_name);
+    let file_path = media_file_store.file(&media_file.file_name);
     let uri = storage
         .online_uri(
             &file_path,
-            &mimetype,
+            &media_file.mimetype,
             Some(&filename),
             app_state.store.config(),
         )
@@ -143,36 +121,20 @@ async fn thumbnail_handler(
     let mimetype = Mime::from_str(&path.mimetype.replace('-', "/"))?;
     let target_size = path.size as i32;
 
-    let alternates = match app_state
-        .store
-        .with_connection(|conn| {
-            async move {
-                models::AlternateFile::list_for_user_media(
-                    conn,
-                    email,
-                    &path.item,
-                    &path.file,
-                    &mimetype,
-                    AlternateFileType::Thumbnail,
-                )
-                .await
-            }
-            .scope_boxed()
-        })
-        .await
-    {
-        Ok(alternates) => alternates,
-        Err(Error::NotFound) => return not_found(),
-        Err(e) => return Err(e.into()),
-    };
+    let mut conn = app_state.store.connect().await?;
+    let alternates = models::AlternateFile::list_for_user_media(
+        &mut conn,
+        email,
+        &path.item,
+        &path.file,
+        &mimetype,
+        AlternateFileType::Thumbnail,
+    )
+    .await?;
 
     match choose_alternate(alternates, target_size) {
         Some((alternate, file_path)) => {
-            let path = app_state
-                .store
-                .config()
-                .local_store()
-                .local_path(&file_path);
+            let path = DiskStore::local_store(app_state.store.config()).local_path(&file_path);
             let file = File::open(&path).await?;
             let stream = ReaderStream::new(file);
 
@@ -211,35 +173,22 @@ async fn encoding_handler(
     let mimetype = Mime::from_str(&path.mimetype.replace('-', "/"))?;
     let tx_mime = mimetype.clone();
 
-    let (file_path, storage) = match app_state
-        .store
-        .with_connection(|conn| {
-            async move {
-                let (_, file_path) = models::AlternateFile::list_for_user_media(
-                    conn,
-                    email,
-                    &path.item,
-                    &path.file,
-                    &tx_mime,
-                    AlternateFileType::Reencode,
-                )
-                .await?
-                .into_iter()
-                .next()
-                .ok_or_else(|| Error::NotFound)?;
+    let mut conn = app_state.store.connect().await?;
 
-                let storage = models::Storage::get_for_catalog(conn, &file_path.catalog).await?;
+    let (_, file_path) = models::AlternateFile::list_for_user_media(
+        &mut conn,
+        email,
+        &path.item,
+        &path.file,
+        &tx_mime,
+        AlternateFileType::Reencode,
+    )
+    .await?
+    .into_iter()
+    .next()
+    .ok_or_else(|| Error::NotFound)?;
 
-                Ok((file_path, storage))
-            }
-            .scope_boxed()
-        })
-        .await
-    {
-        Ok(alternate) => alternate,
-        Err(Error::NotFound) => return Ok(Either::Left(not_found().unwrap())),
-        Err(e) => return Err(e.into()),
-    };
+    let storage = models::Storage::get_for_catalog(&mut conn, &file_path.catalog).await?;
 
     let url = storage
         .online_uri(&file_path, &mimetype, None, app_state.store.config())
@@ -256,12 +205,6 @@ async fn encoding_handler(
             .append_header(("Location", url))
             .finish(),
     ))
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct GetMediaRequest {
-    pub(crate) offset: Option<i64>,
-    pub(crate) count: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -285,29 +228,18 @@ async fn get_media(
     media_ids: web::Path<String>,
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaRelations>>> {
     tracing::Span::current().record("media", media_ids.as_str());
-    let ids: Vec<&str> = media_ids.split(',').to_owned().collect::<Vec<&str>>();
+    let ids: Vec<String> = media_ids.split(',').map(|s| s.to_owned()).collect();
     let email = session.session().map(|s| s.user.email.as_str());
 
-    let response = app_state
-        .store
-        .with_connection(|conn| {
-            async move {
-                let media = models::MediaRelations::get_for_user(
-                    conn,
-                    email,
-                    request.search.as_deref(),
-                    &ids,
-                )
-                .await?;
+    let mut conn = app_state.store.connect().await?;
+    let media =
+        models::MediaRelations::get_for_user(&mut conn, email, request.search.as_deref(), &ids)
+            .await?;
 
-                Ok(GetMediaResponse {
-                    total: media.len() as i64,
-                    media,
-                })
-            }
-            .scope_boxed()
-        })
-        .await?;
+    let response = GetMediaResponse {
+        total: media.len() as i64,
+        media,
+    };
 
     Ok(web::Json(response))
 }
@@ -319,22 +251,13 @@ async fn delete_media(
     session: Session,
     media_ids: web::Json<Vec<String>>,
 ) -> ApiResult<web::Json<ApiResponse>> {
-    app_state
-        .store
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                let media =
-                    models::MediaItem::get_for_user(conn, &session.user.email, &media_ids).await?;
+    let mut conn = app_state.store.isolated(Isolation::Committed).await?;
+    let media = models::MediaItem::get_for_user(&mut conn, &session.user.email, &media_ids).await?;
 
-                let media_ids: Vec<String> = media.into_iter().map(|m| m.id).collect();
+    let media_ids: Vec<String> = media.into_iter().map(|m| m.id).collect();
 
-                models::MediaItem::mark_deleted(conn, &media_ids).await?;
-
-                Ok(())
-            }
-            .scope_boxed()
-        })
-        .await?;
+    models::MediaItem::mark_deleted(&mut conn, &media_ids).await?;
+    conn.commit().await?;
 
     Ok(web::Json(ApiResponse::default()))
 }
@@ -389,7 +312,7 @@ struct MediaMetadata {
     #[serde(default)]
     shutter_speed: MetadataValue<f32>,
     #[serde(default)]
-    orientation: MetadataValue<i32>,
+    orientation: MetadataValue<Orientation>,
     #[serde(default)]
     iso: MetadataValue<i32>,
     #[serde(default)]
@@ -555,7 +478,7 @@ async fn update_media_item(
                 catalog: media_item.catalog.clone(),
                 media: media_item.id.clone(),
                 person: person.id.clone(),
-                location: person_info.location.clone(),
+                location: person_info.location,
             });
         }
 
@@ -574,24 +497,15 @@ async fn create_media(
 ) -> ApiResult<web::Json<MediaUploadResponse>> {
     tracing::Span::current().record("catalog", &data.catalog);
 
-    let media_item_id = app_state
-        .store
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                let catalog =
-                    models::Catalog::get_for_user(conn, &session.user.email, &data.catalog, true)
-                        .await?;
-                let mut media_item = models::MediaItem::new(&catalog.id);
+    let mut conn = app_state.store.isolated(Isolation::Committed).await?;
+    let catalog =
+        models::Catalog::get_for_user(&mut conn, &session.user.email, &data.catalog, true).await?;
+    let mut media_item = models::MediaItem::new(&catalog.id);
 
-                update_media_item(conn, &mut media_item, &data.metadata).await?;
+    update_media_item(&mut conn, &mut media_item, &data.metadata).await?;
+    conn.commit().await?;
 
-                Ok(media_item.id)
-            }
-            .scope_boxed()
-        })
-        .await?;
-
-    Ok(web::Json(MediaUploadResponse { id: media_item_id }))
+    Ok(web::Json(MediaUploadResponse { id: media_item.id }))
 }
 
 #[derive(MultipartForm)]
@@ -611,80 +525,68 @@ async fn upload_media(
 
     tracing::Span::current().record("id", &data.json.id);
 
-    let (media_item_id, media_file_id) = app_state
-        .store
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                let mut media_items = models::MediaItem::get_for_user(
-                    conn,
-                    &session.user.email,
-                    &[data.json.id.clone()],
-                )
-                .await?;
+    let mut conn = app_state.store.isolated(Isolation::Committed).await?;
+    let mut media_items =
+        models::MediaItem::get_for_user(&mut conn, &session.user.email, &[data.json.id.clone()])
+            .await?;
 
-                if media_items.is_empty() {
-                    return Err(Error::NotFound);
-                }
+    if media_items.is_empty() {
+        return Err(Error::NotFound.into());
+    }
 
-                let mut media_item = media_items.remove(0);
+    let mut media_item = media_items.remove(0);
 
-                if media_item.deleted {
-                    return Err(Error::NotFound);
-                }
+    if media_item.deleted {
+        return Err(Error::NotFound.into());
+    }
 
-                update_media_item(conn, &mut media_item, &data.json.metadata).await?;
+    update_media_item(&mut conn, &mut media_item, &data.json.metadata).await?;
 
-                let base_name = if let Some(ref name) = data.file.file_name {
-                    if let Some((name, _)) = name.rsplit_once('.') {
-                        name
-                    } else {
-                        name
-                    }
-                } else {
-                    "original"
-                };
+    let base_name = if let Some(ref name) = data.file.file_name {
+        if let Some((name, _)) = name.rsplit_once('.') {
+            name
+        } else {
+            name
+        }
+    } else {
+        "original"
+    };
 
-                let format = FileFormat::from_reader(data.file.file.as_file())?;
-                let media_type: Mime = format.media_type().parse()?;
-                if !matches!(media_type.type_(), mime::IMAGE | mime::VIDEO) {
-                    return Err(Error::UnsupportedMedia { mime: media_type });
-                }
+    let format = FileFormat::from_reader(data.file.file.as_file())?;
+    let media_type: Mime = format.media_type().parse()?;
+    if !matches!(media_type.type_(), mime::IMAGE | mime::VIDEO) {
+        return Err(Error::UnsupportedMedia { mime: media_type }.into());
+    }
 
-                let file_name = format!("{base_name}.{}", format.extension());
+    let file_name = format!("{base_name}.{}", format.extension());
 
-                let media_file = models::MediaFile::new(
-                    &media_item.id,
-                    &file_name,
-                    data.file.size as i64,
-                    &Mime::from_str(format.media_type())?,
-                );
+    let media_file = models::MediaFile::new(
+        &media_item.id,
+        &file_name,
+        data.file.size as i64,
+        &Mime::from_str(format.media_type())?,
+    );
 
-                let path = media_item
-                    .path()
-                    .media_file_store(&media_file.id)
-                    .file(&file_name);
+    let path = media_item
+        .path()
+        .media_file_store(&media_file.id)
+        .file(&file_name);
 
-                conn.config()
-                    .temp_store()
-                    .copy_from_temp(data.file.file.into_temp_path(), &path)
-                    .await?;
-
-                let alternate_files: Vec<AlternateFile> =
-                    alternates_for_media_file(conn.config(), &media_file, false)
-                        .into_iter()
-                        .map(|a| AlternateFile::new(&media_file.id, a))
-                        .collect();
-
-                let media_file_id = media_file.id.clone();
-
-                models::MediaFile::upsert(conn, vec![media_file]).await?;
-                models::AlternateFile::upsert(conn, alternate_files).await?;
-
-                Ok((media_item.id.clone(), media_file_id))
-            }
-            .scope_boxed()
-        })
+    DiskStore::temp_store(conn.config())
+        .copy_from_temp(data.file.file.into_temp_path(), &path)
         .await?;
+
+    let alternate_files: Vec<AlternateFile> =
+        alternates_for_media_file(conn.config(), &media_file, false)
+            .into_iter()
+            .map(|a| AlternateFile::new(&media_file.id, a))
+            .collect();
+
+    let media_file_id = media_file.id.clone();
+
+    models::MediaFile::upsert(&mut conn, vec![media_file]).await?;
+    models::AlternateFile::upsert(&mut conn, alternate_files).await?;
+    conn.commit().await?;
 
     app_state
         .store
@@ -693,7 +595,7 @@ async fn upload_media(
         })
         .await;
 
-    Ok(web::Json(MediaUploadResponse { id: media_item_id }))
+    Ok(web::Json(MediaUploadResponse { id: media_item.id }))
 }
 
 #[post("/media/edit")]
@@ -705,34 +607,27 @@ async fn edit_media(
 ) -> ApiResult<web::Json<ApiResponse>> {
     tracing::Span::current().record("id", &data.id);
 
-    let catalog = app_state
-        .store
-        .isolated(Isolation::Committed, |conn| {
-            async move {
-                let mut media =
-                    models::MediaItem::get_for_user(conn, &session.user.email, &[data.id.clone()])
-                        .await?;
+    let mut conn = app_state.store.isolated(Isolation::Committed).await?;
+    let mut media =
+        models::MediaItem::get_for_user(&mut conn, &session.user.email, &[data.id.clone()]).await?;
 
-                if media.is_empty() {
-                    return Err(Error::NotFound);
-                }
+    if media.is_empty() {
+        return Err(Error::NotFound.into());
+    }
 
-                let mut media_item = media.remove(0);
-                if media_item.deleted {
-                    return Err(Error::NotFound);
-                }
+    let mut media_item = media.remove(0);
+    if media_item.deleted {
+        return Err(Error::NotFound.into());
+    }
 
-                update_media_item(conn, &mut media_item, &data.metadata).await?;
-
-                Ok(media_item.catalog)
-            }
-            .scope_boxed()
-        })
-        .await?;
+    update_media_item(&mut conn, &mut media_item, &data.metadata).await?;
+    conn.commit().await?;
 
     app_state
         .store
-        .queue_task(Task::UpdateSearches { catalog })
+        .queue_task(Task::UpdateSearches {
+            catalog: media_item.catalog,
+        })
         .await;
 
     Ok(web::Json(Default::default()))
@@ -741,8 +636,6 @@ async fn edit_media(
 #[derive(Deserialize, Debug)]
 struct SearchRequest {
     catalog: String,
-    #[serde(flatten)]
-    pagination: GetMediaRequest,
     query: SearchQuery,
 }
 
@@ -752,31 +645,18 @@ async fn search_media(
     app_state: web::Data<AppState>,
     session: Session,
     data: web::Json<SearchRequest>,
-) -> ApiResult<web::Json<GetMediaResponse<models::MediaView>>> {
-    let response = app_state
-        .store
-        .isolated(Isolation::ReadOnly, |conn| {
-            async move {
-                let catalog =
-                    models::Catalog::get_for_user(conn, &session.user.email, &data.catalog, false)
-                        .await?;
+) -> ApiResult<HttpResponse> {
+    let mut conn = app_state.store.connect().await?;
+    let catalog =
+        models::Catalog::get_for_user(&mut conn, &session.user.email, &data.catalog, false).await?;
 
-                let total = data.query.count(conn, &catalog.id).await?;
-                let media = data
-                    .query
-                    .list(
-                        conn,
-                        &data.catalog,
-                        data.pagination.offset,
-                        data.pagination.count,
-                    )
-                    .await?;
+    let (stream, sender) = MediaViewStream::new();
 
-                Ok(GetMediaResponse { total, media })
-            }
-            .scope_boxed()
-        })
-        .await?;
+    let query = data.query.clone();
+    let conn = app_state.store.connect().await?;
+    tokio::spawn(query.stream_media(conn, catalog.id.clone(), sender));
 
-    Ok(web::Json(response))
+    Ok(HttpResponseBuilder::new(StatusCode::OK)
+        .append_header((header::CONTENT_TYPE, "application/x-ndjson"))
+        .streaming(stream))
 }

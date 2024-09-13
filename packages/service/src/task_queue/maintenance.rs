@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use futures::join;
-use scoped_futures::ScopedFutureExt;
+use pixelbin_shared::Ignorable;
 use tracing::{error, info, Instrument};
 
 use crate::{
@@ -10,9 +10,9 @@ use crate::{
         db::DbConnection,
         models,
         path::{CatalogStore, ResourcePath},
-        FileStore, Isolation,
+        DiskStore, FileStore, Isolation,
     },
-    Ignorable, Result, Task,
+    Result, Task,
 };
 
 pub(super) async fn server_startup(conn: &mut DbConnection<'_>) -> Result {
@@ -69,255 +69,241 @@ pub(super) async fn verify_storage(
     let mut remote_size: u64 = 0;
     let mut missing_alternates: u32 = 0;
 
-    conn.isolated(Isolation::Committed, |conn| {
-        async move {
-            let storage = models::Storage::lock_for_catalog(conn, catalog).await?;
+    let mut conn = conn.isolated(Isolation::Committed).await?;
 
-            let remote_store = storage.file_store(conn.config()).await?;
-            let local_store = conn.config().local_store();
-            let temp_store = conn.config().temp_store();
+    let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
 
-            let resource = CatalogStore {
-                catalog: catalog.to_owned(),
-            };
-            let (remote_files, local_files) = join!(
-                remote_store.list_files(Some(&resource)).in_current_span(),
-                local_store.list_files(Some(&resource)).in_current_span()
-            );
-            let mut remote_files = remote_files?;
-            let mut local_files = local_files?;
+    let remote_store = storage.file_store(conn.config()).await?;
+    let local_store = DiskStore::local_store(conn.config());
+    let temp_store = DiskStore::temp_store(conn.config());
 
-            let media_files = models::MediaFile::list_for_catalog(conn, catalog).await?;
-            let public_items = models::MediaItem::list_public(conn, catalog).await?;
-            let mut modified_media_files = Vec::new();
-            let mut bad_media_files = Vec::new();
+    let resource = CatalogStore {
+        catalog: catalog.to_owned(),
+    };
+    let (remote_files, local_files) = join!(
+        remote_store.list_files(Some(&resource)).in_current_span(),
+        local_store.list_files(Some(&resource)).in_current_span()
+    );
+    let mut remote_files = remote_files?;
+    let mut local_files = local_files?;
 
-            let mut required_alternates: HashMap<String, Vec<Alternate>> = HashMap::new();
+    let media_files = models::MediaFile::list_for_catalog(&mut conn, catalog).await?;
+    let public_items = models::MediaItem::list_public(&mut conn, catalog).await?;
+    let mut modified_media_files = Vec::new();
+    let mut bad_media_files = Vec::new();
 
-            for (mut media_file, media_file_store) in media_files {
-                let metadata_file: ResourcePath = media_file_store.file(METADATA_FILE).into();
-                let metadata_exists = local_files.remove(&metadata_file).is_some();
+    let mut required_alternates: HashMap<String, Vec<Alternate>> = HashMap::new();
 
-                let file_path = media_file_store.file(&media_file.file_name);
+    for (mut media_file, media_file_store) in media_files {
+        let metadata_file: ResourcePath = media_file_store.file(METADATA_FILE).into();
+        let metadata_exists = local_files.remove(&metadata_file).is_some();
 
-                let temp_exists = temp_store.exists(&file_path).await?;
+        let file_path = media_file_store.file(&media_file.file_name);
 
-                let expected_resource: ResourcePath = file_path.into();
+        let temp_exists = temp_store.exists(&file_path).await?;
 
-                let needs_change = if remote_files.remove(&expected_resource)
-                    == Some(media_file.file_size as u64)
-                    && media_file.stored.is_some()
-                {
-                    // Media file is correctly uploaded.
-                    if !metadata_exists || media_file.needs_metadata {
-                        media_file.needs_metadata = !metadata_exists;
-                        true
-                    } else {
-                        false
-                    }
-                } else if temp_exists {
-                    // We can re-upload this.
-                    let needs_change = media_file.stored.is_some();
-                    media_file.stored = None;
-                    requires_upload += 1;
+        let expected_resource: ResourcePath = file_path.into();
 
-                    if !metadata_exists || media_file.needs_metadata {
-                        media_file.needs_metadata = !metadata_exists;
-                        true
-                    } else {
-                        needs_change
-                    }
-                } else {
-                    // This media file is bad
-                    error!(file=%expected_resource, "Missing temp media file");
-                    bad_media_files.push(media_file.id.clone());
-
-                    continue;
-                };
-
-                if media_file.needs_metadata {
-                    requires_metadata += 1;
-                }
-
-                required_alternates.insert(
-                    media_file.id.clone(),
-                    alternates_for_media_file(
-                        conn.config(),
-                        &media_file,
-                        public_items.contains(&media_file.media_item),
-                    ),
-                );
-
-                if needs_change {
-                    modified_media_files.push(media_file);
-                }
+        let needs_change = if remote_files.remove(&expected_resource)
+            == Some(media_file.file_size as u64)
+            && media_file.stored.is_some()
+        {
+            // Media file is correctly uploaded.
+            if !metadata_exists || media_file.needs_metadata {
+                media_file.needs_metadata = !metadata_exists;
+                true
+            } else {
+                false
             }
+        } else if temp_exists {
+            // We can re-upload this.
+            let needs_change = media_file.stored.is_some();
+            media_file.stored = None;
+            requires_upload += 1;
 
-            models::MediaFile::upsert(conn, modified_media_files).await?;
-            models::MediaFile::delete(conn, &bad_media_files).await?;
-
-            let alternate_files = models::AlternateFile::list_for_catalog(conn, catalog).await?;
-            let mut modified_alternate_files = Vec::new();
-            let mut alternate_files_to_delete = Vec::new();
-
-            for (mut alternate_file, media_file_path) in alternate_files {
-                let expected_resource: ResourcePath = media_file_path.clone().into();
-
-                let wanted = if let Some(required_alternates) =
-                    required_alternates.get_mut(&alternate_file.media_file)
-                {
-                    let len = required_alternates.len();
-                    required_alternates.retain(|alt| !alt.matches(&alternate_file));
-                    len != required_alternates.len()
-                } else {
-                    false
-                };
-
-                if !wanted {
-                    let path = media_file_path
-                        .media_file_store()
-                        .file(&alternate_file.file_name);
-                    if alternate_file.local {
-                        local_store.delete(&path).await?;
-                    } else {
-                        remote_store.delete(&path).await?;
-                    }
-                    alternate_files_to_delete.push(alternate_file.id.clone());
-                } else {
-                    // Waiting to be uploaded.
-                    if alternate_file.stored.is_none() {
-                        missing_alternates += 1;
-                    } else {
-                        let stored_files = if alternate_file.local {
-                            &mut local_files
-                        } else {
-                            &mut remote_files
-                        };
-
-                        if stored_files.remove(&expected_resource)
-                            != Some(alternate_file.file_size as u64)
-                        {
-                            // We can re-upload this.
-                            alternate_file.stored = None;
-                            modified_alternate_files.push(alternate_file);
-                            missing_alternates += 1;
-                        }
-                    }
-                }
+            if !metadata_exists || media_file.needs_metadata {
+                media_file.needs_metadata = !metadata_exists;
+                true
+            } else {
+                needs_change
             }
+        } else {
+            // This media file is bad
+            error!(file=%expected_resource, "Missing temp media file");
+            bad_media_files.push(media_file.id.clone());
 
-            for (media_file, alternates) in required_alternates.into_iter() {
-                for alternate in alternates {
-                    missing_alternates += 1;
-                    modified_alternate_files
-                        .push(models::AlternateFile::new(&media_file, alternate));
-                }
-            }
+            continue;
+        };
 
-            models::AlternateFile::upsert(conn, modified_alternate_files).await?;
-            models::AlternateFile::delete(conn, &alternate_files_to_delete).await?;
-
-            models::MediaItem::update_media_files(conn, catalog).await?;
-
-            // TODO check unused metadata.json for MediaFiles to recover?
-
-            for (path, size) in remote_files {
-                unexpected_remote += 1;
-                remote_size += size;
-                if delete_files {
-                    remote_store.delete(&path).await.warn();
-                }
-            }
-
-            for (path, size) in local_files {
-                unexpected_local += 1;
-                local_size += size;
-                if delete_files {
-                    local_store.delete(&path).await.warn();
-                }
-            }
-
-            let catalog_resource = CatalogStore {
-                catalog: catalog.to_owned(),
-            };
-
-            if delete_files {
-                remote_store.prune(&catalog_resource).await?;
-                local_store.prune(&catalog_resource).await?;
-                temp_store.prune(&catalog_resource).await?;
-            }
-
-            info!(
-                catalog = catalog,
-                bad_media = bad_media_files.len(),
-                requires_metadata,
-                requires_upload,
-                missing_alternates,
-                unexpected_local,
-                local_size,
-                unexpected_remote,
-                remote_size,
-                "Verify complete"
-            );
-
-            Ok(())
+        if media_file.needs_metadata {
+            requires_metadata += 1;
         }
-        .scope_boxed()
-    })
-    .await
+
+        required_alternates.insert(
+            media_file.id.clone(),
+            alternates_for_media_file(
+                conn.config(),
+                &media_file,
+                public_items.contains(&media_file.media_item),
+            ),
+        );
+
+        if needs_change {
+            modified_media_files.push(media_file);
+        }
+    }
+
+    models::MediaFile::upsert(&mut conn, modified_media_files).await?;
+    models::MediaFile::delete(&mut conn, &bad_media_files).await?;
+
+    let alternate_files = models::AlternateFile::list_for_catalog(&mut conn, catalog).await?;
+    let mut modified_alternate_files = Vec::new();
+    let mut alternate_files_to_delete = Vec::new();
+
+    for (mut alternate_file, media_file_path) in alternate_files {
+        let expected_resource: ResourcePath = media_file_path.clone().into();
+
+        let wanted = if let Some(required_alternates) =
+            required_alternates.get_mut(&alternate_file.media_file)
+        {
+            let len = required_alternates.len();
+            required_alternates.retain(|alt| !alt.matches(&alternate_file));
+            len != required_alternates.len()
+        } else {
+            false
+        };
+
+        if !wanted {
+            let path = media_file_path
+                .media_file_store()
+                .file(&alternate_file.file_name);
+            if alternate_file.local {
+                local_store.delete(&path).await?;
+            } else {
+                remote_store.delete(&path).await?;
+            }
+            alternate_files_to_delete.push(alternate_file.id.clone());
+        } else {
+            // Waiting to be uploaded.
+            if alternate_file.stored.is_none() {
+                missing_alternates += 1;
+            } else {
+                let stored_files = if alternate_file.local {
+                    &mut local_files
+                } else {
+                    &mut remote_files
+                };
+
+                if stored_files.remove(&expected_resource) != Some(alternate_file.file_size as u64)
+                {
+                    // We can re-upload this.
+                    alternate_file.stored = None;
+                    modified_alternate_files.push(alternate_file);
+                    missing_alternates += 1;
+                }
+            }
+        }
+    }
+
+    for (media_file, alternates) in required_alternates.into_iter() {
+        for alternate in alternates {
+            missing_alternates += 1;
+            modified_alternate_files.push(models::AlternateFile::new(&media_file, alternate));
+        }
+    }
+
+    models::AlternateFile::upsert(&mut conn, modified_alternate_files).await?;
+    models::AlternateFile::delete(&mut conn, &alternate_files_to_delete).await?;
+
+    models::MediaItem::update_media_files(&mut conn, catalog).await?;
+
+    // TODO check unused metadata.json for MediaFiles to recover?
+
+    for (path, size) in remote_files {
+        unexpected_remote += 1;
+        remote_size += size;
+        if delete_files {
+            remote_store.delete(&path).await.warn();
+        }
+    }
+
+    for (path, size) in local_files {
+        unexpected_local += 1;
+        local_size += size;
+        if delete_files {
+            local_store.delete(&path).await.warn();
+        }
+    }
+
+    let catalog_resource = CatalogStore {
+        catalog: catalog.to_owned(),
+    };
+
+    if delete_files {
+        remote_store.prune(&catalog_resource).await?;
+        local_store.prune(&catalog_resource).await?;
+        temp_store.prune(&catalog_resource).await?;
+    }
+
+    info!(
+        catalog = catalog,
+        bad_media = bad_media_files.len(),
+        requires_metadata,
+        requires_upload,
+        missing_alternates,
+        unexpected_local,
+        local_size,
+        unexpected_remote,
+        remote_size,
+        "Verify complete"
+    );
+
+    conn.commit().await
 }
 
 pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    conn.isolated(Isolation::Committed, |conn| {
-        async move {
-            let storage = models::Storage::lock_for_catalog(conn, catalog).await?;
-            let remote_store = storage.file_store(conn.config()).await?;
-            let local_store = conn.config().local_store();
-            let temp_store = conn.config().temp_store();
+    let mut conn = conn.isolated(Isolation::Committed).await?;
 
-            models::MediaItem::update_media_files(conn, catalog).await?;
-            let prunable = models::MediaFile::list_prunable(conn, catalog).await?;
+    let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
+    let remote_store = storage.file_store(conn.config()).await?;
+    let local_store = DiskStore::local_store(conn.config());
+    let temp_store = DiskStore::temp_store(conn.config());
 
-            let ids: Vec<String> = prunable.iter().map(|(mf, _)| mf.id.clone()).collect();
-            models::MediaFile::delete(conn, &ids).await?;
+    models::MediaItem::update_media_files(&mut conn, catalog).await?;
+    let prunable = models::MediaFile::list_prunable(&mut conn, catalog).await?;
 
-            for (_, media_file_store) in prunable {
-                remote_store.delete(&media_file_store).await.warn();
-                local_store.delete(&media_file_store).await.warn();
-                temp_store.delete(&media_file_store).await.warn();
-            }
+    let ids: Vec<String> = prunable.iter().map(|(mf, _)| mf.id.clone()).collect();
+    models::MediaFile::delete(&mut conn, &ids).await?;
 
-            Ok(())
-        }
-        .scope_boxed()
-    })
-    .await
+    for (_, media_file_store) in prunable {
+        remote_store.delete(&media_file_store).await.warn();
+        local_store.delete(&media_file_store).await.warn();
+        temp_store.delete(&media_file_store).await.warn();
+    }
+
+    conn.commit().await
 }
 
 pub(super) async fn prune_media_items(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    conn.isolated(Isolation::Committed, |conn| {
-        async move {
-            let storage = models::Storage::lock_for_catalog(conn, catalog).await?;
-            let remote_store = storage.file_store(conn.config()).await?;
-            let local_store = conn.config().local_store();
-            let temp_store = conn.config().temp_store();
+    let mut conn = conn.isolated(Isolation::Committed).await?;
 
-            let prunable = models::MediaItem::list_prunable(conn, catalog).await?;
+    let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
+    let remote_store = storage.file_store(conn.config()).await?;
+    let local_store = DiskStore::local_store(conn.config());
+    let temp_store = DiskStore::temp_store(conn.config());
 
-            let ids: Vec<String> = prunable.iter().map(|(mi, _)| mi.id.clone()).collect();
-            models::MediaItem::delete(conn, &ids).await?;
+    let prunable = models::MediaItem::list_prunable(&mut conn, catalog).await?;
 
-            for (_, media_item_path) in prunable {
-                remote_store.delete(&media_item_path).await.warn();
-                local_store.delete(&media_item_path).await.warn();
-                temp_store.delete(&media_item_path).await.warn();
-            }
+    let ids: Vec<String> = prunable.iter().map(|(mi, _)| mi.id.clone()).collect();
+    models::MediaItem::delete(&mut conn, &ids).await?;
 
-            Ok(())
-        }
-        .scope_boxed()
-    })
-    .await
+    for (_, media_item_path) in prunable {
+        remote_store.delete(&media_item_path).await.warn();
+        local_store.delete(&media_item_path).await.warn();
+        temp_store.delete(&media_item_path).await.warn();
+    }
+
+    conn.commit().await
 }
 
 pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &str) -> Result {

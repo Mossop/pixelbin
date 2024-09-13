@@ -28,8 +28,7 @@ use opentelemetry_sdk::{
 };
 #[cfg(feature = "webserver")]
 use pixelbin::server::serve;
-use pixelbin::{load_config, Config, Result, Store, Task};
-use scoped_futures::ScopedFutureExt;
+use pixelbin::{Config, Result, Store, Task};
 use tokio::runtime::Builder;
 use tracing::{info, span, Instrument, Level, Span};
 use tracing_subscriber::{
@@ -38,15 +37,22 @@ use tracing_subscriber::{
 use webp::PixelLayout;
 
 #[cfg(debug_assertions)]
-const LOG_DEFAULTS: [(&str, Level); 1] = [("pixelbin", Level::TRACE)];
+const LOG_DEFAULTS: [(&str, Level); 3] = [
+    ("pixelbin", Level::TRACE),
+    ("pixelbin_shared", Level::TRACE),
+    ("pixelbin_migrations", Level::TRACE),
+];
 
 #[cfg(not(debug_assertions))]
-const LOG_DEFAULTS: [(&str, Level); 1] = [("pixelbin", Level::INFO)];
+const LOG_DEFAULTS: [(&str, Level); 1] = [
+    ("pixelbin", Level::DEBUG),
+    ("pixelbin_shared", Level::DEBUG),
+    ("pixelbin_migrations", Level::DEBUG),
+];
 
 async fn list_catalogs(store: &Store) -> Result<Vec<String>> {
-    store
-        .with_connection(|conn| conn.list_catalogs().scope_boxed())
-        .await
+    let mut conn = store.connect().await?;
+    conn.list_catalogs().await
 }
 
 #[derive(Args)]
@@ -58,24 +64,16 @@ impl Runnable for Stats {
     }
 
     async fn run(&self, store: &Store) -> Result {
-        store
-            .with_connection(|conn| {
-                async move {
-                    let stats = conn.stats().await?;
-                    println!("Users:           {}", stats.users);
-                    println!("Catalogs:        {}", stats.catalogs);
-                    println!("Albums:          {}", stats.albums);
-                    println!("Tags:            {}", stats.tags);
-                    println!("People:          {}", stats.people);
-                    println!("Media:           {}", stats.media);
-                    println!("Files:           {}", stats.files);
-                    println!("Alternate files: {}", stats.alternate_files);
-
-                    Ok(())
-                }
-                .scope_boxed()
-            })
-            .await?;
+        let mut conn = store.connect().await?;
+        let stats = conn.stats().await?;
+        println!("Users:           {}", stats.users);
+        println!("Catalogs:        {}", stats.catalogs);
+        println!("Albums:          {}", stats.albums);
+        println!("Tags:            {}", stats.tags);
+        println!("People:          {}", stats.people);
+        println!("Media:           {}", stats.media);
+        println!("Files:           {}", stats.files);
+        println!("Alternate files: {}", stats.alternate_files);
 
         Ok(())
     }
@@ -373,7 +371,7 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<Option<TracerProvider
 
 async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     let args = CliArgs::parse();
-    let config = load_config(args.config.as_deref())?;
+    let config = Config::load(args.config.as_deref())?;
 
     let provider = match init_logging(config.telemetry_host.as_deref()) {
         Ok(t) => t,

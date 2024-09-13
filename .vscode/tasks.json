@@ -15,7 +15,7 @@
       ],
       "problemMatcher": [],
       "label": "Pixelbin API server",
-      "isBackground": true,
+      "isBackground": false,
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -35,7 +35,7 @@
       ],
       "problemMatcher": [],
       "label": "Pixelbin web server",
-      "isBackground": true,
+      "isBackground": false,
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",

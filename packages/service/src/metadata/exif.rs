@@ -14,7 +14,7 @@ use crate::{
         expect_float, expect_int, expect_object, expect_prop, expect_string, expect_string_list,
         first_of, map, type_of, Object,
     },
-    store::models,
+    store::models::{self, Orientation},
     Error, Result,
 };
 
@@ -154,19 +154,21 @@ fn fix_gps_sign(coord: f32, coord_ref: String) -> f32 {
     result
 }
 
-fn expect_orientation(val: &Value) -> Option<i32> {
+fn expect_orientation(val: &Value) -> Option<Orientation> {
     match val {
-        Value::Number(n) => n.as_i64().map(|i| i as i32),
+        Value::Number(n) => n
+            .as_i64()
+            .map(|i| Orientation::from_repr(i as i32).unwrap_or_default()),
         Value::String(s) => match s.to_lowercase().as_str() {
-            "top-left" => Some(1),
-            "top-right" => Some(2),
-            "bottom-right" => Some(3),
-            "bottom-left" => Some(4),
-            "left-top" => Some(5),
-            "right-top" => Some(6),
-            "right-bottom" => Some(7),
-            "left-bottom" => Some(8),
-            _ => None,
+            "top-left" => Some(Orientation::TopLeft),
+            "top-right" => Some(Orientation::TopRight),
+            "bottom-right" => Some(Orientation::BottomRight),
+            "bottom-left" => Some(Orientation::BottomLeft),
+            "left-top" => Some(Orientation::LeftTop),
+            "right-top" => Some(Orientation::RightTop),
+            "right-bottom" => Some(Orientation::RightBottom),
+            "left-bottom" => Some(Orientation::LeftBottom),
+            _ => Some(Orientation::default()),
         },
         _ => None,
     }
@@ -276,7 +278,7 @@ impl ExifData {
         metadata.orientation = if mimetype.type_() == "image" {
             map!(prop!("Orientation"), expect_orientation)
         } else {
-            Some(1)
+            Some(Orientation::default())
         };
 
         metadata.make = first_of!(
@@ -415,7 +417,7 @@ impl ExifData {
         metadata.orientation = if mimetype.type_() == "image" {
             map!(prop!("XMP", "Orientation"), expect_orientation)
         } else {
-            Some(1)
+            Some(Orientation::default())
         };
 
         metadata.make = map!(prop!("EXIF", "Make"), expect_string, pretty_make);

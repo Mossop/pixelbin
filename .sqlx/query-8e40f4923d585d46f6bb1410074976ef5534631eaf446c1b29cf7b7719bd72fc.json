@@ -1,0 +1,238 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT media_file.*, media_item.catalog\n            FROM media_file\n                JOIN media_item ON media_item.id=media_file.media_item\n            WHERE\n                media_file.id=$1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "uploaded",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "file_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "mimetype",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "duration",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 8,
+        "name": "frame_rate",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 9,
+        "name": "bit_rate",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 10,
+        "name": "filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "state",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "country",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 19,
+        "name": "make",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "model",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 21,
+        "name": "lens",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "photographer",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 23,
+        "name": "orientation",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 24,
+        "name": "iso",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 25,
+        "name": "rating",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 26,
+        "name": "longitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 27,
+        "name": "latitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 28,
+        "name": "altitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 29,
+        "name": "aperture",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 30,
+        "name": "focal_length",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 31,
+        "name": "taken",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 32,
+        "name": "media_item",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 33,
+        "name": "shutter_speed",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 34,
+        "name": "needs_metadata",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 35,
+        "name": "stored",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 36,
+        "name": "catalog",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "8e40f4923d585d46f6bb1410074976ef5534631eaf446c1b29cf7b7719bd72fc"
+}

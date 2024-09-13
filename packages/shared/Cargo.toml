@@ -1,0 +1,16 @@
+[package]
+name = "pixelbin_shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-multipart = { version = "0.7.2", default-features = false }
+actix-web = { version = "4.9.0", default-features = false }
+figment = { version = "0.10.19", features = ["json", "env"] }
+image = { version = "0.25.2", default-features = false }
+mime = { version = "0.3.17", default-features = false }
+serde = { version = "1.0.210", default-features = false }
+serde_json = { version = "1.0.128", default-features = false }
+sqlx = { version = "0.8.2", default-features = false }
+thiserror = { version = "1.0.63", default-features = false }
+tracing = { version = "0.1.40", default-features = false }

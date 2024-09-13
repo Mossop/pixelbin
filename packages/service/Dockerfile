@@ -1,22 +1,16 @@
 FROM rust:alpine3.19 AS builder
 
-RUN \
-    mkdir -p /build/packages/service/src && \
-    echo "fn main() {}" > /build/packages/service/src/main.rs
-
 WORKDIR /build
+ENV SQLX_OFFLINE=true
+ENV RUSTFLAGS="-L/usr/lib/postgresql16 -lpgcommon -lpgport -lcrypto -lssl"
 
-RUN apk add musl-dev libpq-dev postgresql16-dev openssl-libs-static nasm
+RUN apk add musl-dev libpq-dev postgresql16-dev openssl-libs-static nasm && mkdir /build/packages
 COPY Cargo.toml Cargo.lock /build
-COPY packages/service/Cargo.toml /build/packages/service
+COPY .sqlx /build/.sqlx
+COPY packages/shared packages/migrations /build/packages/service /build/packages/
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/build/target \
-    RUSTFLAGS="-L/usr/lib/postgresql16 -lpgcommon -lpgport -lcrypto -lssl" cargo build --locked --release
-COPY packages/service /build/packages/service
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/build/target \
-    RUSTFLAGS="-L/usr/lib/postgresql16 -lpgcommon -lpgport -lcrypto -lssl" cargo build --locked --release && \
-    cp /build/target/release/pixelbin /build/pixelbin
+    cargo build --locked --release
 
 FROM alpine:3.19
 
@@ -41,4 +35,4 @@ HEALTHCHECK --start-period=30s --start-interval=2s --interval=60s CMD wget -qO- 
 ARG SOURCE_CHANGESET
 ENV SOURCE_CHANGESET=${SOURCE_CHANGESET:-unknown}
 
-COPY --from=builder /build/pixelbin /app
+COPY --from=builder /build/target/release/pixelbin /app

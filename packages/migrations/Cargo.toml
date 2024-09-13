@@ -1,0 +1,16 @@
+[package]
+name = "pixelbin_migrations"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pixelbin_shared = { path = "../shared" }
+clap = { version = "4.5.16", features = ["derive", "env"] }
+tokio = { version = "1.39.3", features = ["full"] }
+sqlx = { version = "0.8.2", default-features = false, features = ["macros", "postgres", "runtime-tokio", "chrono"] }
+chrono = "0.4.38"
+include_dir = "0.7.4"
+dotenvy = "0.15.7"
+enum_dispatch = "0.3.13"
+console = "0.15.8"
+chrono-humanize = "0.2.3"

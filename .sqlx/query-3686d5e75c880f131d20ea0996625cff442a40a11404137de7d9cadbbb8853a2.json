@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO media_file (\n                    id,\n                    uploaded,\n                    file_name,\n                    file_size,\n                    mimetype,\n                    width,\n                    height,\n                    duration,\n                    frame_rate,\n                    bit_rate,\n                    media_item,\n                    needs_metadata,\n                    stored,\n\n                    filename,\n                    title,\n                    description,\n                    label,\n                    category,\n                    location,\n                    city,\n                    state,\n                    country,\n                    make,\n                    model,\n                    lens,\n                    photographer,\n                    shutter_speed,\n                    orientation,\n                    iso,\n                    rating,\n                    longitude,\n                    latitude,\n                    altitude,\n                    aperture,\n                    focal_length,\n                    taken\n                )\n                SELECT * FROM UNNEST(\n                    $1::text[],\n                    $2::timestamptz[],\n                    $3::text[],\n                    $4::bigint[],\n                    $5::text[],\n                    $6::integer[],\n                    $7::integer[],\n                    $8::real[],\n                    $9::real[],\n                    $10::real[],\n                    $11::text[],\n                    $12::bool[],\n                    $13::timestamptz[],\n\n                    $14::text[],\n                    $15::text[],\n                    $16::text[],\n                    $17::text[],\n                    $18::text[],\n                    $19::text[],\n                    $20::text[],\n                    $21::text[],\n                    $22::text[],\n                    $23::text[],\n                    $24::text[],\n                    $25::text[],\n                    $26::text[],\n                    $27::real[],\n                    $28::integer[],\n                    $29::integer[],\n                    $30::integer[],\n                    $31::real[],\n                    $32::real[],\n                    $33::real[],\n                    $34::real[],\n                    $35::real[],\n                    $36::timestamp[]\n                )\n                ON CONFLICT (id) DO UPDATE SET\n                    uploaded=excluded.uploaded,\n                    file_name=excluded.file_name,\n                    file_size=excluded.file_size,\n                    mimetype=excluded.mimetype,\n                    width=excluded.width,\n                    height=excluded.height,\n                    duration=excluded.duration,\n                    frame_rate=excluded.frame_rate,\n                    bit_rate=excluded.bit_rate,\n                    media_item=excluded.media_item,\n                    needs_metadata=excluded.needs_metadata,\n\n                    stored=excluded.stored,\n                    filename=excluded.filename,\n                    title=excluded.title,\n                    description=excluded.description,\n                    label=excluded.label,\n                    category=excluded.category,\n                    location=excluded.location,\n                    city=excluded.city,\n                    state=excluded.state,\n                    country=excluded.country,\n                    make=excluded.make,\n                    model=excluded.model,\n                    lens=excluded.lens,\n                    photographer=excluded.photographer,\n                    shutter_speed=excluded.shutter_speed,\n                    orientation=excluded.orientation,\n                    iso=excluded.iso,\n                    rating=excluded.rating,\n                    longitude=excluded.longitude,\n                    latitude=excluded.latitude,\n                    altitude=excluded.altitude,\n                    aperture=excluded.aperture,\n                    focal_length=excluded.focal_length,\n                    taken=excluded.taken\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TimestamptzArray",
+        "TextArray",
+        "Int8Array",
+        "TextArray",
+        "Int4Array",
+        "Int4Array",
+        "Float4Array",
+        "Float4Array",
+        "Float4Array",
+        "TextArray",
+        "BoolArray",
+        "TimestamptzArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Float4Array",
+        "Int4Array",
+        "Int4Array",
+        "Int4Array",
+        "Float4Array",
+        "Float4Array",
+        "Float4Array",
+        "Float4Array",
+        "Float4Array",
+        "TimestampArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3686d5e75c880f131d20ea0996625cff442a40a11404137de7d9cadbbb8853a2"
+}

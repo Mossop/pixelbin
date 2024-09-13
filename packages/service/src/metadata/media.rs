@@ -47,7 +47,7 @@ pub(crate) async fn resize_image(
 ) -> DynamicImage {
     spawn_blocking(
         span!(
-            Level::INFO,
+            Level::TRACE,
             "image resize",
             "otel.name" = format!(
                 "image resize ({}x{} -> {width}x{height})",
@@ -69,7 +69,7 @@ pub(crate) async fn crop_image(
 ) -> DynamicImage {
     spawn_blocking(
         span!(
-            Level::INFO,
+            Level::TRACE,
             "image crop",
             "otel.name" = format!(
                 "image crop ({}x{} -> {width}x{height})",
@@ -171,7 +171,7 @@ pub(super) async fn encode_alternate_image(
 
     spawn_blocking(
         span!(
-            Level::INFO,
+            Level::TRACE,
             "encode image",
             "otel.name" = format!("encode image {mime} ({width}x{height})"),
             "mimetype" = mime.as_ref(),
@@ -192,7 +192,7 @@ pub(super) async fn encode_alternate_video(
 ) -> Result<(Mime, i32, i32, Option<f32>, Option<f32>, Option<f32>)> {
     encode_video(source_path, mime, target_path)
         .instrument(span!(
-            Level::INFO,
+            Level::TRACE,
             "encode video",
             "otel.name" = format!("encode video {mime}"),
             "mimetype" = mime.as_ref(),
@@ -216,7 +216,7 @@ async fn load_video(file_path: &Path) -> Result<DynamicImage> {
 
     spawn_blocking(
         span!(
-            Level::INFO,
+            Level::TRACE,
             "load image",
             "otel.name" = format!("load image {mime}"),
             "mimetype" = mime.as_ref(),
@@ -235,7 +235,7 @@ pub(crate) async fn load_source_image(file_path: &Path) -> Result<DynamicImage> 
             let image_path = file_path.to_owned();
             spawn_blocking(
                 span!(
-                    Level::INFO,
+                    Level::TRACE,
                     "load image",
                     "otel.name" = format!("load image {mime}"),
                     "mimetype" = mime.as_ref(),
@@ -247,7 +247,7 @@ pub(crate) async fn load_source_image(file_path: &Path) -> Result<DynamicImage> 
         mime::VIDEO => {
             load_video(file_path)
                 .instrument(span!(
-                    Level::INFO,
+                    Level::TRACE,
                     "load video",
                     "otel.name" = format!("load video {mime}"),
                     "mimetype" = mime.as_ref(),
@@ -288,7 +288,7 @@ pub(super) async fn load_data(
             let image_path = file_path.to_owned();
             let (width, height) = spawn_blocking(
                 span!(
-                    Level::INFO,
+                    Level::TRACE,
                     "image decode",
                     "otel.name" = format!("image decode {mime}"),
                     "mimetype" = mime.as_ref(),
@@ -301,7 +301,7 @@ pub(super) async fn load_data(
         mime::VIDEO => {
             let (width, height, duration, bit_rate, frame_rate) = load_video_data(file_path)
                 .instrument(span!(
-                    Level::INFO,
+                    Level::TRACE,
                     "video decode",
                     "otel.name" = format!("video decode {mime}"),
                     "mimetype" = mime.as_ref(),

@@ -10,15 +10,16 @@ use std::{
 use async_channel::{unbounded, Receiver, Sender};
 use chrono::{Datelike, Local, NaiveDate, Timelike};
 use opentelemetry::{global, trace::TraceContextExt};
+use pixelbin_shared::Ignorable;
 use strum_macros::IntoStaticStr;
 use tokio::{sync::Notify, time::sleep};
 use tracing::{field, span, span::Id, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    shared::{error::Ignorable, record_result, DEFAULT_STATUS},
+    shared::{record_result, DEFAULT_STATUS},
     store::{
-        db::{DbConnection, DbPool},
+        db::{DbConnection, SqlxPool},
         models,
     },
     task_queue::{
@@ -121,7 +122,7 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
 
 #[derive(Clone)]
 pub(crate) struct TaskQueue {
-    pool: DbPool,
+    pool: SqlxPool,
     config: Config,
     notify: Arc<Notify>,
     pending: Arc<AtomicUsize>,
@@ -129,7 +130,7 @@ pub(crate) struct TaskQueue {
 }
 
 impl TaskQueue {
-    pub(crate) fn new(pool: DbPool, config: Config, parent_span: Option<Id>) -> Self {
+    pub(crate) fn new(pool: SqlxPool, config: Config, parent_span: Option<Id>) -> Self {
         let (sender, receiver) = unbounded();
 
         let queue = Self {
@@ -276,7 +277,7 @@ impl TaskQueue {
             let linked_span = linked_context.span().span_context().clone();
 
             let task_name: &'static str = (&task).into();
-            let span = span!(parent: parent_span.clone(), Level::INFO, "task", "otel.name" = task_name, "otel.status_code" = DEFAULT_STATUS, "otel.status_description" = field::Empty);
+            let span = span!(parent: parent_span.clone(), Level::TRACE, "task", "otel.name" = task_name, "otel.status_code" = DEFAULT_STATUS, "otel.status_description" = field::Empty);
             span.add_link(linked_span);
 
             let result = queue.run_task(&task).instrument(span.clone()).await;
