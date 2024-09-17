@@ -1,23 +1,14 @@
 use std::{
     error::Error,
-    fs::File,
-    io::{self, BufWriter, Write},
+    io::{self},
     process::ExitCode,
     result,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, Subcommand};
 use dotenvy::dotenv;
 use enum_dispatch::enum_dispatch;
-use image::{
-    codecs::{
-        avif::{AvifEncoder, ColorSpace},
-        jpeg::JpegEncoder,
-    },
-    imageops::FilterType,
-    ImageReader, RgbImage,
-};
 use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
@@ -25,18 +16,13 @@ use opentelemetry_sdk::{
     trace::{self, TracerProvider},
     Resource,
 };
-#[cfg(feature = "webserver")]
 use pixelbin::server::serve;
 use pixelbin::{Config, Result, Store, Task};
 use tokio::runtime::Builder;
-use tracing::{info, span, Instrument, Level, Metadata, Span};
+use tracing::{span, Instrument, Level, Span};
 use tracing_subscriber::{
-    filter::Targets,
-    layer::{Context, Filter, SubscriberExt},
-    util::SubscriberInitExt,
-    Layer, Registry,
+    filter::Targets, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry,
 };
-use webp::PixelLayout;
 
 async fn list_catalogs(store: &Store) -> Result<Vec<String>> {
     let mut conn = store.connect().await?;
@@ -62,81 +48,6 @@ impl Runnable for Stats {
         println!("Media:           {}", stats.media);
         println!("Files:           {}", stats.files);
         println!("Alternate files: {}", stats.alternate_files);
-
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug, ValueEnum)]
-enum EncodeFormat {
-    Avif,
-    Webp,
-    Jpeg,
-}
-
-#[derive(Args)]
-struct Encode {
-    #[clap(long)]
-    quality: u8,
-
-    #[clap(long, value_enum)]
-    format: EncodeFormat,
-
-    #[clap(long)]
-    size: Option<u32>,
-
-    file: String,
-
-    target: String,
-}
-
-impl Runnable for Encode {
-    fn span(&self) -> Span {
-        span!(Level::INFO, "encode")
-    }
-
-    async fn run(&self, _store: &Store) -> Result {
-        let reader = ImageReader::open(&self.file)?.with_guessed_format()?;
-        let mut source_image = reader.decode()?;
-        let mut buffered = BufWriter::new(File::create(&self.target)?);
-
-        if let Some(size) = self.size {
-            source_image = source_image.resize(size, size, FilterType::Lanczos3);
-        }
-
-        let start = Instant::now();
-
-        match self.format {
-            EncodeFormat::Jpeg => {
-                let encoder = JpegEncoder::new_with_quality(buffered, self.quality);
-                source_image.write_with_encoder(encoder)?;
-            }
-            EncodeFormat::Webp => {
-                let image: RgbImage = source_image.into();
-                let encoder = webp::Encoder::new(
-                    image.as_ref(),
-                    PixelLayout::Rgb,
-                    image.width(),
-                    image.height(),
-                );
-                let buffer = encoder.encode(self.quality.into());
-                buffered.write_all(&buffer)?;
-            }
-            EncodeFormat::Avif => {
-                let encoder = AvifEncoder::new_with_speed_quality(buffered, 5, self.quality)
-                    .with_colorspace(ColorSpace::Srgb);
-                source_image.write_with_encoder(encoder)?;
-            }
-        }
-
-        let secs = Instant::now().duration_since(start).as_secs();
-
-        info!(
-            format = ?self.format,
-            quality = self.quality,
-            seconds = secs,
-            "Encoding complete.",
-        );
 
         Ok(())
     }
@@ -216,11 +127,9 @@ impl Runnable for Verify {
     }
 }
 
-#[cfg(feature = "webserver")]
 #[derive(Args)]
 struct Serve;
 
-#[cfg(feature = "webserver")]
 impl Runnable for Serve {
     fn span(&self) -> Span {
         span!(Level::INFO, "service startup")
@@ -251,7 +160,6 @@ impl Runnable for Serve {
 #[derive(Subcommand)]
 enum Command {
     /// Runs the server.
-    #[cfg(feature = "webserver")]
     Serve,
     /// List some basic stats about objects in the database.
     Stats,
@@ -259,8 +167,6 @@ enum Command {
     Reprocess,
     /// Verifies database and storage consistency.
     Verify,
-    /// Tests image encoding.
-    Encode,
 }
 
 #[enum_dispatch(Command)]

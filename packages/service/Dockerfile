@@ -7,10 +7,10 @@ ENV RUSTFLAGS="-L/usr/lib/postgresql16 -lpgcommon -lpgport -lcrypto -lssl"
 RUN apk add musl-dev libpq-dev postgresql16-dev openssl-libs-static nasm && mkdir /build/packages
 COPY Cargo.toml Cargo.lock /build
 COPY .sqlx /build/.sqlx
-COPY packages/shared packages/migrations /build/packages/service /build/packages/
+COPY packages/shared packages/migrations packages/service packages/cli /build/packages/
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/build/target \
-    cargo build --locked --release
+    cargo build -p pixelbin_cli --locked --release
 
 FROM alpine:3.19
 

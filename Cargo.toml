@@ -3,6 +3,7 @@ members = [
   "packages/shared",
   "packages/migrations",
   "packages/service",
+  "packages/cli",
 ]
 resolver = "2"
 default-members = ["packages/service"]
