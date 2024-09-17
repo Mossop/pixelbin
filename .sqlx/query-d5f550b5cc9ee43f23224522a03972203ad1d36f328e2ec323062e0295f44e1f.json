@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT media_view.*\n            FROM media_view\n                JOIN media_search ON media_search.media=media_view.id\n            WHERE media_search.search=$1\n            ",
+  "query": "\n                SELECT media_view.*\n                FROM media_view\n                WHERE media_view.id IN (\n                    SELECT media_album.media\n                    FROM media_album\n                        JOIN album_descendent ON album_descendent.descendent=media_album.album\n                    WHERE album_descendent.id=$1\n                )\n                ORDER BY datetime DESC\n                ",
   "describe": {
     "columns": [
       {
@@ -258,5 +258,5 @@
       true
     ]
   },
-  "hash": "5d783ec7ef3c7714b5361f874a54ee54d8f617142f268f8fd79ebbffc20da375"
+  "hash": "d5f550b5cc9ee43f23224522a03972203ad1d36f328e2ec323062e0295f44e1f"
 }
