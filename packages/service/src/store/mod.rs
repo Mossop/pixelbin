@@ -80,6 +80,11 @@ impl DiskStore {
 
     #[instrument(level = "trace", skip(self, temp_file), err)]
     pub(crate) async fn copy_from_temp(&self, temp_file: TempPath, path: &FilePath) -> Result {
+        if self.testing {
+            debug!("Not pushing in testing mode.");
+            return Ok(());
+        }
+
         let target = self.local_path(path);
 
         if let Some(parent) = target.parent() {
@@ -99,7 +104,7 @@ impl DiskStore {
         Ok(())
     }
 
-    async fn prune_path(path: &Path) -> Result<bool> {
+    async fn prune_path(path: &Path, is_testing: bool) -> Result<bool> {
         let mut reader = match fs::read_dir(path).await {
             Ok(r) => r,
             Err(e) => {
@@ -115,7 +120,7 @@ impl DiskStore {
         while let Some(entry) = reader.next_entry().await? {
             let stats = entry.metadata().await?;
             if stats.is_dir() {
-                if !Box::pin(Self::prune_path(&entry.path())).await? {
+                if !Box::pin(Self::prune_path(&entry.path(), is_testing)).await? {
                     can_prune = false;
                 }
             } else {
@@ -124,7 +129,12 @@ impl DiskStore {
         }
 
         if can_prune {
-            fs::remove_dir(path).await.ignore();
+            if is_testing {
+                debug!(path=%path.display(), "Not pruning in testing mode.");
+                can_prune = false;
+            } else {
+                fs::remove_dir(path).await.ignore();
+            }
         }
 
         Ok(can_prune)
@@ -219,14 +229,9 @@ impl FileStore for DiskStore {
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
-        if self.testing {
-            debug!("Not deleting in testing mode.");
-            return Ok(());
-        }
-
         let local_path = self.local_path(path);
 
-        if Self::prune_path(&local_path).await? {
+        if Self::prune_path(&local_path, self.testing).await? {
             let mut current = local_path.as_path();
 
             while let Some(parent) = current.parent() {
@@ -304,6 +309,11 @@ impl FileStore for DiskStore {
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
     async fn push(&self, source: &Path, path: &FilePath, _mimetype: &Mime) -> Result {
+        if self.testing {
+            debug!("Not pushing in testing mode.");
+            return Ok(());
+        }
+
         let target = self.local_path(path);
 
         if let Some(parent) = target.parent() {
