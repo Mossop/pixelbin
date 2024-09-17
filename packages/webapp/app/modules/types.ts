@@ -9,8 +9,8 @@ export interface User {
   fullname: string | null;
   administrator: boolean;
   created: string;
-  last_login: string;
-  verified: boolean | null;
+  lastLogin: string;
+  verified: boolean;
 }
 
 export interface Storage {

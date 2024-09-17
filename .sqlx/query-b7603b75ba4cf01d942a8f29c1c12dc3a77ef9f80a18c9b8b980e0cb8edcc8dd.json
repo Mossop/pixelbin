@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT catalog.*, user_catalog.writable, COUNT(media.id) AS media\n            FROM catalog\n                JOIN user_catalog ON catalog.id=user_catalog.catalog\n                LEFT JOIN (SELECT id, catalog FROM media_item WHERE NOT deleted) AS media\n                    ON media.catalog=catalog.id\n            WHERE\n                user_catalog.user=$1 AND\n                catalog.id=$2\n            GROUP BY catalog.id, user_catalog.writable\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "storage",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "writable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "media",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "b7603b75ba4cf01d942a8f29c1c12dc3a77ef9f80a18c9b8b980e0cb8edcc8dd"
+}

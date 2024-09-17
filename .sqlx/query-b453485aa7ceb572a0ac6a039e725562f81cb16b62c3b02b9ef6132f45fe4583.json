@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT catalog.*, user_catalog.writable\n            FROM catalog JOIN user_catalog ON catalog.id=user_catalog.catalog\n            WHERE\n                user_catalog.user=$1 AND\n                catalog.id=$2\n            ",
+  "query": "\n            SELECT catalog.*,writable\n            FROM catalog JOIN user_catalog ON catalog.id=user_catalog.catalog\n            WHERE\n                user_catalog.user=$1 AND\n                catalog.id=$2 AND\n                (user_catalog.writable OR $3)\n            ",
   "describe": {
     "columns": [
       {
@@ -27,7 +27,8 @@
     "parameters": {
       "Left": [
         "Text",
-        "Text"
+        "Text",
+        "Bool"
       ]
     },
     "nullable": [
@@ -37,5 +38,5 @@
       true
     ]
   },
-  "hash": "3e273f6b9642fc21894556a51f06842738088c7084427791424c787b6fdb68ee"
+  "hash": "b453485aa7ceb572a0ac6a039e725562f81cb16b62c3b02b9ef6132f45fe4583"
 }

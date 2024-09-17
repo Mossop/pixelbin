@@ -234,8 +234,8 @@ impl Migrator {
                     .execute(&mut *connection)
                     .await?;
             }
-            Err(e) => {
-                eprintln!("Error importing: {e}");
+            Err(_e) => {
+                // Ignore missing diesel data
             }
         }
 

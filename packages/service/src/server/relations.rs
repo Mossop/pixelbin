@@ -7,7 +7,7 @@ use actix_web::{
     web::{self},
     HttpResponse, HttpResponseBuilder,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_with::{serde_as, OneOrMany};
 use tracing::instrument;
 
@@ -18,7 +18,9 @@ use crate::{
     },
     shared::short_id,
     store::{
-        models::{self, MediaViewStream},
+        models::{
+            self, AlbumWithCount, MediaViewStream, SavedSearchWithCount, UserCatalogWithCount,
+        },
         Isolation,
     },
     Task,
@@ -44,13 +46,13 @@ async fn create_album(
     request: web::Json<CreateAlbumRequest>,
 ) -> ApiResult<web::Json<models::Album>> {
     let mut conn = app_state.store.connect().await?;
-    let catalog =
+    let user_catalog =
         models::Catalog::get_for_user(&mut conn, &session.user.email, &request.catalog, true)
             .await?;
 
     let album = models::Album {
         id: short_id("A"),
-        catalog: catalog.id.clone(),
+        catalog: user_catalog.catalog.id.clone(),
         name: request.album.name.clone(),
         parent: request.album.parent.clone(),
     };
@@ -198,13 +200,6 @@ struct AlbumListRequest {
     recursive: bool,
 }
 
-#[derive(Serialize)]
-struct AlbumResponse {
-    #[serde(flatten)]
-    album: models::Album,
-    media: i64,
-}
-
 #[get("/album/{album_id}")]
 #[instrument(err, skip(app_state, session))]
 async fn get_album(
@@ -212,9 +207,9 @@ async fn get_album(
     session: Session,
     album_id: web::Path<String>,
     query: web::Query<AlbumListRequest>,
-) -> ApiResult<web::Json<AlbumResponse>> {
+) -> ApiResult<web::Json<AlbumWithCount>> {
     let mut conn = app_state.store.connect().await?;
-    let (album, media) = models::Album::get_for_user_with_count(
+    let album = models::Album::get_for_user_with_count(
         &mut conn,
         &session.user.email,
         &album_id,
@@ -222,14 +217,7 @@ async fn get_album(
     )
     .await?;
 
-    Ok(web::Json(AlbumResponse { album, media }))
-}
-
-#[derive(Serialize)]
-struct SearchResponse {
-    #[serde(flatten)]
-    search: models::SavedSearch,
-    media: i64,
+    Ok(web::Json(album))
 }
 
 #[get("/search/{search_id}")]
@@ -238,22 +226,13 @@ async fn get_search(
     app_state: web::Data<AppState>,
     session: MaybeSession,
     search_id: web::Path<String>,
-) -> ApiResult<web::Json<SearchResponse>> {
+) -> ApiResult<web::Json<SavedSearchWithCount>> {
     let email = session.session().map(|s| s.user.email.as_str());
 
     let mut conn = app_state.store.connect().await?;
-    let (search, media) =
-        models::SavedSearch::get_for_user_with_count(&mut conn, email, &search_id).await?;
+    let search = models::SavedSearch::get_for_user_with_count(&mut conn, email, &search_id).await?;
 
-    Ok(web::Json(SearchResponse { search, media }))
-}
-
-#[derive(Serialize)]
-struct CatalogResponse {
-    #[serde(flatten)]
-    catalog: models::Catalog,
-    writable: bool,
-    media: i64,
+    Ok(web::Json(search))
 }
 
 #[get("/catalog/{catalog_id}")]
@@ -262,17 +241,13 @@ async fn get_catalog(
     app_state: web::Data<AppState>,
     session: Session,
     catalog_id: web::Path<String>,
-) -> ApiResult<web::Json<CatalogResponse>> {
+) -> ApiResult<web::Json<UserCatalogWithCount>> {
     let mut conn = app_state.store.connect().await?;
-    let (catalog, writable, media) =
+    let user_catalog =
         models::Catalog::get_for_user_with_count(&mut conn, &session.user.email, &catalog_id)
             .await?;
 
-    Ok(web::Json(CatalogResponse {
-        catalog,
-        writable,
-        media,
-    }))
+    Ok(web::Json(user_catalog))
 }
 
 #[get("/catalog/{catalog_id}/media")]
@@ -283,13 +258,13 @@ async fn get_catalog_media(
     catalog_id: web::Path<String>,
 ) -> ApiResult<HttpResponse> {
     let mut conn = app_state.store.connect().await?;
-    let catalog =
+    let user_catalog =
         models::Catalog::get_for_user(&mut conn, &session.user.email, &catalog_id, false).await?;
 
     let (stream, sender) = MediaViewStream::new();
 
     let conn = app_state.store.connect().await?;
-    tokio::spawn(catalog.stream_media(conn, sender));
+    tokio::spawn(user_catalog.catalog.stream_media(conn, sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)
         .append_header((header::CONTENT_TYPE, "application/x-ndjson"))

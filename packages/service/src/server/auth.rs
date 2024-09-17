@@ -5,7 +5,10 @@ use tracing::{instrument, warn, Instrument};
 
 use crate::{
     server::{ApiErrorCode, ApiResult, AppState},
-    store::{models, Isolation},
+    store::{
+        models::{self, AlbumWithCount, SavedSearchWithCount, UserCatalog},
+        Isolation,
+    },
     Error,
 };
 
@@ -142,35 +145,11 @@ async fn logout(
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct AlbumWithCount {
-    #[serde(flatten)]
-    album: models::Album,
-    media: i64,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct SavedSearchWithCount {
-    #[serde(flatten)]
-    search: models::SavedSearch,
-    media: i64,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct CatalogState {
-    #[serde(flatten)]
-    catalog: models::Catalog,
-    writable: bool,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 struct UserState {
     #[serde(flatten)]
     user: models::User,
     storage: Vec<models::Storage>,
-    catalogs: Vec<CatalogState>,
+    catalogs: Vec<UserCatalog>,
     people: Vec<models::Person>,
     tags: Vec<models::Tag>,
     albums: Vec<AlbumWithCount>,
@@ -226,35 +205,13 @@ async fn state(
             .in_current_span(),
     );
 
-    let albums = albums?
-        .into_iter()
-        .map(|(album, count)| AlbumWithCount {
-            album,
-            media: count,
-        })
-        .collect();
-
-    let searches = searches?
-        .into_iter()
-        .map(|(search, count)| SavedSearchWithCount {
-            search,
-            media: count,
-        })
-        .collect();
-
     Ok(web::Json(UserState {
         user,
         storage: storage?,
-        catalogs: catalogs?
-            .into_iter()
-            .map(|(c, w)| CatalogState {
-                catalog: c,
-                writable: w,
-            })
-            .collect(),
+        catalogs: catalogs?,
         people: people?,
         tags: tags?,
-        albums,
-        searches,
+        albums: albums?,
+        searches: searches?,
     }))
 }

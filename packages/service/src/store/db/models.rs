@@ -211,7 +211,7 @@ pub(crate) struct User {
     pub(crate) administrator: bool,
     pub(crate) created: DateTime<Utc>,
     pub(crate) last_login: Option<DateTime<Utc>>,
-    pub(crate) verified: Option<bool>,
+    pub(crate) verified: bool,
 }
 
 impl User {
@@ -231,6 +231,7 @@ impl User {
 }
 
 #[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct Storage {
     pub(crate) id: String,
     pub(crate) name: String,
@@ -327,51 +328,24 @@ pub(crate) struct Catalog {
     pub(crate) storage: String,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct UserCatalog {
+    #[serde(flatten)]
+    pub(crate) catalog: models::Catalog,
+    pub(crate) writable: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct UserCatalogWithCount {
+    #[serde(flatten)]
+    catalog: models::Catalog,
+    writable: bool,
+    media: i64,
+}
+
 impl Catalog {
-    #[instrument(skip(self, conn), fields(catalog = self.id))]
-    pub(crate) async fn list_media(
-        &self,
-        conn: &mut DbConnection<'_>,
-        offset: Option<i64>,
-        count: Option<i64>,
-    ) -> Result<Vec<MediaView>> {
-        let views = if let Some(count) = count {
-            sqlx::query!(
-                "
-                SELECT *
-                FROM media_view
-                WHERE catalog=$1
-                ORDER BY datetime DESC
-                LIMIT $2
-                OFFSET $3
-                ",
-                self.id,
-                count,
-                offset.unwrap_or_default()
-            )
-            .try_map(|row| Ok(from_row!(MediaView(row))))
-            .fetch_all(conn)
-            .await?
-        } else {
-            sqlx::query!(
-                "
-                SELECT *
-                FROM media_view
-                WHERE catalog=$1
-                ORDER BY datetime DESC
-                OFFSET $2
-                ",
-                self.id,
-                offset.unwrap_or_default()
-            )
-            .try_map(|row| Ok(from_row!(MediaView(row))))
-            .fetch_all(conn)
-            .await?
-        };
-
-        Ok(views)
-    }
-
     #[instrument(skip_all)]
     pub(crate) async fn stream_media(
         self,
@@ -404,17 +378,19 @@ impl Catalog {
     pub(crate) async fn list_for_user(
         conn: &mut DbConnection<'_>,
         email: &str,
-    ) -> Result<Vec<(Catalog, bool)>> {
+    ) -> Result<Vec<UserCatalog>> {
         Ok(sqlx::query!(
             "
             SELECT catalog.*, writable
             FROM user_catalog JOIN catalog ON catalog.id = user_catalog.catalog
             WHERE user_catalog.user = $1
-            ORDER BY catalog.name ASC
             ",
             email
         )
-        .map(|row| (from_row!(Catalog(row)), row.writable.unwrap_or_default()))
+        .map(|row| UserCatalog {
+            catalog: from_row!(Catalog(row)),
+            writable: row.writable.unwrap_or_default(),
+        })
         .fetch_all(conn)
         .await?)
     }
@@ -424,10 +400,10 @@ impl Catalog {
         email: &str,
         catalog: &str,
         want_writable: bool,
-    ) -> Result<Catalog> {
+    ) -> Result<UserCatalog> {
         Ok(sqlx::query!(
             "
-            SELECT catalog.*
+            SELECT catalog.*,writable
             FROM catalog JOIN user_catalog ON catalog.id=user_catalog.catalog
             WHERE
                 user_catalog.user=$1 AND
@@ -438,7 +414,10 @@ impl Catalog {
             catalog,
             want_writable
         )
-        .map(|row| from_row!(Catalog(row)))
+        .map(|row| UserCatalog {
+            catalog: from_row!(Catalog(row)),
+            writable: row.writable.unwrap_or_default(),
+        })
         .fetch_one(conn)
         .await?)
     }
@@ -447,34 +426,31 @@ impl Catalog {
         conn: &mut DbConnection<'_>,
         email: &str,
         catalog: &str,
-    ) -> Result<(Catalog, bool, i64)> {
-        let count = sqlx::query_scalar!(
-            r#"
-            SELECT COUNT(*) AS "count!"
-            FROM media_item
-            WHERE NOT deleted AND catalog=$1
-            "#,
-            catalog
-        )
-        .fetch_one(&mut *conn)
-        .await?;
-
-        let (catalog, writable) = sqlx::query!(
+    ) -> Result<UserCatalogWithCount> {
+        let catalog = sqlx::query!(
             "
-            SELECT catalog.*, user_catalog.writable
-            FROM catalog JOIN user_catalog ON catalog.id=user_catalog.catalog
+            SELECT catalog.*, user_catalog.writable, COUNT(media.id) AS media
+            FROM catalog
+                JOIN user_catalog ON catalog.id=user_catalog.catalog
+                LEFT JOIN (SELECT id, catalog FROM media_item WHERE NOT deleted) AS media
+                    ON media.catalog=catalog.id
             WHERE
                 user_catalog.user=$1 AND
                 catalog.id=$2
+            GROUP BY catalog.id, user_catalog.writable
             ",
             email,
             catalog
         )
-        .map(|row| (from_row!(Catalog(row)), row.writable))
+        .map(|row| UserCatalogWithCount {
+            catalog: from_row!(Catalog(row)),
+            writable: row.writable.unwrap_or_default(),
+            media: row.media.unwrap_or_default(),
+        })
         .fetch_one(conn)
         .await?;
 
-        Ok((catalog, writable.unwrap_or_default(), count))
+        Ok(catalog)
     }
 }
 
@@ -497,7 +473,6 @@ impl Person {
                 JOIN user_catalog ON user_catalog.catalog=person.catalog
             WHERE
                 user_catalog.user=$1
-            ORDER BY person.name ASC
             ",
             email
         )
@@ -650,7 +625,6 @@ impl Tag {
             FROM tag
                 JOIN user_catalog ON user_catalog.catalog=tag.catalog
             WHERE user_catalog.user=$1
-            ORDER BY tag.name ASC
             ",
             email
         )
@@ -835,100 +809,15 @@ pub(crate) struct Album {
     pub(crate) catalog: String,
 }
 
-impl Album {
-    #[instrument(skip(self, conn), fields(album = self.id))]
-    pub(crate) async fn list_media(
-        &self,
-        conn: &mut DbConnection<'_>,
-        recursive: bool,
-        offset: Option<i64>,
-        count: Option<i64>,
-    ) -> Result<Vec<MediaView>> {
-        if recursive {
-            Ok(if let Some(count) = count {
-                sqlx::query!(
-                    "
-                    SELECT *
-                    FROM media_view
-                    WHERE id IN (
-                        SELECT media_album.media
-                        FROM media_album
-                            JOIN album_descendent ON album_descendent.descendent=media_album.album
-                        WHERE album_descendent.id=$1
-                    )
-                    LIMIT $2
-                    OFFSET $3
-                    ",
-                    self.id,
-                    count,
-                    offset.unwrap_or_default()
-                )
-                .try_map(|row| Ok(from_row!(MediaView(row))))
-                .fetch_all(conn)
-                .await?
-            } else {
-                sqlx::query!(
-                    "
-                    SELECT *
-                    FROM media_view
-                    WHERE id IN (
-                        SELECT media_album.media
-                        FROM media_album
-                            JOIN album_descendent ON album_descendent.descendent=media_album.album
-                        WHERE album_descendent.id=$1
-                    )
-                    OFFSET $2
-                    ",
-                    self.id,
-                    offset.unwrap_or_default()
-                )
-                .try_map(|row| Ok(from_row!(MediaView(row))))
-                .fetch_all(conn)
-                .await?
-            })
-        } else {
-            Ok(if let Some(count) = count {
-                sqlx::query!(
-                    "
-                    SELECT *
-                    FROM media_view
-                    WHERE id IN (
-                        SELECT media_album.media
-                        FROM media_album
-                        WHERE media_album.album=$1
-                    )
-                    LIMIT $2
-                    OFFSET $3
-                    ",
-                    self.id,
-                    count,
-                    offset.unwrap_or_default()
-                )
-                .try_map(|row| Ok(from_row!(MediaView(row))))
-                .fetch_all(conn)
-                .await?
-            } else {
-                sqlx::query!(
-                    "
-                    SELECT *
-                    FROM media_view
-                    WHERE id IN (
-                        SELECT media_album.media
-                        FROM media_album
-                        WHERE media_album.album=$1
-                    )
-                    OFFSET $2
-                    ",
-                    self.id,
-                    offset.unwrap_or_default()
-                )
-                .try_map(|row| Ok(from_row!(MediaView(row))))
-                .fetch_all(conn)
-                .await?
-            })
-        }
-    }
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AlbumWithCount {
+    #[serde(flatten)]
+    album: Album,
+    media: i64,
+}
 
+impl Album {
     #[instrument(skip_all)]
     pub(crate) async fn stream_media(
         self,
@@ -974,7 +863,7 @@ impl Album {
     pub(crate) async fn list_for_user_with_count(
         conn: &mut DbConnection<'_>,
         email: &str,
-    ) -> Result<Vec<(Album, i64)>> {
+    ) -> Result<Vec<AlbumWithCount>> {
         Ok(sqlx::query!(
             "
             SELECT album.*, COUNT(media_album.media) AS count
@@ -983,11 +872,13 @@ impl Album {
                 LEFT JOIN media_album ON media_album.album=album.id
             WHERE user_catalog.user=$1
             GROUP BY album.id
-            ORDER BY album.name ASC
             ",
             email
         )
-        .map(|row| (from_row!(Album(row)), row.count.unwrap_or_default()))
+        .map(|row| AlbumWithCount {
+            album: from_row!(Album(row)),
+            media: row.count.unwrap_or_default(),
+        })
         .fetch_all(conn)
         .await?)
     }
@@ -1041,7 +932,7 @@ impl Album {
         email: &str,
         album: &str,
         recursive: bool,
-    ) -> Result<(Album, i64)> {
+    ) -> Result<AlbumWithCount> {
         if recursive {
             Ok(sqlx::query!(
                 "
@@ -1058,7 +949,10 @@ impl Album {
                 email,
                 album
             )
-            .map(|row| (from_row!(Album(row)), row.count.unwrap_or_default()))
+            .map(|row| AlbumWithCount {
+                album: from_row!(Album(row)),
+                media: row.count.unwrap_or_default(),
+            })
             .fetch_one(conn)
             .await?)
         } else {
@@ -1076,7 +970,10 @@ impl Album {
                 email,
                 album
             )
-            .map(|row| (from_row!(Album(row)), row.count.unwrap_or_default()))
+            .map(|row| AlbumWithCount {
+                album: from_row!(Album(row)),
+                media: row.count.unwrap_or_default(),
+            })
             .fetch_one(conn)
             .await?)
         }
@@ -1136,49 +1033,15 @@ pub(crate) struct SavedSearch {
     pub(crate) catalog: String,
 }
 
-impl SavedSearch {
-    #[instrument(skip(self, conn), fields(search = self.id))]
-    pub(crate) async fn list_media(
-        &self,
-        conn: &mut DbConnection<'_>,
-        offset: Option<i64>,
-        count: Option<i64>,
-    ) -> Result<Vec<MediaView>> {
-        if let Some(count) = count {
-            Ok(sqlx::query!(
-                "
-                SELECT media_view.*
-                FROM media_view
-                    JOIN media_search ON media_search.media=media_view.id
-                WHERE media_search.search=$1
-                LIMIT $2
-                OFFSET $3
-                ",
-                self.id,
-                count,
-                offset.unwrap_or_default()
-            )
-            .try_map(|row| Ok(from_row!(MediaView(row))))
-            .fetch_all(conn)
-            .await?)
-        } else {
-            Ok(sqlx::query!(
-                "
-                SELECT media_view.*
-                FROM media_view
-                    JOIN media_search ON media_search.media=media_view.id
-                WHERE media_search.search=$1
-                OFFSET $2
-                ",
-                self.id,
-                offset.unwrap_or_default()
-            )
-            .try_map(|row| Ok(from_row!(MediaView(row))))
-            .fetch_all(conn)
-            .await?)
-        }
-    }
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SavedSearchWithCount {
+    #[serde(flatten)]
+    search: models::SavedSearch,
+    media: i64,
+}
 
+impl SavedSearch {
     #[instrument(skip_all)]
     pub(crate) async fn stream_media(self, mut conn: DbConnection<'_>, sender: MediaViewSender) {
         let stream = sqlx::query!(
@@ -1369,7 +1232,7 @@ impl SavedSearch {
         conn: &mut DbConnection<'_>,
         email: Option<&str>,
         search: &str,
-    ) -> Result<(SavedSearch, i64)> {
+    ) -> Result<SavedSearchWithCount> {
         let email = email.unwrap_or_default().to_owned();
 
         Ok(sqlx::query!(
@@ -1392,7 +1255,12 @@ impl SavedSearch {
             search,
             email
         )
-        .try_map(|row| Ok((from_row!(SavedSearch(row)), row.count.unwrap_or_default())))
+        .try_map(|row| {
+            Ok(SavedSearchWithCount {
+                search: from_row!(SavedSearch(row)),
+                media: row.count.unwrap_or_default(),
+            })
+        })
         .fetch_one(conn)
         .await?)
     }
@@ -1400,7 +1268,7 @@ impl SavedSearch {
     pub(crate) async fn list_for_user_with_count(
         conn: &mut DbConnection<'_>,
         email: &str,
-    ) -> Result<Vec<(SavedSearch, i64)>> {
+    ) -> Result<Vec<SavedSearchWithCount>> {
         Ok(sqlx::query!(
             "
             SELECT saved_search.*, COUNT(media_search.media) AS count
@@ -1409,11 +1277,15 @@ impl SavedSearch {
                 LEFT JOIN media_search ON media_search.search=saved_search.id
             WHERE user_catalog.user=$1
             GROUP BY saved_search.id
-            ORDER BY saved_search.name ASC
             ",
             email
         )
-        .try_map(|row| Ok((from_row!(SavedSearch(row)), row.count.unwrap_or_default())))
+        .try_map(|row| {
+            Ok(SavedSearchWithCount {
+                search: from_row!(SavedSearch(row)),
+                media: row.count.unwrap_or_default(),
+            })
+        })
         .fetch_all(conn)
         .await?)
     }

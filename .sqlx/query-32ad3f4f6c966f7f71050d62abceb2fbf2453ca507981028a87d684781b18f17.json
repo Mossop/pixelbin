@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT tag.*\n            FROM tag\n                JOIN user_catalog ON user_catalog.catalog=tag.catalog\n            WHERE user_catalog.user=$1\n            ORDER BY tag.name ASC\n            ",
+  "query": "\n            SELECT album.*, COUNT(media_album.media) AS count\n            FROM user_catalog\n                JOIN album USING (catalog)\n                LEFT JOIN media_album ON media_album.album=album.id\n            WHERE user_catalog.user=$1\n            GROUP BY album.id\n            ",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "catalog",
         "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "count",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -33,8 +38,9 @@
       false,
       true,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "981df2ddb745e997690a0e2dc779cc497f3643a89105bdab967f6b464d9793aa"
+  "hash": "32ad3f4f6c966f7f71050d62abceb2fbf2453ca507981028a87d684781b18f17"
 }

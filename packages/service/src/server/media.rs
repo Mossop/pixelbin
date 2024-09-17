@@ -498,9 +498,9 @@ async fn create_media(
     tracing::Span::current().record("catalog", &data.catalog);
 
     let mut conn = app_state.store.isolated(Isolation::Committed).await?;
-    let catalog =
+    let user_catalog =
         models::Catalog::get_for_user(&mut conn, &session.user.email, &data.catalog, true).await?;
-    let mut media_item = models::MediaItem::new(&catalog.id);
+    let mut media_item = models::MediaItem::new(&user_catalog.catalog.id);
 
     update_media_item(&mut conn, &mut media_item, &data.metadata).await?;
     conn.commit().await?;
@@ -647,14 +647,14 @@ async fn search_media(
     data: web::Json<SearchRequest>,
 ) -> ApiResult<HttpResponse> {
     let mut conn = app_state.store.connect().await?;
-    let catalog =
+    let user_catalog =
         models::Catalog::get_for_user(&mut conn, &session.user.email, &data.catalog, false).await?;
 
     let (stream, sender) = MediaViewStream::new();
 
     let query = data.query.clone();
     let conn = app_state.store.connect().await?;
-    tokio::spawn(query.stream_media(conn, catalog.id.clone(), sender));
+    tokio::spawn(query.stream_media(conn, user_catalog.catalog.id.clone(), sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)
         .append_header((header::CONTENT_TYPE, "application/x-ndjson"))
