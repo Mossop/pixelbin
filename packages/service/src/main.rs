@@ -1,5 +1,4 @@
 use std::{
-    env,
     error::Error,
     fs::File,
     io::{self, BufWriter, Write},
@@ -30,25 +29,14 @@ use opentelemetry_sdk::{
 use pixelbin::server::serve;
 use pixelbin::{Config, Result, Store, Task};
 use tokio::runtime::Builder;
-use tracing::{info, span, Instrument, Level, Span};
+use tracing::{info, span, Instrument, Level, Metadata, Span};
 use tracing_subscriber::{
-    layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+    filter::Targets,
+    layer::{Context, Filter, SubscriberExt},
+    util::SubscriberInitExt,
+    Layer, Registry,
 };
 use webp::PixelLayout;
-
-#[cfg(debug_assertions)]
-const LOG_DEFAULTS: [(&str, Level); 3] = [
-    ("pixelbin", Level::TRACE),
-    ("pixelbin_shared", Level::TRACE),
-    ("pixelbin_migrations", Level::TRACE),
-];
-
-#[cfg(not(debug_assertions))]
-const LOG_DEFAULTS: [(&str, Level); 1] = [
-    ("pixelbin", Level::DEBUG),
-    ("pixelbin_shared", Level::DEBUG),
-    ("pixelbin_migrations", Level::DEBUG),
-];
 
 async fn list_catalogs(store: &Store) -> Result<Vec<String>> {
     let mut conn = store.connect().await?;
@@ -307,24 +295,24 @@ struct CliArgs {
 }
 
 fn init_logging(telemetry: Option<&str>) -> result::Result<Option<TracerProvider>, Box<dyn Error>> {
-    let filter = match env::var("RUST_LOG").as_deref() {
-        Ok("") | Err(_) => {
-            let mut filter = EnvFilter::new("warn");
+    // let filter = EnvFilter::from_default_env().or(TracingFilter {});
 
-            for (module, level) in LOG_DEFAULTS {
-                filter = filter.add_directive(format!("{}={}", module, level).parse().unwrap());
-            }
-
-            filter
-        }
-        Ok(_) => EnvFilter::from_env("RUST_LOG"),
+    let default_level = if cfg!(debug_assertions) {
+        Level::DEBUG
+    } else {
+        Level::WARN
     };
 
     let formatter = tracing_subscriber::fmt::layer()
         .with_ansi(true)
         .pretty()
         .with_writer(io::stderr)
-        .with_filter(filter);
+        .with_filter(
+            Targets::new()
+                .with_target("pixelbin", default_level)
+                .with_target("pixelbin_shared", default_level)
+                .with_target("pixelbin_migrations", default_level),
+        );
 
     let registry = Registry::default().with(formatter);
 
@@ -345,13 +333,13 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<Option<TracerProvider
             ])))
             .install_batch(opentelemetry_sdk::runtime::Tokio)?;
 
-        let mut filter = EnvFilter::new("warn");
-
-        for (module, _) in LOG_DEFAULTS {
-            filter = filter.add_directive(format!("{}=trace", module).parse().unwrap());
-        }
-
         let tracer = tracer_provider.tracer("pixelbin-api");
+
+        let filter = Targets::new()
+            .with_target("pixelbin", Level::TRACE)
+            .with_target("pixelbin_shared", Level::TRACE)
+            .with_target("pixelbin_migrations", Level::TRACE)
+            .with_target("sqlx::query", Level::TRACE);
 
         let telemetry = tracing_opentelemetry::layer()
             .with_error_fields_to_exceptions(true)

@@ -57,6 +57,7 @@ sqlx = { version = "0.8.2", features = ["runtime-tokio", "postgres", "chrono", "
 itertools = "0.13.0"
 pixelbin_shared = { path = "../shared" }
 pixelbin_migrations = { path = "../migrations" }
+enum-repr = "0.2.6"
 
 actix-web = { version = "4.9.0", optional = true }
 actix-multipart = { version = "0.7.2", optional = true }
@@ -66,4 +67,3 @@ serde_with = { version = "3.8.3", optional = true }
 mime = { version = "0.3.17", optional = true }
 tokio-util = { version = "0.7.11", features = ["io"], optional = true }
 file-format = { version = "0.25.0", features = ["reader-mp4"], optional = true }
-enum-repr = "0.2.6"

@@ -185,7 +185,6 @@ where
             Poll::Ready(None) | Poll::Ready(Some(Err(_))) => {
                 let duration = (Instant::now() - *this.start).as_millis();
                 error!(duration, "database stream completed");
-                eprintln!("database stream completed: {duration}");
             }
             _ => {}
         }
@@ -240,7 +239,6 @@ where
         if result.is_ready() {
             let duration = (Instant::now() - *this.start).as_millis();
             error!(duration, "database load completed");
-            eprintln!("database load completed: {duration}");
         }
 
         result
