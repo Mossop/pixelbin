@@ -163,7 +163,7 @@ pub async fn serve(store: &Store) -> Result {
 
     let state = AppState {
         store: store.clone(),
-        request_tracker: middleware::RequestTracker::new(),
+        request_tracker: middleware::RequestTracker::new(store.clone()),
     };
 
     let app_data = web::Data::new(state);

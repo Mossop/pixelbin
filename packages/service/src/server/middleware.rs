@@ -1,35 +1,87 @@
-use std::{net::SocketAddr, time::Instant};
+use std::{collections::HashMap, net::SocketAddr, result, sync::Arc, time::Instant};
 
 use actix_web::{
-    body::MessageBody,
+    body::{EitherBody, MessageBody},
     dev::{ServiceRequest, ServiceResponse},
     http::{header::HeaderMap, StatusCode},
     middleware::Next,
     web::Data,
-    Error, FromRequest, HttpRequest,
+    Error, FromRequest, HttpRequest, HttpResponse,
 };
+use chrono::{DateTime, Utc};
+use futures::TryFutureExt;
 use opentelemetry::{global, propagation::Extractor};
-use tracing::{field, instrument, span, warn, Instrument, Level, Span};
+use tokio::sync::RwLock;
+use tracing::{error, field, instrument, span, warn, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
     server::AppState,
     shared::{record_error, DEFAULT_STATUS},
+    Result, Store,
 };
 
-pub(super) struct RequestTracker {}
+#[derive(Clone, Copy)]
+struct BlockState {
+    status: StatusCode,
+    expiry: DateTime<Utc>,
+}
+
+#[derive(Clone)]
+pub(super) struct RequestTracker {
+    store: Store,
+    block_list: Arc<RwLock<HashMap<String, BlockState>>>,
+}
 
 impl RequestTracker {
-    pub(super) fn new() -> Self {
-        Self {}
+    pub(super) fn new(store: Store) -> Self {
+        Self {
+            store,
+            block_list: Arc::new(RwLock::new(HashMap::new())),
+        }
     }
 
-    fn check_request(&self, client_addr: &Option<String>) -> bool {
-        true
+    async fn current_block_state(&self, client_addr: &str) -> Option<BlockState> {
+        let block_list = self.block_list.read().await;
+        block_list.get(client_addr).copied()
+    }
+
+    async fn check_request(&self, client_addr: &Option<String>) -> Option<StatusCode> {
+        if let Some(client) = client_addr {
+            if let Some(state) = self.current_block_state(client).await {
+                if state.expiry > Utc::now() {
+                    return Some(state.status);
+                }
+            }
+        }
+
+        None
+    }
+
+    async fn record_block_status(self, _client_addr: String, _status: StatusCode) -> Result {
+        let _conn = self.store.connect().await?;
+
+        // Update database and calculate new block status
+
+        // Get current block status and compare
+
+        // If necessary write new block status
+
+        Ok(())
     }
 
     fn record_response(&self, client_addr: &Option<String>, status: StatusCode) {
-        if let Some(client) = client_addr {}
+        if let Some(client) = client_addr {
+            if status.is_client_error() {
+                tokio::spawn(
+                    self.clone()
+                        .record_block_status(client.clone(), status)
+                        .unwrap_or_else(
+                            |error| error!(error=%error, "Error recording block status"),
+                        ),
+                );
+            }
+        }
     }
 }
 
@@ -72,10 +124,10 @@ impl<'a> Extractor for TextMapExtractor<'a> {
 }
 
 #[instrument(skip_all)]
-pub(super) async fn middleware(
+pub(super) async fn middleware<B: MessageBody>(
     req: ServiceRequest,
-    next: Next<impl MessageBody>,
-) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    next: Next<B>,
+) -> result::Result<ServiceResponse<EitherBody<B>>, Error> {
     let http_request = req.request();
     let app_data = Data::<AppState>::extract(http_request).await?;
 
@@ -111,8 +163,10 @@ pub(super) async fn middleware(
         span.record("client.address", ip);
     }
 
-    if !app_data.request_tracker.check_request(&client_addr) {
-        // TODO
+    if let Some(status) = app_data.request_tracker.check_request(&client_addr).await {
+        return Ok(req
+            .into_response(HttpResponse::new(status))
+            .map_into_right_body());
     }
 
     let start = Instant::now();
@@ -138,5 +192,5 @@ pub(super) async fn middleware(
         warn!(duration = duration, "Slow response");
     };
 
-    Ok(res)
+    Ok(res.map_into_left_body())
 }
