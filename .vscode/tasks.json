@@ -15,7 +15,7 @@
       ],
       "problemMatcher": [],
       "label": "Pixelbin API server",
-      "isBackground": false,
+      "isBackground": true,
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -23,7 +23,7 @@
         "clear": false
       },
       "runOptions": {
-        "runOn": "folderOpen"
+        "runOn": "default"
       }
     },
     {
@@ -35,7 +35,7 @@
       ],
       "problemMatcher": [],
       "label": "Pixelbin web server",
-      "isBackground": false,
+      "isBackground": true,
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -43,7 +43,7 @@
         "clear": false
       },
       "runOptions": {
-        "runOn": "folderOpen"
+        "runOn": "default"
       }
     }
   ]

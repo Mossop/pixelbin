@@ -5,9 +5,7 @@ pub(crate) mod search;
 use std::{
     fmt, mem,
     pin::{pin, Pin},
-    result,
     task::{Context, Poll},
-    time::Instant,
 };
 
 use chrono::{Duration, Utc};
@@ -16,7 +14,9 @@ use pin_project::pin_project;
 use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
 use sqlx::{
-    pool::PoolConnection, postgres::PgPoolOptions, Acquire, Database, Executor, Transaction,
+    pool::PoolConnection,
+    postgres::{PgPoolOptions, PgQueryResult, PgRow, PgStatement},
+    Acquire, Database, Either, Executor, Transaction,
 };
 use tracing::{error, field, info, instrument, span, span::Id, warn, Level, Span};
 
@@ -138,38 +138,35 @@ impl<'conn> fmt::Debug for DbConnection<'conn> {
 }
 
 #[pin_project]
-struct InstrumentedStream<'a, T, E> {
+struct InstrumentedStream<'a> {
     #[pin]
-    inner: BoxStream<'a, result::Result<T, E>>,
+    inner: BoxStream<'a, SqlxResult<Either<PgQueryResult, PgRow>>>,
     span: Span,
-    start: Instant,
+    rows_returned: u64,
+    rows_affected: u64,
 }
 
-impl<'a, T, E> InstrumentedStream<'a, T, E>
+impl<'a> InstrumentedStream<'a>
 where
     Self: Sized + Send + 'a,
-    T: 'a,
-    E: fmt::Display + 'a,
 {
     fn wrap(
-        inner: BoxStream<'a, result::Result<T, E>>,
+        inner: BoxStream<'a, SqlxResult<Either<PgQueryResult, PgRow>>>,
         span: Span,
-    ) -> BoxStream<'a, result::Result<T, E>> {
+    ) -> BoxStream<'_, SqlxResult<Either<PgQueryResult, PgRow>>> {
         let instrumented = Self {
             inner,
             span,
-            start: Instant::now(),
+            rows_returned: 0,
+            rows_affected: 0,
         };
 
         instrumented.boxed()
     }
 }
 
-impl<'a, T, E> Stream for InstrumentedStream<'a, T, E>
-where
-    E: fmt::Display,
-{
-    type Item = result::Result<T, E>;
+impl<'a> Stream for InstrumentedStream<'a> {
+    type Item = SqlxResult<Either<PgQueryResult, PgRow>>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
@@ -177,14 +174,21 @@ where
 
         let result = this.inner.poll_next(cx);
 
-        if let Poll::Ready(Some(Err(ref error))) = result {
-            record_error(this.span, &format!("Database error: {}", error));
-        }
-
         match result {
-            Poll::Ready(None) | Poll::Ready(Some(Err(_))) => {
-                let duration = (Instant::now() - *this.start).as_millis();
-                error!(duration, "database stream completed");
+            Poll::Ready(Some(Err(ref error))) => {
+                record_error(this.span, &format!("{}", error));
+            }
+            Poll::Ready(Some(Ok(Either::Left(ref result)))) => {
+                *this.rows_affected += result.rows_affected();
+            }
+            Poll::Ready(Some(Ok(Either::Right(_)))) => {
+                *this.rows_returned += 1;
+            }
+            Poll::Ready(None) => {
+                this.span
+                    .record("db.query.rows_returned", this.rows_returned);
+                this.span
+                    .record("db.query.rows_affected", this.rows_affected);
             }
             _ => {}
         }
@@ -192,39 +196,52 @@ where
         result
     }
 }
-#[pin_project]
-struct InstrumentedFuture<'a, T, E> {
-    #[pin]
-    inner: BoxFuture<'a, result::Result<T, E>>,
-    span: Span,
-    start: Instant,
+
+trait InstrumentationRecorder {
+    fn record(&self, _span: &Span) {}
 }
 
-impl<'a, T, E> InstrumentedFuture<'a, T, E>
+impl InstrumentationRecorder for SqlxResult<sqlx::Describe<SqlxDatabase>> {}
+
+impl<'q> InstrumentationRecorder for SqlxResult<PgStatement<'q>> {}
+
+impl InstrumentationRecorder for SqlxResult<Option<PgRow>> {
+    fn record(&self, span: &Span) {
+        if matches!(self, Ok(Some(_))) {
+            span.record("db.query.rows_returned", 1);
+            span.record("db.query.rows_affected", 1);
+        } else {
+            span.record("db.query.rows_returned", 0);
+            span.record("db.query.rows_affected", 0);
+        }
+    }
+}
+
+#[pin_project]
+struct InstrumentedFuture<'a, T> {
+    #[pin]
+    inner: BoxFuture<'a, SqlxResult<T>>,
+    span: Span,
+}
+
+impl<'a, T> InstrumentedFuture<'a, T>
 where
     Self: Sized + Send + 'a,
+    SqlxResult<T>: InstrumentationRecorder,
     T: 'a,
-    E: fmt::Display + 'a,
 {
-    fn wrap(
-        inner: BoxFuture<'a, result::Result<T, E>>,
-        span: Span,
-    ) -> BoxFuture<'a, result::Result<T, E>> {
-        let instrumented = Self {
-            inner,
-            span,
-            start: Instant::now(),
-        };
+    fn wrap(inner: BoxFuture<'a, SqlxResult<T>>, span: Span) -> BoxFuture<'a, SqlxResult<T>> {
+        let instrumented = Self { inner, span };
 
         instrumented.boxed()
     }
 }
 
-impl<'a, T, E> Future for InstrumentedFuture<'a, T, E>
+impl<'a, T> Future for InstrumentedFuture<'a, T>
 where
-    E: fmt::Display,
+    SqlxResult<T>: InstrumentationRecorder,
 {
-    type Output = result::Result<T, E>;
+    type Output = SqlxResult<T>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
@@ -232,13 +249,11 @@ where
 
         let result = this.inner.poll(cx);
 
-        if let Poll::Ready(Err(ref error)) = result {
-            record_error(this.span, &format!("Database error: {}", error));
-        }
-
-        if result.is_ready() {
-            let duration = (Instant::now() - *this.start).as_millis();
-            error!(duration, "database load completed");
+        if let Poll::Ready(ref ready) = result {
+            ready.record(this.span);
+            if let Err(ref error) = ready {
+                record_error(this.span, &format!("Database error: {}", error));
+            }
         }
 
         result
@@ -254,15 +269,7 @@ where
     fn fetch_many<'e, 'q: 'e, E>(
         self,
         query: E,
-    ) -> BoxStream<
-        'e,
-        SqlxResult<
-            sqlx::Either<
-                <Self::Database as Database>::QueryResult,
-                <Self::Database as Database>::Row,
-            >,
-        >,
-    >
+    ) -> BoxStream<'e, SqlxResult<sqlx::Either<PgQueryResult, PgRow>>>
     where
         'c: 'e,
         E: 'q + sqlx::Execute<'q, Self::Database>,
@@ -270,7 +277,9 @@ where
         let span = span!(
             Level::TRACE,
             "DB fetch_many",
-            "query" = query.sql(),
+            "db.query.text" = query.sql(),
+            "db.query.rows_returned" = field::Empty,
+            "db.query.rows_affected" = field::Empty,
             "operation" = "fetch_many",
             "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,
@@ -289,10 +298,7 @@ where
         InstrumentedStream::wrap(inner, span)
     }
 
-    fn fetch_optional<'e, 'q: 'e, E>(
-        self,
-        query: E,
-    ) -> BoxFuture<'e, SqlxResult<Option<<Self::Database as Database>::Row>>>
+    fn fetch_optional<'e, 'q: 'e, E>(self, query: E) -> BoxFuture<'e, SqlxResult<Option<PgRow>>>
     where
         'c: 'e,
         E: 'q + sqlx::Execute<'q, Self::Database>,
@@ -300,7 +306,9 @@ where
         let span = span!(
             Level::TRACE,
             "DB fetch_optional",
-            "query" = query.sql(),
+            "db.query.text" = query.sql(),
+            "db.query.rows_returned" = field::Empty,
+            "db.query.rows_affected" = field::Empty,
             "operation" = "fetch_optional",
             "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,
@@ -323,14 +331,14 @@ where
         self,
         sql: &'q str,
         parameters: &'e [<Self::Database as Database>::TypeInfo],
-    ) -> BoxFuture<'e, SqlxResult<<Self::Database as Database>::Statement<'q>>>
+    ) -> BoxFuture<'e, SqlxResult<PgStatement<'q>>>
     where
         'c: 'e,
     {
         let span = span!(
             Level::TRACE,
             "DB prepare_with",
-            "query" = sql,
+            "db.query.text" = sql,
             "operation" = "prepare_with",
             "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,
@@ -359,7 +367,7 @@ where
         let span = span!(
             Level::TRACE,
             "DB describe",
-            "query" = sql,
+            "db.query.text" = sql,
             "operation" = "describe",
             "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,

@@ -4,8 +4,17 @@ watchexec = "latest"
 
 [tasks.apiserver]
 description = "Run the API server"
-run = "cargo run -- serve"
-sources = ["packages/service/Cargo.toml", "packages/service/src/**/*.rs"]
+run = "cargo run -p pixelbin_cli -- serve"
+sources = [
+  "packages/shared/Cargo.toml",
+  "packages/shared/src/**/*.rs",
+  "packages/migrations/Cargo.toml",
+  "packages/migrations/src/**/*.rs",
+  "packages/service/Cargo.toml",
+  "packages/service/src/**/*.rs",
+  "packages/cli/Cargo.toml",
+  "packages/cli/src/**/*.rs"
+]
 
 [tasks.webserver]
 description = "Run the web server"

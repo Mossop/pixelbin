@@ -66,5 +66,5 @@ pub(crate) fn record_result<T>(span: &Span, result: &Result<T>) {
 pub(crate) fn record_error(span: &Span, error: &str) {
     span.record("otel.status_code", "Error");
     span.record("otel.status_description", error);
-    error!(parent: span, "{}", error);
+    error!(name: "exception", target: "pixelbin::shared", parent: span, "{}", error);
 }
