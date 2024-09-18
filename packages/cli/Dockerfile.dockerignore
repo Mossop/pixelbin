@@ -1,0 +1,9 @@
+**/*
+!.sqlx
+!packages/shared
+!packages/migrations
+!packages/service
+!packages/cli
+!Cargo.*
+packages/cli/Dockerfile
+packages/cli/Dockerfile.ignore

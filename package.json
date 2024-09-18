@@ -1,0 +1,14 @@
+{
+  "name": "pixelbin",
+  "private": true,
+  "workspaces": [
+    "packages/webapp"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces build",
+    "dev": "npm run -w pixelbin_webapp dev",
+    "lint": "npm run --workspaces lint",
+    "start": "npm run -w pixelbin_webapp start",
+    "typecheck": "npm run --workspaces typecheck"
+  }
+}

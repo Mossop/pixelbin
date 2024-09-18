@@ -5,9 +5,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./app/*"],
+      "modules/*": ["./modules/*"],
       "styles/*": ["./styles/*"]
     },
   },
 
-  "include": ["env.d.ts", "**/*.ts", "**/*.tsx", "**/*.mjs", "app/modules/telemetry.mjs"],
+  "include": ["**/*.ts", "**/*.tsx", "*.cjs", "modules/**/*.mjs"],
 }

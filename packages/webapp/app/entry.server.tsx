@@ -7,7 +7,7 @@ import { RemixServer } from "@remix-run/react";
 import * as isbotModule from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 
-import { inSpan } from "./modules/telemetry.mjs";
+import { inSpan } from "modules/telemetry.mjs";
 
 const ABORT_DELAY = 5_000;
 

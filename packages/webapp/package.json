@@ -1,12 +1,11 @@
 {
-  "name": "webapp",
+  "name": "pixelbin_webapp",
   "private": true,
-  "sideEffects": false,
   "type": "module",
   "scripts": {
     "build": "remix vite:build",
     "dev": "node ./server.mjs",
-    "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
+    "lint": "eslint --ignore-path .gitignore .",
     "start": "cross-env NODE_ENV=production node ./server.mjs",
     "typecheck": "tsc"
   },

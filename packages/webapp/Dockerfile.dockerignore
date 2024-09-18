@@ -1,0 +1,8 @@
+**/*
+!packages/webapp
+!package.json
+!package-lock.json
+packages/webapp/node_modules
+packages/webapp/build
+packages/webapp/Dockerfile
+packages/webapp/Dockerfile.ignore

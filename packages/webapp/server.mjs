@@ -22,7 +22,7 @@ import { createRequestHandler } from "@remix-run/express";
 import dotenv from "dotenv";
 import express from "express";
 
-import { inSpan } from "./app/modules/telemetry.mjs";
+import { inSpan } from "./modules/telemetry.mjs";
 
 dotenv.config();
 

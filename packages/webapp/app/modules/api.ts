@@ -12,7 +12,7 @@ import {
 } from "@opentelemetry/semantic-conventions";
 
 import { RequestContext } from "./RequestContext";
-import { inSpan } from "./telemetry.mjs";
+import { inSpan } from "modules/telemetry.mjs";
 import {
   Album,
   ApiMediaRelations,

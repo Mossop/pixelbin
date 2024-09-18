@@ -4,10 +4,10 @@ import { SpanStatusCode, trace, context } from "@opentelemetry/api";
 
 /**
  * @template R
- * @template {(span: Span) => Promise<R>} F
+ * @template {(span: Span) => R} F
  * @param {string | SpanConfig} config
  * @param {F} task
- * @returns {Promise<R>}
+ * @returns {R}
  */
 export function inSpan(config, task) {
   /* @type {SpanConfig} */
