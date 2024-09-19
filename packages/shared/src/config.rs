@@ -1,4 +1,4 @@
-use std::{env, fs, path::PathBuf, str::FromStr};
+use std::{env, fs, path::PathBuf, result, str::FromStr, time::Duration};
 
 use crate::{Error, Result};
 use figment::{
@@ -10,7 +10,7 @@ use figment::{
     Figment,
 };
 use mime::Mime;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 mod mimes {
     use std::str::FromStr;
@@ -47,6 +47,25 @@ mod mimes {
                 Ok(list)
             })
     }
+}
+
+fn duration_from_secs<'de, D>(deserializer: D) -> result::Result<Duration, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let secs = u64::deserialize(deserializer)?;
+
+    Ok(Duration::from_secs(secs))
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RateLimit {
+    #[serde(deserialize_with = "duration_from_secs")]
+    pub duration: Duration,
+    pub limit: u64,
+    #[serde(deserialize_with = "duration_from_secs")]
+    pub block_time: Duration,
+    pub status: Option<u16>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -88,6 +107,8 @@ pub struct Config {
 
     pub thumbnails: ThumbnailConfig,
 
+    pub rate_limits: Vec<RateLimit>,
+
     /// Disables writing to remote stores for testing purposes.
     pub testing: bool,
 }
@@ -108,6 +129,7 @@ struct ParsedConfig {
     port: Option<u16>,
     api_url: Option<String>,
     thumbnails: Option<ThumbnailConfig>,
+    rate_limits: Option<Vec<RateLimit>>,
     #[serde(default)]
     testing: bool,
 }
@@ -181,6 +203,38 @@ impl Config {
             port: parsed.port,
             api_url: parsed.api_url,
             thumbnails: parsed.thumbnails.unwrap_or_default(),
+            rate_limits: parsed.rate_limits.unwrap_or_else(|| {
+                vec![
+                    // A burst of 20 errors in 10 seconds blocks for a minute.
+                    RateLimit {
+                        duration: Duration::from_secs(10),
+                        limit: 20,
+                        block_time: Duration::from_secs(60),
+                        status: None,
+                    },
+                    // An average of one error a second over a minute blocks for five minutes.
+                    RateLimit {
+                        duration: Duration::from_secs(60),
+                        limit: 60,
+                        block_time: Duration::from_secs(5 * 60),
+                        status: None,
+                    },
+                    // Five bad logins over 10 seconds blocks for five minutes.
+                    RateLimit {
+                        duration: Duration::from_secs(10),
+                        limit: 5,
+                        block_time: Duration::from_secs(5 * 60),
+                        status: Some(401),
+                    },
+                    // Ten bad logins over a minute blocks for thirty minutes.
+                    RateLimit {
+                        duration: Duration::from_secs(60),
+                        limit: 10,
+                        block_time: Duration::from_secs(30 * 60),
+                        status: Some(401),
+                    },
+                ]
+            }),
             testing: parsed.testing,
         })
     }

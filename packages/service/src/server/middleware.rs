@@ -1,4 +1,11 @@
-use std::{collections::HashMap, net::SocketAddr, result, sync::Arc, time::Instant};
+use std::{
+    cmp::{max, Ordering},
+    collections::HashMap,
+    net::SocketAddr,
+    result,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use actix_web::{
     body::{EitherBody, MessageBody},
@@ -12,44 +19,208 @@ use chrono::{DateTime, Utc};
 use futures::TryFutureExt;
 use opentelemetry::{global, propagation::Extractor};
 use tokio::sync::RwLock;
-use tracing::{error, field, instrument, span, warn, Instrument, Level, Span};
+use tracing::{error, field, instrument, span, trace, warn, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
     server::AppState,
     shared::{record_error, DEFAULT_STATUS},
+    store::db::DbConnection,
     Result, Store,
 };
 
-#[derive(Clone, Copy)]
+const PRUNE_INTERVAL_SECS: u64 = 60 * 20;
+
+#[derive(Clone, Copy, Eq)]
 struct BlockState {
     status: StatusCode,
-    expiry: DateTime<Utc>,
+    expiry: Instant,
+}
+
+impl PartialEq for BlockState {
+    fn eq(&self, other: &Self) -> bool {
+        self.expiry == other.expiry
+    }
+}
+
+impl Ord for BlockState {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // For now we just care about expiry. A longer expiry is a "larger" block state.
+        self.expiry.cmp(&other.expiry)
+    }
+}
+
+impl PartialOrd for BlockState {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+struct RequestTrackerInner {
+    next_update: Instant,
+    blocks: HashMap<String, BlockState>,
+}
+
+impl RequestTrackerInner {
+    fn new() -> Self {
+        Self {
+            next_update: Instant::now() + Duration::from_secs(PRUNE_INTERVAL_SECS),
+            blocks: HashMap::new(),
+        }
+    }
+
+    fn insert_block(&mut self, client: String, block: BlockState) -> bool {
+        let mut updated = false;
+
+        self.blocks
+            .entry(client)
+            .and_modify(|current| {
+                if block > *current {
+                    updated = true;
+                    *current = block;
+                }
+            })
+            .or_insert_with(|| {
+                updated = true;
+                block
+            });
+
+        updated
+    }
+
+    fn prune(&mut self) {
+        let now = Instant::now();
+
+        self.blocks.retain(|_, block| block.expiry > now);
+        self.next_update = Instant::now() + Duration::from_secs(PRUNE_INTERVAL_SECS);
+    }
 }
 
 #[derive(Clone)]
 pub(super) struct RequestTracker {
     store: Store,
-    block_list: Arc<RwLock<HashMap<String, BlockState>>>,
+    inner: Arc<RwLock<RequestTrackerInner>>,
 }
 
 impl RequestTracker {
-    pub(super) fn new(store: Store) -> Self {
+    pub(super) async fn new(store: Store) -> Self {
+        let mut inner = RequestTrackerInner::new();
+
+        if let Err(error) = Self::init_blocks(&store, &mut inner).await {
+            error!(error = %error, "Failed to load block list.");
+        }
+
         Self {
             store,
-            block_list: Arc::new(RwLock::new(HashMap::new())),
+            inner: Arc::new(RwLock::new(inner)),
         }
     }
 
-    async fn current_block_state(&self, client_addr: &str) -> Option<BlockState> {
-        let block_list = self.block_list.read().await;
-        block_list.get(client_addr).copied()
+    async fn prune_database(conn: &mut DbConnection<'_>) -> Result {
+        let limit = conn
+            .config()
+            .rate_limits
+            .iter()
+            .fold(Duration::from_secs(0), |largest, limit| {
+                max(largest, limit.duration)
+            });
+
+        sqlx::query!(
+            "DELETE FROM client_error WHERE request_time < $1",
+            Utc::now() - limit
+        )
+        .execute(conn)
+        .await?;
+
+        Ok(())
+    }
+
+    async fn init_blocks(store: &Store, inner: &mut RequestTrackerInner) -> Result {
+        let mut conn = store.connect().await?;
+
+        Self::prune_database(&mut conn).await?;
+
+        let utc_now = Utc::now();
+        let now = Instant::now();
+
+        for rate_limit in &store.config().rate_limits {
+            let since = utc_now - rate_limit.duration;
+
+            let list: Vec<(String, i64, DateTime<Utc>)> = if let Some(status) = rate_limit.status {
+                sqlx::query!(
+                    "
+                    SELECT client, COUNT(status_code) AS count, MAX(request_time) AS last
+                    FROM client_error
+                    WHERE request_time > $1 AND status_code = $2
+                    GROUP BY client
+                    ",
+                    since,
+                    status as i32
+                )
+                .map(|row| (row.client, row.count.unwrap_or_default(), row.last.unwrap()))
+                .fetch_all(&mut conn)
+                .await?
+            } else {
+                sqlx::query!(
+                    "
+                    SELECT client, COUNT(status_code) AS count, MAX(request_time) AS last
+                    FROM client_error
+                    WHERE request_time > $1
+                    GROUP BY client
+                    ",
+                    since
+                )
+                .map(|row| (row.client, row.count.unwrap_or_default(), row.last.unwrap()))
+                .fetch_all(&mut conn)
+                .await?
+            };
+
+            for (client, count, last) in list {
+                if count > rate_limit.limit as i64 {
+                    if let Ok(time_served) = (utc_now - last).to_std() {
+                        if rate_limit.block_time > time_served {
+                            let time_remaining = rate_limit.block_time - time_served;
+
+                            let block = BlockState {
+                                status: StatusCode::FORBIDDEN,
+                                expiry: now + time_remaining,
+                            };
+
+                            inner.insert_block(client, block);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn prune_blocks(self) -> Result {
+        let mut conn = self.store.connect().await?;
+
+        Self::prune_database(&mut conn).await?;
+
+        let mut inner = self.inner.write().await;
+        inner.prune();
+
+        Ok(())
     }
 
     async fn check_request(&self, client_addr: &Option<String>) -> Option<StatusCode> {
         if let Some(client) = client_addr {
-            if let Some(state) = self.current_block_state(client).await {
-                if state.expiry > Utc::now() {
+            let inner = self.inner.read().await;
+
+            if inner.next_update < Instant::now() {
+                tokio::spawn(
+                    self.clone()
+                        .prune_blocks()
+                        .unwrap_or_else(|error| error!(error=%error, "Error pruning block status")),
+                );
+            }
+
+            if let Some(state) = inner.blocks.get(client) {
+                if state.expiry > Instant::now() {
                     return Some(state.status);
                 }
             }
@@ -58,14 +229,90 @@ impl RequestTracker {
         None
     }
 
-    async fn record_block_status(self, _client_addr: String, _status: StatusCode) -> Result {
-        let _conn = self.store.connect().await?;
+    #[instrument(skip(self))]
+    async fn record_block_status(self, client_addr: String, status: StatusCode) -> Result {
+        let mut conn = self.store.connect().await?;
 
-        // Update database and calculate new block status
+        Self::prune_database(&mut conn).await?;
 
-        // Get current block status and compare
+        sqlx::query!(
+            "
+            INSERT INTO client_error (client, request_time, status_code)
+            VALUES ($1, CURRENT_TIMESTAMP, $2)
+            ",
+            &client_addr,
+            status.as_u16() as i32
+        )
+        .execute(&mut conn)
+        .await?;
 
-        // If necessary write new block status
+        let mut new_block: Option<BlockState> = None;
+        let utc_now = Utc::now();
+        let now = Instant::now();
+
+        for rate_limit in &self.store.config().rate_limits {
+            let since = utc_now - rate_limit.duration;
+
+            let count: i64 = if let Some(status) = rate_limit.status {
+                sqlx::query!(
+                    "
+                    SELECT COUNT(status_code) AS count
+                    FROM client_error
+                    WHERE request_time > $1 AND client = $2 AND status_code = $3
+                    ",
+                    since,
+                    &client_addr,
+                    status as i32
+                )
+                .map(|row| row.count.unwrap_or_default())
+                .fetch_optional(&mut conn)
+                .await?
+                .unwrap_or_default()
+            } else {
+                sqlx::query!(
+                    "
+                    SELECT COUNT(status_code) AS count
+                    FROM client_error
+                    WHERE request_time > $1 AND client = $2
+                    ",
+                    since,
+                    &client_addr
+                )
+                .map(|row| row.count.unwrap_or_default())
+                .fetch_optional(&mut conn)
+                .await?
+                .unwrap_or_default()
+            };
+
+            if count > rate_limit.limit as i64 {
+                let block = BlockState {
+                    status: StatusCode::FORBIDDEN,
+                    expiry: now + rate_limit.block_time,
+                };
+
+                if let Some(ref mut current) = new_block {
+                    if block > *current {
+                        *current = block;
+                    }
+                } else {
+                    new_block = Some(block);
+                }
+            }
+        }
+
+        let mut inner = self.inner.write().await;
+        inner.prune();
+
+        if let Some(block) = new_block {
+            if inner.insert_block(client_addr.clone(), block) {
+                let secs = (block.expiry - now).as_secs();
+                trace!(
+                    client = client_addr,
+                    duration = secs,
+                    "Client is now blocked"
+                )
+            }
+        }
 
         Ok(())
     }
