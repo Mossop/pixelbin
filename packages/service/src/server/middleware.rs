@@ -126,7 +126,7 @@ impl RequestTracker {
             });
 
         sqlx::query!(
-            "DELETE FROM client_error WHERE request_time < $1",
+            r#"DELETE FROM "client_error" WHERE "request_time" < $1"#,
             Utc::now() - limit
         )
         .execute(conn)
@@ -148,12 +148,12 @@ impl RequestTracker {
 
             let list: Vec<(String, i64, DateTime<Utc>)> = if let Some(status) = rate_limit.status {
                 sqlx::query!(
-                    "
-                    SELECT client, COUNT(status_code) AS count, MAX(request_time) AS last
-                    FROM client_error
-                    WHERE request_time > $1 AND status_code = $2
-                    GROUP BY client
-                    ",
+                    r#"
+                    SELECT "client", COUNT("status_code") AS "count", MAX("request_time") AS "last"
+                    FROM "client_error"
+                    WHERE "request_time" > $1 AND "status_code" = $2
+                    GROUP BY "client"
+                    "#,
                     since,
                     status as i32
                 )
@@ -162,12 +162,12 @@ impl RequestTracker {
                 .await?
             } else {
                 sqlx::query!(
-                    "
-                    SELECT client, COUNT(status_code) AS count, MAX(request_time) AS last
-                    FROM client_error
-                    WHERE request_time > $1
-                    GROUP BY client
-                    ",
+                    r#"
+                    SELECT "client", COUNT("status_code") AS "count", MAX("request_time") AS "last"
+                    FROM "client_error"
+                    WHERE "request_time" > $1
+                    GROUP BY "client"
+                    "#,
                     since
                 )
                 .map(|row| (row.client, row.count.unwrap_or_default(), row.last.unwrap()))
@@ -236,10 +236,10 @@ impl RequestTracker {
         Self::prune_database(&mut conn).await?;
 
         sqlx::query!(
-            "
-            INSERT INTO client_error (client, request_time, status_code)
+            r#"
+            INSERT INTO "client_error" ("client", "request_time", "status_code")
             VALUES ($1, CURRENT_TIMESTAMP, $2)
-            ",
+            "#,
             &client_addr,
             status.as_u16() as i32
         )
@@ -255,11 +255,11 @@ impl RequestTracker {
 
             let count: i64 = if let Some(status) = rate_limit.status {
                 sqlx::query!(
-                    "
-                    SELECT COUNT(status_code) AS count
-                    FROM client_error
-                    WHERE request_time > $1 AND client = $2 AND status_code = $3
-                    ",
+                    r#"
+                    SELECT COUNT("status_code") AS "count"
+                    FROM "client_error"
+                    WHERE "request_time" > $1 AND "client" = $2 AND "status_code" = $3
+                    "#,
                     since,
                     &client_addr,
                     status as i32
@@ -270,11 +270,11 @@ impl RequestTracker {
                 .unwrap_or_default()
             } else {
                 sqlx::query!(
-                    "
-                    SELECT COUNT(status_code) AS count
-                    FROM client_error
-                    WHERE request_time > $1 AND client = $2
-                    ",
+                    r#"
+                    SELECT COUNT("status_code") AS "count"
+                    FROM "client_error"
+                    WHERE "request_time" > $1 AND "client" = $2
+                    "#,
                     since,
                     &client_addr
                 )

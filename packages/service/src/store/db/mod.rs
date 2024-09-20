@@ -515,10 +515,10 @@ impl<'conn> DbConnection<'conn> {
         let token = long_id("T");
 
         sqlx::query!(
-            "
-            INSERT INTO auth_token (email, token, expiry)
+            r#"
+            INSERT INTO "auth_token" ("email", "token", "expiry")
             VALUES ($1,$2,$3)
-            ",
+            "#,
             email,
             token,
             Some(Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS))
@@ -531,7 +531,7 @@ impl<'conn> DbConnection<'conn> {
         sqlx::query!(
             r#"
             UPDATE "user"
-            SET last_login=$1
+            SET "last_login"=$1
             WHERE "email"=$2
             "#,
             user.last_login,
@@ -549,9 +549,9 @@ impl<'conn> DbConnection<'conn> {
 
         let email = match sqlx::query_scalar!(
             r#"
-            UPDATE auth_token
-            SET expiry=$1
-            WHERE token=$2
+            UPDATE "auth_token"
+            SET "expiry"=$1
+            WHERE "token"=$2
             RETURNING "email"
             "#,
             expiry,
@@ -567,7 +567,7 @@ impl<'conn> DbConnection<'conn> {
         let user = sqlx::query!(
             r#"
             UPDATE "user"
-            SET last_login=CURRENT_TIMESTAMP
+            SET "last_login"=CURRENT_TIMESTAMP
             WHERE "email"=$1
             RETURNING "user".*
             "#,
@@ -582,10 +582,10 @@ impl<'conn> DbConnection<'conn> {
 
     pub(crate) async fn delete_token(&mut self, token: &str) -> Result {
         sqlx::query!(
-            "
-            DELETE FROM auth_token
-            WHERE token=$1
-            ",
+            r#"
+            DELETE FROM "auth_token"
+            WHERE "token"=$1
+            "#,
             token
         )
         .execute(self)

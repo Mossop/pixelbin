@@ -271,11 +271,11 @@ impl Storage {
         catalog: &str,
     ) -> Result<Storage> {
         Ok(sqlx::query!(
-            "
-            SELECT storage.*
-            FROM storage JOIN catalog ON catalog.storage=storage.id
-            WHERE catalog.id=$1
-            ",
+            r#"
+            SELECT "storage".*
+            FROM "storage" JOIN "catalog" ON "catalog"."storage"="storage"."id"
+            WHERE "catalog"."id"=$1
+            "#,
             catalog
         )
         .map(|row| from_row!(Storage(row)))
@@ -290,12 +290,12 @@ impl Storage {
         conn.assert_in_transaction();
 
         Ok(sqlx::query!(
-            "
-            SELECT storage.*
-            FROM storage JOIN catalog ON catalog.storage=storage.id
-            WHERE catalog.id=$1
+            r#"
+            SELECT "storage".*
+            FROM "storage" JOIN "catalog" ON "catalog"."storage"="storage"."id"
+            WHERE "catalog"."id"=$1
             FOR UPDATE
-            ",
+            "#,
             catalog
         )
         .map(|row| from_row!(Storage(row)))
@@ -308,11 +308,11 @@ impl Storage {
         email: &str,
     ) -> Result<Vec<Storage>> {
         Ok(sqlx::query!(
-            "
-            SELECT storage.*
-            FROM storage
-            WHERE owner=$1
-            ",
+            r#"
+            SELECT "storage".*
+            FROM "storage"
+            WHERE "owner"=$1
+            "#,
             email
         )
         .map(|row| from_row!(Storage(row)))
@@ -353,13 +353,13 @@ impl Catalog {
         sender: MediaViewSender,
     ) {
         let stream = sqlx::query!(
-            "
-            SELECT media_view.*
-            FROM media_view
-                JOIN media_search ON media_search.media=media_view.id
-            WHERE media_view.catalog=$1
-            ORDER BY datetime DESC
-            ",
+            r#"
+            SELECT "media_view".*
+            FROM "media_view"
+                JOIN "media_search" ON "media_search"."media"="media_view"."id"
+            WHERE "media_view"."catalog"=$1
+            ORDER BY "datetime" DESC
+            "#,
             self.id
         )
         .try_map(|row| Ok(from_row!(MediaView(row))))
@@ -369,7 +369,7 @@ impl Catalog {
     }
 
     pub(crate) async fn list<'conn>(conn: &mut DbConnection<'_>) -> Result<Vec<Catalog>> {
-        Ok(sqlx::query!("SELECT * FROM catalog")
+        Ok(sqlx::query!(r#"SELECT * FROM "catalog""#)
             .map(|row| from_row!(Catalog(row)))
             .fetch_all(conn)
             .await?)
@@ -380,11 +380,11 @@ impl Catalog {
         email: &str,
     ) -> Result<Vec<UserCatalog>> {
         Ok(sqlx::query!(
-            "
-            SELECT catalog.*, writable
-            FROM user_catalog JOIN catalog ON catalog.id = user_catalog.catalog
-            WHERE user_catalog.user = $1
-            ",
+            r#"
+            SELECT "catalog".*, "writable"
+            FROM "user_catalog" JOIN "catalog" ON "catalog"."id" = "user_catalog"."catalog"
+            WHERE "user_catalog"."user" = $1
+            "#,
             email
         )
         .map(|row| UserCatalog {
@@ -402,14 +402,14 @@ impl Catalog {
         want_writable: bool,
     ) -> Result<UserCatalog> {
         Ok(sqlx::query!(
-            "
-            SELECT catalog.*,writable
-            FROM catalog JOIN user_catalog ON catalog.id=user_catalog.catalog
+            r#"
+            SELECT "catalog".*,"writable"
+            FROM "catalog" JOIN "user_catalog" ON "catalog"."id"="user_catalog"."catalog"
             WHERE
-                user_catalog.user=$1 AND
-                catalog.id=$2 AND
-                (user_catalog.writable OR $3)
-            ",
+                "user_catalog"."user"=$1 AND
+                "catalog"."id"=$2 AND
+                ("user_catalog"."writable" OR $3)
+            "#,
             email,
             catalog,
             want_writable
@@ -428,17 +428,17 @@ impl Catalog {
         catalog: &str,
     ) -> Result<UserCatalogWithCount> {
         let catalog = sqlx::query!(
-            "
-            SELECT catalog.*, user_catalog.writable, COUNT(media.id) AS media
+            r#"
+            SELECT "catalog".*, "user_catalog"."writable", COUNT("media"."id") AS "media"
             FROM catalog
-                JOIN user_catalog ON catalog.id=user_catalog.catalog
-                LEFT JOIN (SELECT id, catalog FROM media_item WHERE NOT deleted) AS media
-                    ON media.catalog=catalog.id
+                JOIN "user_catalog" ON "catalog"."id"="user_catalog"."catalog"
+                LEFT JOIN (SELECT "id", "catalog" FROM "media_item" WHERE NOT "deleted") AS "media"
+                    ON "media"."catalog"="catalog"."id"
             WHERE
-                user_catalog.user=$1 AND
-                catalog.id=$2
-            GROUP BY catalog.id, user_catalog.writable
-            ",
+                "user_catalog"."user"=$1 AND
+                "catalog".id=$2
+            GROUP BY "catalog"."id", "user_catalog"."writable"
+            "#,
             email,
             catalog
         )
@@ -467,13 +467,13 @@ impl Person {
         email: &str,
     ) -> Result<Vec<Person>> {
         Ok(sqlx::query!(
-            "
-            SELECT person.*
-            FROM person
-                JOIN user_catalog ON user_catalog.catalog=person.catalog
+            r#"
+            SELECT "person".*
+            FROM "person"
+                JOIN "user_catalog" ON "user_catalog"."catalog"="person"."catalog"
             WHERE
-                user_catalog.user=$1
-            ",
+                "user_catalog"."user"=$1
+            "#,
             email
         )
         .map(|row| from_row!(Person(row)))
@@ -488,13 +488,13 @@ impl Person {
         name: &str,
     ) -> Result<Person> {
         match sqlx::query!(
-            "
+            r#"
             SELECT *
-            FROM person
+            FROM "person"
             WHERE
-                catalog=$1 AND
-                LOWER(name)=$2
-            ",
+                "catalog"=$1 AND
+                LOWER("name")=$2
+            "#,
             catalog,
             name.to_lowercase()
         )
@@ -511,10 +511,10 @@ impl Person {
                 };
 
                 sqlx::query!(
-                    "
-                    INSERT INTO person (id, name, catalog)
+                    r#"
+                    INSERT INTO "person" ("id", "name", "catalog")
                     VALUES ($1, $2, $3)
-                    ",
+                    "#,
                     new_person.id,
                     name,
                     catalog
@@ -548,12 +548,12 @@ impl MediaPerson {
         let people_ids: Vec<String> = people.iter().map(|p| p.person.clone()).collect();
 
         sqlx::query!(
-            "
-            DELETE FROM media_person
+            r#"
+            DELETE FROM "media_person"
             WHERE
-                media=$1 AND
-                person != ALL($2)
-            ",
+                "media"=$1 AND
+                "person" != ALL($2)
+            "#,
             media,
             &people_ids
         )
@@ -580,7 +580,7 @@ impl MediaPerson {
 
             sqlx::query!(
                 r#"
-                INSERT INTO media_person (
+                INSERT INTO "media_person" (
                     "catalog",
                     "media",
                     "person",
@@ -590,7 +590,7 @@ impl MediaPerson {
                     "location"."bottom"
                 )
                 SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::location[])
-                ON CONFLICT(media, person) DO UPDATE SET
+                ON CONFLICT("media", "person") DO UPDATE SET
                     "location"="excluded"."location"
                 "#,
                 &catalog,
@@ -620,12 +620,12 @@ impl Tag {
         email: &str,
     ) -> Result<Vec<Tag>> {
         Ok(sqlx::query!(
-            "
-            SELECT tag.*
-            FROM tag
-                JOIN user_catalog ON user_catalog.catalog=tag.catalog
-            WHERE user_catalog.user=$1
-            ",
+            r#"
+            SELECT "tag".*
+            FROM "tag"
+                JOIN "user_catalog" ON "user_catalog"."catalog"="tag"."catalog"
+            WHERE "user_catalog"."user"=$1
+            "#,
             email
         )
         .map(|row| from_row!(Tag(row)))
@@ -641,11 +641,11 @@ impl Tag {
     ) -> Result<Tag> {
         let tag = if let Some(parent) = parent {
             sqlx::query!(
-                "
-                SELECT tag.*
-                FROM tag
-                WHERE tag.catalog=$1 AND LOWER(name)=$2 AND parent=$3
-                ",
+                r#"
+                SELECT "tag".*
+                FROM "tag"
+                WHERE "tag"."catalog"=$1 AND LOWER("name")=$2 AND "parent"=$3
+                "#,
                 catalog,
                 name.to_lowercase(),
                 parent
@@ -655,11 +655,11 @@ impl Tag {
             .await?
         } else {
             sqlx::query!(
-                "
-                SELECT tag.*
-                FROM tag
-                WHERE tag.catalog=$1 AND LOWER(name)=$2
-                ",
+                r#"
+                SELECT "tag".*
+                FROM "tag"
+                WHERE "tag"."catalog"=$1 AND LOWER("name")=$2
+                "#,
                 catalog,
                 name.to_lowercase()
             )
@@ -679,10 +679,10 @@ impl Tag {
                 };
 
                 sqlx::query!(
-                    "
-                    INSERT INTO tag (id, parent, catalog, name)
+                    r#"
+                    INSERT INTO "tag" ("id", "parent", "catalog", "name")
                     VALUES ($1, $2, $3, $4)
-                    ",
+                    "#,
                     new_tag.id,
                     parent,
                     catalog,
@@ -729,10 +729,10 @@ impl MediaAlbum {
         media: &[String],
     ) -> Result {
         sqlx::query!(
-            "
-            DELETE FROM media_album
-            WHERE album=$1 AND media=ANY($2)
-            ",
+            r#"
+            DELETE FROM "media_album"
+            WHERE "album"=$1 AND "media"=ANY($2)
+            "#,
             album,
             media
         )
@@ -753,10 +753,10 @@ impl MediaAlbum {
         let album_ids: Vec<String> = albums.iter().map(|a| a.album.clone()).collect();
 
         sqlx::query!(
-            "
-            DELETE FROM media_album
-            WHERE media=$1 AND album!=ALL($2)
-            ",
+            r#"
+            DELETE FROM "media_album"
+            WHERE "media"=$1 AND "album"!=ALL($2)
+            "#,
             media,
             &album_ids
         )
@@ -781,7 +781,7 @@ impl MediaAlbum {
 
             sqlx::query!(
                 r#"
-                INSERT INTO media_album (
+                INSERT INTO "media_album" (
                     "catalog",
                     "album",
                     "media"
@@ -827,30 +827,30 @@ impl Album {
     ) {
         let stream = if recursive {
             sqlx::query!(
-                "
-                SELECT media_view.*
-                FROM media_view
-                WHERE media_view.id IN (
-                    SELECT media_album.media
-                    FROM media_album
-                        JOIN album_descendent ON album_descendent.descendent=media_album.album
-                    WHERE album_descendent.id=$1
+                r#"
+                SELECT "media_view".*
+                FROM "media_view"
+                WHERE "media_view"."id" IN (
+                    SELECT "media_album"."media"
+                    FROM "media_album"
+                        JOIN "album_descendent" ON "album_descendent"."descendent"="media_album"."album"
+                    WHERE "album_descendent"."id"=$1
                 )
                 ORDER BY datetime DESC
-                ",
+                "#,
                 self.id
             )
             .try_map(|row| Ok(from_row!(MediaView(row))))
             .fetch(&mut conn)
         } else {
             sqlx::query!(
-                "
-                SELECT media_view.*
-                FROM media_view
-                    JOIN media_album ON media_album.media=media_view.id
-                WHERE media_album.album=$1
-                ORDER BY datetime DESC
-                ",
+                r#"
+                SELECT "media_view".*
+                FROM "media_view"
+                    JOIN "media_album" ON "media_album"."media"="media_view"."id"
+                WHERE "media_album"."album"=$1
+                ORDER BY "datetime" DESC
+                "#,
                 self.id
             )
             .try_map(|row| Ok(from_row!(MediaView(row))))
@@ -865,14 +865,14 @@ impl Album {
         email: &str,
     ) -> Result<Vec<AlbumWithCount>> {
         Ok(sqlx::query!(
-            "
-            SELECT album.*, COUNT(media_album.media) AS count
-            FROM user_catalog
-                JOIN album USING (catalog)
-                LEFT JOIN media_album ON media_album.album=album.id
-            WHERE user_catalog.user=$1
-            GROUP BY album.id
-            ",
+            r#"
+            SELECT "album".*, COUNT("media_album"."media") AS count
+            FROM "user_catalog"
+                JOIN "album" USING ("catalog")
+                LEFT JOIN "media_album" ON "media_album"."album"="album"."id"
+            WHERE "user_catalog"."user"=$1
+            GROUP BY "album"."id"
+            "#,
             email
         )
         .map(|row| AlbumWithCount {
@@ -889,16 +889,16 @@ impl Album {
         id: &str,
     ) -> Result<Album> {
         Ok(sqlx::query!(
-            "
+            r#"
             SELECT *
-            FROM album
-            WHERE id=$1 AND catalog IN (
-                SELECT user_catalog.catalog
-                FROM user_catalog
-                WHERE user_catalog.user=$2 AND user_catalog.writable
+            FROM "album"
+            WHERE "id"=$1 AND "catalog" IN (
+                SELECT "user_catalog"."catalog"
+                FROM "user_catalog"
+                WHERE "user_catalog"."user"=$2 AND "user_catalog"."writable"
             )
             FOR UPDATE
-            ",
+            "#,
             id,
             email
         )
@@ -913,12 +913,12 @@ impl Album {
         album: &str,
     ) -> Result<Album> {
         Ok(sqlx::query!(
-            "
-            SELECT album.*
-            FROM album
-                JOIN user_catalog ON user_catalog.catalog=album.catalog
-            WHERE user_catalog.user=$1 AND album.id=$2
-            ",
+            r#"
+            SELECT "album".*
+            FROM "album"
+                JOIN "user_catalog" ON "user_catalog"."catalog"="album"."catalog"
+            WHERE "user_catalog"."user"=$1 AND "album"."id"=$2
+            "#,
             email,
             album
         )
@@ -935,17 +935,17 @@ impl Album {
     ) -> Result<AlbumWithCount> {
         if recursive {
             Ok(sqlx::query!(
-                "
-                SELECT album.*, COUNT(media_album.media) AS count
-                FROM user_catalog
-                    JOIN album USING (catalog)
-                    JOIN album_descendent USING (id)
-                    LEFT JOIN media_album ON album_descendent.descendent=media_album.album
+                r#"
+                SELECT "album".*, COUNT("media_album"."media") AS "count"
+                FROM "user_catalog"
+                    JOIN "album" USING ("catalog")
+                    JOIN "album_descendent" USING ("id")
+                    LEFT JOIN "media_album" ON "album_descendent"."descendent"="media_album"."album"
                 WHERE
-                    user_catalog.user=$1 AND
-                    album.id=$2
-                GROUP BY album.id
-                ",
+                    "user_catalog"."user"=$1 AND
+                    "album"."id"=$2
+                GROUP BY "album"."id"
+                "#,
                 email,
                 album
             )
@@ -957,16 +957,16 @@ impl Album {
             .await?)
         } else {
             Ok(sqlx::query!(
-                "
-                SELECT album.*, COUNT(media_album.media) AS count
+                r#"
+                SELECT "album".*, COUNT("media_album"."media") AS "count"
                 FROM user_catalog
-                    JOIN album USING (catalog)
-                    LEFT JOIN media_album ON album.id=media_album.album
+                    JOIN "album" USING ("catalog")
+                    LEFT JOIN "media_album" ON "album"."id"="media_album"."album"
                 WHERE
-                    user_catalog.user=$1 AND
-                    album.id=$2
-                GROUP BY album.id
-                ",
+                    "user_catalog"."user"=$1 AND
+                    "album"."id"=$2
+                GROUP BY "album"."id"
+                "#,
                 email,
                 album
             )
@@ -996,11 +996,11 @@ impl Album {
 
             sqlx::query!(
                 r#"
-                INSERT INTO album (id, parent, name, catalog)
+                INSERT INTO "album" ("id", "parent", "name", "catalog")
                 SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[])
-                ON CONFLICT(id) DO UPDATE SET
-                    name=excluded.name,
-                    parent=excluded.parent
+                ON CONFLICT("id") DO UPDATE SET
+                    "name"="excluded"."name",
+                    "parent"="excluded"."parent"
                 "#,
                 &id,
                 &parent as &[Option<String>],
@@ -1016,7 +1016,7 @@ impl Album {
 
     #[instrument(skip_all)]
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, albums: &[String]) -> Result {
-        sqlx::query!("DELETE FROM album WHERE id=ANY($1)", albums)
+        sqlx::query!(r#"DELETE FROM "album" WHERE "id"=ANY($1)"#, albums)
             .execute(conn)
             .await?;
 
@@ -1045,13 +1045,13 @@ impl SavedSearch {
     #[instrument(skip_all)]
     pub(crate) async fn stream_media(self, mut conn: DbConnection<'_>, sender: MediaViewSender) {
         let stream = sqlx::query!(
-            "
-            SELECT media_view.*
-            FROM media_view
-                JOIN media_search ON media_search.media=media_view.id
-            WHERE media_search.search=$1
-            ORDER BY datetime DESC
-            ",
+            r#"
+            SELECT "media_view".*
+            FROM "media_view"
+                JOIN "media_search" ON "media_search"."media"="media_view"."id"
+            WHERE "media_search"."search"=$1
+            ORDER BY "datetime" DESC
+            "#,
             self.id
         )
         .try_map(|row| Ok(from_row!(MediaView(row))))
@@ -1079,12 +1079,12 @@ impl SavedSearch {
 
             sqlx::query!(
                 r#"
-                INSERT INTO saved_search (id, name, shared, query, catalog)
+                INSERT INTO "saved_search" ("id", "name", "shared", "query", "catalog")
                 SELECT * FROM UNNEST($1::text[], $2::text[], $3::bool[], $4::jsonb[], $5::text[])
-                ON CONFLICT(id) DO UPDATE SET
-                    name=excluded.name,
-                    shared=excluded.shared,
-                    query=excluded.query
+                ON CONFLICT("id") DO UPDATE SET
+                    "name"="excluded"."name",
+                    "shared"="excluded"."shared",
+                    "query"="excluded"."query"
                 "#,
                 &id,
                 &name,
@@ -1101,8 +1101,9 @@ impl SavedSearch {
 
     #[instrument(skip(self, conn), fields(search = self.id))]
     pub(crate) async fn update(&self, conn: &mut DbConnection<'_>) -> Result {
-        let mut builder =
-            QueryBuilder::new("SELECT DISTINCT media_view.id FROM media_view WHERE catalog=");
+        let mut builder = QueryBuilder::new(
+            r#"SELECT DISTINCT "media_view"."id" FROM "media_view" WHERE "catalog"="#,
+        );
         builder.push_bind(&self.catalog);
         builder.push(" AND ");
 
@@ -1128,11 +1129,11 @@ impl SavedSearch {
         });
 
         sqlx::query!(
-            "
-            INSERT INTO media_search (catalog, media, search, added)
+            r#"
+            INSERT INTO "media_search" ("catalog", "media", "search", "added")
             SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::timestamptz[])
             ON CONFLICT DO NOTHING
-            ",
+            "#,
             &catalog,
             &media,
             &search,
@@ -1142,10 +1143,10 @@ impl SavedSearch {
         .await?;
 
         sqlx::query!(
-            "
-            DELETE FROM media_search
-            WHERE search=$1 AND media!=ALL($2)
-            ",
+            r#"
+            DELETE FROM "media_search"
+            WHERE "search"=$1 AND "media"!=ALL($2)
+            "#,
             &self.id,
             &matching_media
         )
@@ -1159,11 +1160,11 @@ impl SavedSearch {
         let was_public = MediaItem::list_public(conn, catalog).await?;
 
         let searches = sqlx::query!(
-            "
+            r#"
             SELECT *
-            FROM saved_search
-            WHERE catalog=$1
-            ",
+            FROM "saved_search"
+            WHERE "catalog"=$1
+            "#,
             catalog
         )
         .try_map(|row| Ok(from_row!(SavedSearch(row))))
@@ -1206,20 +1207,20 @@ impl SavedSearch {
         let email = email.unwrap_or_default().to_owned();
 
         Ok(sqlx::query!(
-            "
+            r#"
             SELECT *
-            FROM saved_search
+            FROM "saved_search"
             WHERE
-                saved_search.id=$1 AND
+                "saved_search"."id"=$1 AND
                 (
-                    shared OR
-                    catalog IN (
-                        SELECT user_catalog.catalog
-                        FROM user_catalog
-                        WHERE user=$2
+                    "shared" OR
+                    "catalog" IN (
+                        SELECT "user_catalog"."catalog"
+                        FROM "user_catalog"
+                        WHERE "user"=$2
                     )
                 )
-            ",
+            "#,
             search,
             email
         )
@@ -1236,22 +1237,22 @@ impl SavedSearch {
         let email = email.unwrap_or_default().to_owned();
 
         Ok(sqlx::query!(
-            "
-            SELECT saved_search.*, COUNT(media_search.media) AS count
-            FROM saved_search
-                LEFT JOIN media_search ON saved_search.id=media_search.search
+            r#"
+            SELECT "saved_search".*, COUNT("media_search"."media") AS "count"
+            FROM "saved_search"
+                LEFT JOIN "media_search" ON "saved_search"."id"="media_search"."search"
             WHERE
-                saved_search.id=$1 AND
+                "saved_search"."id"=$1 AND
                 (
-                    saved_search.shared OR
-                    saved_search.catalog IN (
-                        SELECT user_catalog.catalog
-                        FROM user_catalog
-                        WHERE user=$2
+                    "saved_search"."shared" OR
+                    "saved_search"."catalog" IN (
+                        SELECT "user_catalog"."catalog"
+                        FROM "user_catalog"
+                        WHERE "user"=$2
                     )
                 )
-            GROUP BY saved_search.id
-            ",
+            GROUP BY "saved_search"."id"
+            "#,
             search,
             email
         )
@@ -1270,14 +1271,14 @@ impl SavedSearch {
         email: &str,
     ) -> Result<Vec<SavedSearchWithCount>> {
         Ok(sqlx::query!(
-            "
-            SELECT saved_search.*, COUNT(media_search.media) AS count
-            FROM user_catalog
-                JOIN saved_search USING (catalog)
-                LEFT JOIN media_search ON media_search.search=saved_search.id
-            WHERE user_catalog.user=$1
-            GROUP BY saved_search.id
-            ",
+            r#"
+            SELECT "saved_search".*, COUNT("media_search"."media") AS "count"
+            FROM "user_catalog"
+                JOIN "saved_search" USING ("catalog")
+                LEFT JOIN "media_search" ON "media_search"."search"="saved_search"."id"
+            WHERE "user_catalog"."user"=$1
+            GROUP BY "saved_search"."id"
+            "#,
             email
         )
         .try_map(|row| {
@@ -1316,10 +1317,10 @@ impl MediaTag {
         let tag_ids = tags.iter().map(|t| t.tag.clone()).collect_vec();
 
         sqlx::query!(
-            "
-            DELETE FROM media_tag
-            WHERE media=$1 AND tag!=ANY($2)
-            ",
+            r#"
+            DELETE FROM "media_tag"
+            WHERE "media"=$1 AND "tag"!=ALL($2)
+            "#,
             media,
             &tag_ids
         )
@@ -1344,7 +1345,7 @@ impl MediaTag {
 
             sqlx::query!(
                 r#"
-                INSERT INTO media_tag (catalog, media, tag)
+                INSERT INTO "media_tag" ("catalog", "media", "tag")
                 SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])
                 ON CONFLICT DO NOTHING
                 "#,
@@ -1491,11 +1492,11 @@ impl MediaItem {
         catalog: &str,
     ) -> Result<Vec<MediaItem>> {
         let media = sqlx::query!(
-            "
+            r#"
             SELECT *
-            FROM media_item
-            WHERE deleted AND catalog=$1
-            ",
+            FROM "media_item"
+            WHERE "deleted" AND "catalog"=$1
+            "#,
             catalog
         )
         .map(|row| from_row!(MediaItem(row)))
@@ -1510,20 +1511,20 @@ impl MediaItem {
         catalog: &str,
     ) -> Result<HashSet<String>> {
         let media = sqlx::query_scalar!(
-            "
-            SELECT id
-            FROM media_item
-            WHERE catalog=$1 AND
+            r#"
+            SELECT "id"
+            FROM "media_item"
+            WHERE "catalog"=$1 AND
                 (
-                    public OR
-                    id IN (
-                        SELECT media_search.media
-                        FROM media_search
-                            JOIN saved_search ON saved_search.id=media_search.search
-                        WHERE saved_search.shared
+                    "public" OR
+                    "id" IN (
+                        SELECT "media_search"."media"
+                        FROM "media_search"
+                            JOIN "saved_search" ON "saved_search"."id"="media_search"."search"
+                        WHERE "saved_search"."shared"
                     )
                 )
-            ",
+            "#,
             catalog
         )
         .fetch_all(conn)
@@ -1534,11 +1535,11 @@ impl MediaItem {
 
     pub(crate) async fn mark_deleted(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
         sqlx::query!(
-            "
-            UPDATE media_item
-            SET deleted=TRUE
-            WHERE id=ANY($1)
-            ",
+            r#"
+            UPDATE "media_item"
+            SET "deleted"=TRUE
+            WHERE "id"=ANY($1)
+            "#,
             media
         )
         .execute(conn)
@@ -1554,15 +1555,15 @@ impl MediaItem {
     ) -> Result<Vec<(MediaItem, MediaItemStore)>> {
         // Lists the items with no media_files.
         let items = sqlx::query!(
-            "
-            SELECT media_item.*
-            FROM media_item
-                LEFT JOIN media_file ON media_item.id=media_file.media_item
+            r#"
+            SELECT "media_item".*
+            FROM "media_item"
+                LEFT JOIN "media_file" ON "media_item"."id"="media_file"."media_item"
             WHERE
-                media_item.catalog=$1 AND
-                media_file.id IS NULL AND
-                media_item.created < (CURRENT_TIMESTAMP - interval '1 week')
-            ",
+                "media_item"."catalog"=$1 AND
+                "media_file"."id" IS NULL AND
+                "media_item"."created" < (CURRENT_TIMESTAMP - interval '1 week')
+            "#,
             catalog
         )
         .map(|row| from_row!(MediaItem(row)))
@@ -1582,7 +1583,7 @@ impl MediaItem {
     }
 
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, media: &[String]) -> Result {
-        sqlx::query!("DELETE FROM media_item WHERE id=ANY($1)", media)
+        sqlx::query!(r#"DELETE FROM "media_item" WHERE "id"=ANY($1)"#, media)
             .execute(conn)
             .await?;
 
@@ -1595,15 +1596,15 @@ impl MediaItem {
         ids: &[String],
     ) -> Result<Vec<Self>> {
         Ok(sqlx::query!(
-            "
-            SELECT media_item.*
-            FROM media_item
-                JOIN user_catalog USING (catalog)
+            r#"
+            SELECT "media_item".*
+            FROM "media_item"
+                JOIN "user_catalog" USING ("catalog")
             WHERE
-                user_catalog.user=$1 AND
-                user_catalog.writable AND
-                media_item.id=ANY($2)
-            ",
+                "user_catalog"."user"=$1 AND
+                "user_catalog"."writable" AND
+                "media_item"."id"=ANY($2)
+            "#,
             email,
             ids
         )
@@ -1614,51 +1615,51 @@ impl MediaItem {
 
     pub(crate) async fn update_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
         let items = sqlx::query!(
-            "
+            r#"
             SELECT
-                media_item.*,
-                latest_media_file.id AS media_file_id,
-                latest_media_file.uploaded AS media_file_uploaded,
-                latest_media_file.file_name AS media_file_file_name,
-                latest_media_file.file_size AS media_file_file_size,
-                latest_media_file.mimetype AS media_file_mimetype,
-                latest_media_file.width AS media_file_width,
-                latest_media_file.height AS media_file_height,
-                latest_media_file.duration AS media_file_duration,
-                latest_media_file.frame_rate AS media_file_frame_rate,
-                latest_media_file.bit_rate AS media_file_bit_rate,
-                latest_media_file.filename AS media_file_filename,
-                latest_media_file.title AS media_file_title,
-                latest_media_file.description AS media_file_description,
-                latest_media_file.label AS media_file_label,
-                latest_media_file.category AS media_file_category,
-                latest_media_file.location AS media_file_location,
-                latest_media_file.city AS media_file_city,
-                latest_media_file.state AS media_file_state,
-                latest_media_file.country AS media_file_country,
-                latest_media_file.make AS media_file_make,
-                latest_media_file.model AS media_file_model,
-                latest_media_file.lens AS media_file_lens,
-                latest_media_file.photographer AS media_file_photographer,
-                latest_media_file.orientation AS media_file_orientation,
-                latest_media_file.iso AS media_file_iso,
-                latest_media_file.rating AS media_file_rating,
-                latest_media_file.longitude AS media_file_longitude,
-                latest_media_file.latitude AS media_file_latitude,
-                latest_media_file.altitude AS media_file_altitude,
-                latest_media_file.aperture AS media_file_aperture,
-                latest_media_file.focal_length AS media_file_focal_length,
-                latest_media_file.taken AS media_file_taken,
-                latest_media_file.media_item AS media_file_media_item,
-                latest_media_file.shutter_speed AS media_file_shutter_speed,
-                latest_media_file.needs_metadata AS media_file_needs_metadata,
-                latest_media_file.stored AS media_file_stored
-            FROM media_item
-                LEFT JOIN latest_media_file ON media_item.id=latest_media_file.media_item
+                "media_item".*,
+                "latest_media_file"."id" AS "media_file_id",
+                "latest_media_file"."uploaded" AS "media_file_uploaded",
+                "latest_media_file"."file_name" AS "media_file_file_name",
+                "latest_media_file"."file_size" AS "media_file_file_size",
+                "latest_media_file"."mimetype" AS "media_file_mimetype",
+                "latest_media_file"."width" AS "media_file_width",
+                "latest_media_file"."height" AS "media_file_height",
+                "latest_media_file"."duration" AS "media_file_duration",
+                "latest_media_file"."frame_rate" AS "media_file_frame_rate",
+                "latest_media_file"."bit_rate" AS "media_file_bit_rate",
+                "latest_media_file"."filename" AS "media_file_filename",
+                "latest_media_file"."title" AS "media_file_title",
+                "latest_media_file"."description" AS "media_file_description",
+                "latest_media_file"."label" AS "media_file_label",
+                "latest_media_file"."category" AS "media_file_category",
+                "latest_media_file"."location" AS "media_file_location",
+                "latest_media_file"."city" AS "media_file_city",
+                "latest_media_file"."state" AS "media_file_state",
+                "latest_media_file"."country" AS "media_file_country",
+                "latest_media_file"."make" AS "media_file_make",
+                "latest_media_file"."model" AS "media_file_model",
+                "latest_media_file"."lens" AS "media_file_lens",
+                "latest_media_file"."photographer" AS "media_file_photographer",
+                "latest_media_file"."orientation" AS "media_file_orientation",
+                "latest_media_file"."iso" AS "media_file_iso",
+                "latest_media_file"."rating" AS "media_file_rating",
+                "latest_media_file"."longitude" AS "media_file_longitude",
+                "latest_media_file"."latitude" AS "media_file_latitude",
+                "latest_media_file"."altitude" AS "media_file_altitude",
+                "latest_media_file"."aperture" AS "media_file_aperture",
+                "latest_media_file"."focal_length" AS "media_file_focal_length",
+                "latest_media_file"."taken" AS "media_file_taken",
+                "latest_media_file"."media_item" AS "media_file_media_item",
+                "latest_media_file"."shutter_speed" AS "media_file_shutter_speed",
+                "latest_media_file"."needs_metadata" AS "media_file_needs_metadata",
+                "latest_media_file"."stored" AS "media_file_stored"
+            FROM "media_item"
+                LEFT JOIN "latest_media_file" ON "media_item"."id"="latest_media_file"."media_item"
             WHERE
-                media_item.catalog=$1 AND
-                media_item.media_file IS DISTINCT FROM latest_media_file.id
-            ",
+                "media_item"."catalog"=$1 AND
+                "media_item"."media_file" IS DISTINCT FROM "latest_media_file"."id"
+            "#,
             catalog
         )
         .try_map(|row| Ok((from_row!(MediaItem(row)), from_row!(MaybeMediaFile(row)))))
@@ -1754,40 +1755,40 @@ impl MediaItem {
 
             sqlx::query!(
                 r#"
-                INSERT INTO media_item (
-                    id,
-                    deleted,
-                    created,
-                    updated,
-                    taken_zone,
-                    catalog,
-                    media_file,
-                    datetime,
-                    public,
+                INSERT INTO "media_item" (
+                    "id",
+                    "deleted",
+                    "created",
+                    "updated",
+                    "taken_zone",
+                    "catalog",
+                    "media_file",
+                    "datetime",
+                    "public",
 
-                    filename,
-                    title,
-                    description,
-                    label,
-                    category,
-                    location,
-                    city,
-                    state,
-                    country,
-                    make,
-                    model,
-                    lens,
-                    photographer,
-                    shutter_speed,
-                    orientation,
-                    iso,
-                    rating,
-                    longitude,
-                    latitude,
-                    altitude,
-                    aperture,
-                    focal_length,
-                    taken
+                    "filename",
+                    "title",
+                    "description",
+                    "label",
+                    "category",
+                    "location",
+                    "city",
+                    "state",
+                    "country",
+                    "make",
+                    "model",
+                    "lens",
+                    "photographer",
+                    "shutter_speed",
+                    "orientation",
+                    "iso",
+                    "rating",
+                    "longitude",
+                    "latitude",
+                    "altitude",
+                    "aperture",
+                    "focal_length",
+                    "taken"
                 )
                 SELECT * FROM UNNEST(
                     $1::text[],
@@ -1825,38 +1826,38 @@ impl MediaItem {
                     $32::timestamp[]
                 )
                 ON CONFLICT (id) DO UPDATE SET
-                    deleted=excluded.deleted,
-                    created=excluded.created,
-                    updated=excluded.updated,
-                    taken_zone=excluded.taken_zone,
-                    catalog=excluded.catalog,
-                    media_file=excluded.media_file,
-                    datetime=excluded.datetime,
-                    public=excluded.public,
+                    "deleted"="excluded"."deleted",
+                    "created"="excluded"."created",
+                    "updated"="excluded"."updated",
+                    "taken_zone"="excluded"."taken_zone",
+                    "catalog"="excluded"."catalog",
+                    "media_file"="excluded"."media_file",
+                    "datetime"="excluded"."datetime",
+                    "public"="excluded"."public",
 
-                    filename=excluded.filename,
-                    title=excluded.title,
-                    description=excluded.description,
-                    label=excluded.label,
-                    category=excluded.category,
-                    location=excluded.location,
-                    city=excluded.city,
-                    state=excluded.state,
-                    country=excluded.country,
-                    make=excluded.make,
-                    model=excluded.model,
-                    lens=excluded.lens,
-                    photographer=excluded.photographer,
-                    shutter_speed=excluded.shutter_speed,
-                    orientation=excluded.orientation,
-                    iso=excluded.iso,
-                    rating=excluded.rating,
-                    longitude=excluded.longitude,
-                    latitude=excluded.latitude,
-                    altitude=excluded.altitude,
-                    aperture=excluded.aperture,
-                    focal_length=excluded.focal_length,
-                    taken=excluded.taken
+                    "filename"="excluded"."filename",
+                    "title"="excluded"."title",
+                    "description"="excluded"."description",
+                    "label"="excluded"."label",
+                    "category"="excluded"."category",
+                    "location"="excluded"."location",
+                    "city"="excluded"."city",
+                    "state"="excluded"."state",
+                    "country"="excluded"."country",
+                    "make"="excluded"."make",
+                    "model"="excluded"."model",
+                    "lens"="excluded"."lens",
+                    "photographer"="excluded"."photographer",
+                    "shutter_speed"="excluded"."shutter_speed",
+                    "orientation"="excluded"."orientation",
+                    "iso"="excluded"."iso",
+                    "rating"="excluded"."rating",
+                    "longitude"="excluded"."longitude",
+                    "latitude"="excluded"."latitude",
+                    "altitude"="excluded"."altitude",
+                    "aperture"="excluded"."aperture",
+                    "focal_length"="excluded"."focal_length",
+                    "taken"="excluded"."taken"
                 "#,
                 &id,
                 &deleted,
@@ -2082,19 +2083,19 @@ impl MediaFile {
         self.stored = Some(Utc::now());
 
         *self = sqlx::query!(
-            "
-            UPDATE media_file SET
-                stored=$1,
-                file_size=$2,
-                width=$3,
-                height=$4,
-                mimetype=$5,
-                duration=$6,
-                frame_rate=$7,
-                bit_rate=$8
-            WHERE id=$9
+            r#"
+            UPDATE "media_file" SET
+                "stored"=$1,
+                "file_size"=$2,
+                "width"=$3,
+                "height"=$4,
+                "mimetype"=$5,
+                "duration"=$6,
+                "frame_rate"=$7,
+                "bit_rate"=$8
+            WHERE "id"=$9
             RETURNING *
-            ",
+            "#,
             self.stored,
             self.file_size,
             self.width,
@@ -2118,14 +2119,14 @@ impl MediaFile {
         items: &[String],
     ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
         let files = sqlx::query!(
-            "
-            SELECT media_file.*, media_item.catalog
-            FROM media_file
-                JOIN media_item ON media_item.media_file=media_file.id
+            r#"
+            SELECT "media_file".*, "media_item"."catalog"
+            FROM "media_file"
+                JOIN "media_item" ON "media_item"."media_file"="media_file"."id"
             WHERE
-                media_item.id=ANY($1) AND
-                NOT media_item.deleted
-            ",
+                "media_item"."id"=ANY($1) AND
+                NOT "media_item"."deleted"
+            "#,
             items
         )
         .try_map(|row| Ok((from_row!(MediaFile(row)), row.catalog)))
@@ -2151,15 +2152,15 @@ impl MediaFile {
         catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
         let files = sqlx::query!(
-            "
-            SELECT DISTINCT ON (media_file.media_item) media_file.*
-            FROM media_file
-                JOIN media_item ON media_item.media_file=media_file.id
+            r#"
+            SELECT DISTINCT ON ("media_file"."media_item") "media_file".*
+            FROM "media_file"
+                JOIN "media_item" ON "media_item"."media_file"="media_file"."id"
             WHERE
-                media_item.catalog=$1 AND
-                NOT media_item.deleted
-            ORDER BY media_file.media_item, media_file.uploaded DESC
-            ",
+                "media_item"."catalog"=$1 AND
+                NOT "media_item"."deleted"
+            ORDER BY "media_file"."media_item", "media_file"."uploaded" DESC
+            "#,
             catalog
         )
         .try_map(|row| Ok(from_row!(MediaFile(row))))
@@ -2185,24 +2186,24 @@ impl MediaFile {
         catalog: &str,
     ) -> Result<Vec<String>> {
         Ok(sqlx::query_scalar!(
-            "
-            SELECT DISTINCT ON (media_file.media_item) media_file.id
-            FROM media_file
-                JOIN media_item ON media_item.id=media_file.media_item
+            r#"
+            SELECT DISTINCT ON ("media_file"."media_item") "media_file"."id"
+            FROM "media_file"
+                JOIN "media_item" ON "media_item"."id"="media_file"."media_item"
             WHERE
-                media_item.catalog=$1 AND
-                NOT media_item.deleted AND
+                "media_item"."catalog"=$1 AND
+                NOT "media_item"."deleted" AND
                 (
-                    media_file.stored IS NULL OR
-                    media_file.needs_metadata OR
-                    media_file.id IN (
-                        SELECT media_file
-                        FROM alternate_file
-                        WHERE stored IS NULL
+                    "media_file"."stored" IS NULL OR
+                    "media_file"."needs_metadata" OR
+                    "media_file"."id" IN (
+                        SELECT "media_file"
+                        FROM "alternate_file"
+                        WHERE "stored" IS NULL
                     )
                 )
-            ORDER BY media_file.media_item, media_file.uploaded DESC
-            ",
+            ORDER BY "media_file"."media_item", "media_file"."uploaded" DESC
+            "#,
             catalog
         )
         .fetch_all(conn)
@@ -2215,16 +2216,16 @@ impl MediaFile {
         catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
         let files = sqlx::query!(
-            "
-            SELECT media_file.*
-            FROM media_file
-                JOIN media_item ON media_item.id=media_file.media_item
-                JOIN media_file AS current_file ON current_file.id=media_item.media_file
+            r#"
+            SELECT "media_file".*
+            FROM "media_file"
+                JOIN "media_item" ON "media_item"."id"="media_file"."media_item"
+                JOIN "media_file" AS "current_file" ON "current_file"."id"="media_item"."media_file"
             WHERE
-                media_item.catalog=$1 AND
-                media_file.id <> current_file.id AND
-                media_file.uploaded < current_file.uploaded
-            ",
+                "media_item"."catalog"=$1 AND
+                "media_file"."id" <> "current_file"."id" AND
+                "media_file"."uploaded" < "current_file"."uploaded"
+            "#,
             catalog
         )
         .try_map(|row| Ok(from_row!(MediaFile(row))))
@@ -2249,12 +2250,12 @@ impl MediaFile {
         catalog: &str,
     ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
         let files = sqlx::query!(
-            "
-            SELECT media_file.*
-            FROM media_file
-                JOIN media_item ON media_file.media_item=media_item.id
-            WHERE media_item.catalog=$1
-            ",
+            r#"
+            SELECT "media_file".*
+            FROM "media_file"
+                JOIN "media_item" ON "media_file"."media_item"="media_item"."id"
+            WHERE "media_item"."catalog"=$1
+            "#,
             catalog
         )
         .try_map(|row| Ok(from_row!(MediaFile(row))))
@@ -2283,28 +2284,28 @@ impl MediaFile {
         let email = email.unwrap_or_default().to_owned();
 
         let (media_file, catalog) = sqlx::query!(
-            "
-            SELECT media_file.*, media_item.catalog
-            FROM media_file
-                JOIN media_item ON media_item.id=media_file.media_item
+            r#"
+            SELECT "media_file".*, "media_item"."catalog"
+            FROM "media_file"
+                JOIN "media_item" ON "media_item"."id"="media_file"."media_item"
             WHERE
-                NOT media_item.deleted AND
-                media_item.id=$1 AND
-                media_file.id=$2 AND
+                NOT "media_item"."deleted" AND
+                "media_item"."id"=$1 AND
+                "media_file"."id"=$2 AND
                 (
-                    media_item.id IN (
-                        SELECT media_search.media
-                        FROM saved_search
-                            JOIN media_search ON media_search.search=saved_search.id
-                        WHERE saved_search.shared
+                    "media_item"."id" IN (
+                        SELECT "media_search"."media"
+                        FROM "saved_search"
+                            JOIN "media_search" ON "media_search"."search"="saved_search"."id"
+                        WHERE "saved_search"."shared"
                     ) OR
-                    media_item.catalog IN (
-                        SELECT catalog
-                        FROM user_catalog
-                        WHERE user=$3
+                    "media_item"."catalog" IN (
+                        SELECT "catalog"
+                        FROM "user_catalog"
+                        WHERE "user"=$3
                     )
                 )
-            ",
+            "#,
             media,
             file,
             email
@@ -2326,13 +2327,13 @@ impl MediaFile {
         id: &str,
     ) -> Result<(MediaFile, MediaFileStore)> {
         let (media_file, catalog) = sqlx::query!(
-            "
-            SELECT media_file.*, media_item.catalog
-            FROM media_file
-                JOIN media_item ON media_item.id=media_file.media_item
+            r#"
+            SELECT "media_file".*, "media_item"."catalog"
+            FROM "media_file"
+                JOIN "media_item" ON "media_item"."id"="media_file"."media_item"
             WHERE
-                media_file.id=$1
-            ",
+                "media_file"."id"=$1
+            "#,
             id
         )
         .try_map(|row| Ok((from_row!(MediaFile(row)), row.catalog)))
@@ -2350,12 +2351,12 @@ impl MediaFile {
 
     pub(crate) async fn get_for_update(conn: &mut DbConnection<'_>, id: &str) -> Result<MediaFile> {
         Ok(sqlx::query!(
-            "
-            SELECT media_file.*
-            FROM media_file
-            WHERE media_file.id=$1
+            r#"
+            SELECT "media_file".*
+            FROM "media_file"
+            WHERE "media_file"."id"=$1
             FOR UPDATE
-            ",
+            "#,
             id
         )
         .try_map(|row| Ok(from_row!(MediaFile(row))))
@@ -2370,11 +2371,11 @@ impl MediaFile {
         let media_file_ids: Vec<String> = media_file_map.keys().cloned().collect();
 
         let mut items = sqlx::query!(
-            "
+            r#"
             SELECT *
-            FROM media_item
-            WHERE media_file=ANY($1)
-            ",
+            FROM "media_item"
+            WHERE "media_file"=ANY($1)
+            "#,
             &media_file_ids
         )
         .map(|row| from_row!(MediaItem(row)))
@@ -2469,43 +2470,43 @@ impl MediaFile {
             sqlx::query!(
                 r#"
                 INSERT INTO media_file (
-                    id,
-                    uploaded,
-                    file_name,
-                    file_size,
-                    mimetype,
-                    width,
-                    height,
-                    duration,
-                    frame_rate,
-                    bit_rate,
-                    media_item,
-                    needs_metadata,
-                    stored,
+                    "id",
+                    "uploaded",
+                    "file_name",
+                    "file_size",
+                    "mimetype",
+                    "width",
+                    "height",
+                    "duration",
+                    "frame_rate",
+                    "bit_rate",
+                    "media_item",
+                    "needs_metadata",
+                    "stored",
 
-                    filename,
-                    title,
-                    description,
-                    label,
-                    category,
-                    location,
-                    city,
-                    state,
-                    country,
-                    make,
-                    model,
-                    lens,
-                    photographer,
-                    shutter_speed,
-                    orientation,
-                    iso,
-                    rating,
-                    longitude,
-                    latitude,
-                    altitude,
-                    aperture,
-                    focal_length,
-                    taken
+                    "filename",
+                    "title",
+                    "description",
+                    "label",
+                    "category",
+                    "location",
+                    "city",
+                    "state",
+                    "country",
+                    "make",
+                    "model",
+                    "lens",
+                    "photographer",
+                    "shutter_speed",
+                    "orientation",
+                    "iso",
+                    "rating",
+                    "longitude",
+                    "latitude",
+                    "altitude",
+                    "aperture",
+                    "focal_length",
+                    "taken"
                 )
                 SELECT * FROM UNNEST(
                     $1::text[],
@@ -2547,42 +2548,42 @@ impl MediaFile {
                     $36::timestamp[]
                 )
                 ON CONFLICT (id) DO UPDATE SET
-                    uploaded=excluded.uploaded,
-                    file_name=excluded.file_name,
-                    file_size=excluded.file_size,
-                    mimetype=excluded.mimetype,
-                    width=excluded.width,
-                    height=excluded.height,
-                    duration=excluded.duration,
-                    frame_rate=excluded.frame_rate,
-                    bit_rate=excluded.bit_rate,
-                    media_item=excluded.media_item,
-                    needs_metadata=excluded.needs_metadata,
+                    "uploaded"="excluded"."uploaded",
+                    "file_name"="excluded"."file_name",
+                    "file_size"="excluded"."file_size",
+                    "mimetype"="excluded"."mimetype",
+                    "width"="excluded"."width",
+                    "height"="excluded"."height",
+                    "duration"="excluded"."duration",
+                    "frame_rate"="excluded"."frame_rate",
+                    "bit_rate"="excluded"."bit_rate",
+                    "media_item"="excluded"."media_item",
+                    "needs_metadata"="excluded"."needs_metadata",
 
-                    stored=excluded.stored,
-                    filename=excluded.filename,
-                    title=excluded.title,
-                    description=excluded.description,
-                    label=excluded.label,
-                    category=excluded.category,
-                    location=excluded.location,
-                    city=excluded.city,
-                    state=excluded.state,
-                    country=excluded.country,
-                    make=excluded.make,
-                    model=excluded.model,
-                    lens=excluded.lens,
-                    photographer=excluded.photographer,
-                    shutter_speed=excluded.shutter_speed,
-                    orientation=excluded.orientation,
-                    iso=excluded.iso,
-                    rating=excluded.rating,
-                    longitude=excluded.longitude,
-                    latitude=excluded.latitude,
-                    altitude=excluded.altitude,
-                    aperture=excluded.aperture,
-                    focal_length=excluded.focal_length,
-                    taken=excluded.taken
+                    "stored"="excluded"."stored",
+                    "filename"="excluded"."filename",
+                    "title"="excluded"."title",
+                    "description"="excluded"."description",
+                    "label"="excluded"."label",
+                    "category"="excluded"."category",
+                    "location"="excluded"."location",
+                    "city"="excluded"."city",
+                    "state"="excluded"."state",
+                    "country"="excluded"."country",
+                    "make"="excluded"."make",
+                    "model"="excluded"."model",
+                    "lens"="excluded"."lens",
+                    "photographer"="excluded"."photographer",
+                    "shutter_speed"="excluded"."shutter_speed",
+                    "orientation"="excluded"."orientation",
+                    "iso"="excluded"."iso",
+                    "rating"="excluded"."rating",
+                    "longitude"="excluded"."longitude",
+                    "latitude"="excluded"."latitude",
+                    "altitude"="excluded"."altitude",
+                    "aperture"="excluded"."aperture",
+                    "focal_length"="excluded"."focal_length",
+                    "taken"="excluded"."taken"
                 "#,
                 &id,
                 &uploaded,
@@ -2633,10 +2634,10 @@ impl MediaFile {
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, ids: &[String]) -> Result {
         for records in batch(ids, 500) {
             sqlx::query!(
-                "
-                DELETE FROM media_file
-                WHERE id=ANY($1)
-                ",
+                r#"
+                DELETE FROM "media_file"
+                WHERE "id"=ANY($1)
+                "#,
                 records
             )
             .execute(&mut *conn)
@@ -2688,25 +2689,25 @@ impl AlternateFile {
         media_item: &str,
     ) -> Result<(Self, FilePath)> {
         let (alternate, catalog) = sqlx::query!(
-            "
-            SELECT alternate_file.*, media_item.catalog
-            FROM alternate_file
-                JOIN media_file ON media_file.id=alternate_file.media_file
-                JOIN media_item ON media_item.media_file=media_file.id
+            r#"
+            SELECT "alternate_file".*, "media_item"."catalog"
+            FROM "alternate_file"
+                JOIN "media_file" ON "media_file"."id"="alternate_file"."media_file"
+                JOIN "media_item" ON "media_item"."media_file"="media_file"."id"
             WHERE
                 (
-                    media_item.public OR
-                    media_item IN (
-                        SELECT media_search.media
-                        FROM media_search
-                            JOIN saved_search ON saved_search.id=media_search.search
-                        WHERE saved_search.shared
+                    "media_item"."public" OR
+                    "media_item" IN (
+                        SELECT "media_search"."media"
+                        FROM "media_search"
+                            JOIN "saved_search" ON "saved_search"."id"="media_search"."search"
+                        WHERE "saved_search"."shared"
                     )
                 ) AND
-                alternate_file.type='social' AND
-                media_item.id=$1 AND
-                alternate_file.stored IS NOT NULL
-            ",
+                "alternate_file"."type"='social' AND
+                "media_item"."id"=$1 AND
+                "alternate_file"."stored" IS NOT NULL
+            "#,
             media_item
         )
         .try_map(|row| Ok((from_row!(AlternateFile(row)), row.catalog)))
@@ -2737,11 +2738,11 @@ impl AlternateFile {
                 .collect_vec();
 
             sqlx::query!(
-                "
+                r#"
                 SELECT *
-                FROM alternate_file
-                WHERE media_file=ANY($1)
-                ",
+                FROM "alternate_file"
+                WHERE "media_file"=ANY($1)
+                "#,
                 &file_ids
             )
             .try_map(|row| Ok(from_row!(AlternateFile(row))))
@@ -2803,13 +2804,13 @@ impl AlternateFile {
         catalog: &str,
     ) -> Result<Vec<(AlternateFile, FilePath)>> {
         let files = sqlx::query!(
-            "
-            SELECT alternate_file.*, media_file.media_item
-            FROM alternate_file
-                JOIN media_file ON media_file.id=alternate_file.media_file
-                JOIN media_item ON media_item.id=media_file.media_item
-            WHERE media_item.catalog=$1
-            ",
+            r#"
+            SELECT "alternate_file".*, "media_file"."media_item"
+            FROM "alternate_file"
+                JOIN "media_file" ON "media_file"."id"="alternate_file"."media_file"
+                JOIN "media_item" ON "media_item"."id"="media_file"."media_item"
+            WHERE "media_item"."catalog"=$1
+            "#,
             catalog
         )
         .try_map(|row| Ok((from_row!(AlternateFile(row)), row.media_item)))
@@ -2835,11 +2836,11 @@ impl AlternateFile {
         media_file: &str,
     ) -> Result<Vec<AlternateFile>> {
         Ok(sqlx::query!(
-            "
+            r#"
             SELECT *
-            FROM alternate_file
-            WHERE media_file=$1
-            ",
+            FROM "alternate_file"
+            WHERE "media_file"=$1
+            "#,
             media_file
         )
         .try_map(|row| Ok(from_row!(AlternateFile(row))))
@@ -2858,30 +2859,30 @@ impl AlternateFile {
         let email = email.unwrap_or_default().to_owned();
 
         let files = sqlx::query!(
-            "
-            SELECT alternate_file.*, media_item.id AS media_item, media_item.catalog
-            FROM media_item
-                LEFT JOIN media_search ON media_search.media=media_item.id
-                JOIN alternate_file USING (media_file)
+            r#"
+            SELECT "alternate_file".*, "media_item"."id" AS "media_item", "media_item"."catalog"
+            FROM "media_item"
+                LEFT JOIN "media_search" ON "media_search"."media"="media_item"."id"
+                JOIN "alternate_file" USING ("media_file")
             WHERE
-                media_item.id=$1 AND
-                media_item.media_file=$2 AND
-                alternate_file.mimetype=$3 AND
-                alternate_file.type=$4 AND
+                "media_item"."id"=$1 AND
+                "media_item"."media_file"=$2 AND
+                "alternate_file"."mimetype"=$3 AND
+                "alternate_file"."type"=$4 AND
                 (
-                    media_item.public OR
-                    media_search.search IN (
-                        SELECT id
-                        FROM saved_search
-                        WHERE shared
+                    "media_item"."public" OR
+                    "media_search"."search" IN (
+                        SELECT "id"
+                        FROM "saved_search"
+                        WHERE "shared"
                     ) OR
-                    media_item.catalog IN (
-                        SELECT catalog
-                        FROM user_catalog
-                        WHERE user=$5
+                    "media_item"."catalog" IN (
+                        SELECT "catalog"
+                        FROM "user_catalog"
+                        WHERE "user"=$5
                     )
                 )
-            ",
+            "#,
             item,
             file,
             &mimetype.to_string(),
@@ -2914,20 +2915,20 @@ impl AlternateFile {
         self.stored = Some(Utc::now());
 
         *self = sqlx::query!(
-            "
-            UPDATE alternate_file
+            r#"
+            UPDATE "alternate_file"
             SET
-                stored=$1,
-                file_size=$2,
-                width=$3,
-                height=$4,
-                mimetype=$5,
-                duration=$6,
-                frame_rate=$7,
-                bit_rate=$8
-            WHERE id=$9
+                "stored"=$1,
+                "file_size"=$2,
+                "width"=$3,
+                "height"=$4,
+                "mimetype"=$5,
+                "duration"=$6,
+                "frame_rate"=$7,
+                "bit_rate"=$8
+            WHERE "id"=$9
             RETURNING *
-            ",
+            "#,
             self.stored,
             self.file_size,
             self.width,
@@ -2948,10 +2949,10 @@ impl AlternateFile {
     #[instrument(skip_all)]
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, alternate_files: &[String]) -> Result {
         sqlx::query!(
-            "
-            DELETE FROM alternate_file
-            WHERE id=ANY($1)
-            ",
+            r#"
+            DELETE FROM "alternate_file"
+            WHERE "id"=ANY($1)
+            "#,
             alternate_files
         )
         .execute(conn)
@@ -2999,19 +3000,19 @@ impl AlternateFile {
             sqlx::query!(
                 r#"
                 INSERT INTO alternate_file (
-                    id,
-                    type,
-                    file_name,
-                    file_size,
-                    mimetype,
-                    width,
-                    height,
-                    duration,
-                    frame_rate,
-                    bit_rate,
-                    media_file,
-                    local,
-                    stored
+                    "id",
+                    "type",
+                    "file_name",
+                    "file_size",
+                    "mimetype",
+                    "width",
+                    "height",
+                    "duration",
+                    "frame_rate",
+                    "bit_rate",
+                    "media_file",
+                    "local",
+                    "stored"
                 )
                 SELECT * FROM UNNEST(
                     $1::text[],
@@ -3029,17 +3030,17 @@ impl AlternateFile {
                     $13::timestamptz[]
                 )
                 ON CONFLICT (id) DO UPDATE SET
-                    type=excluded.type,
-                    file_name=excluded.file_name,
-                    file_size=excluded.file_size,
-                    mimetype=excluded.mimetype,
-                    width=excluded.width,
-                    height=excluded.height,
-                    duration=excluded.duration,
-                    frame_rate=excluded.frame_rate,
-                    bit_rate=excluded.bit_rate,
-                    local=excluded.local,
-                    stored=excluded.stored
+                    "type"="excluded"."type",
+                    "file_name"="excluded"."file_name",
+                    "file_size"="excluded"."file_size",
+                    "mimetype"="excluded"."mimetype",
+                    "width"="excluded"."width",
+                    "height"="excluded"."height",
+                    "duration"="excluded"."duration",
+                    "frame_rate"="excluded"."frame_rate",
+                    "bit_rate"="excluded"."bit_rate",
+                    "local"="excluded"."local",
+                    "stored"="excluded"."stored"
                 "#,
                 &id,
                 &file_type,
@@ -3317,32 +3318,35 @@ impl MediaRelations {
         let email = email.unwrap_or_default().to_owned();
 
         let media = sqlx::query!(
-            "
+            r#"
             SELECT
-                media_view.*,
-                user_catalog.writable,
-                album_relation.albums,
-                tag_relation.tags,
-                person_relation.people,
-                search_relation.searches,
-                media_view.id IN (
-                    SELECT media_search.media
-                    FROM saved_search
-                        JOIN media_search ON media_search.search=saved_search.id
-                    WHERE saved_search.shared AND
+                "media_view".*,
+                "user_catalog"."writable",
+                "album_relation"."albums",
+                "tag_relation"."tags",
+                "person_relation"."people",
+                "search_relation"."searches",
+                "media_view"."id" IN (
+                    SELECT "media_search"."media"
+                    FROM "saved_search"
+                        JOIN "media_search" ON "media_search"."search"="saved_search"."id"
+                    WHERE "saved_search"."shared" AND
                     (
-                        saved_search.id=$1 OR
+                        "saved_search"."id"=$1 OR
                         $1 IS NULL
                     )
-                ) AS in_public_search
-            FROM media_view
-                LEFT JOIN user_catalog ON user_catalog.catalog=media_view.catalog AND user_catalog.user=$2
-                LEFT JOIN album_relation ON album_relation.media=media_view.id
-                LEFT JOIN tag_relation ON tag_relation.media=media_view.id
-                LEFT JOIN person_relation ON person_relation.media=media_view.id
-                LEFT JOIN search_relation ON search_relation.media=media_view.id
-            WHERE media_view.id=ANY($3)
-            ",search,email,media
+                ) AS "in_public_search"
+            FROM "media_view"
+                LEFT JOIN "user_catalog" ON "user_catalog"."catalog"="media_view"."catalog" AND "user_catalog"."user"=$2
+                LEFT JOIN "album_relation" ON "album_relation"."media"="media_view"."id"
+                LEFT JOIN "tag_relation" ON "tag_relation"."media"="media_view"."id"
+                LEFT JOIN "person_relation" ON "person_relation"."media"="media_view"."id"
+                LEFT JOIN "search_relation" ON "search_relation"."media"="media_view"."id"
+            WHERE "media_view"."id"=ANY($3)
+            "#,
+            search,
+            email,
+            media
         ).try_map(|row| Ok((from_row!(MediaView(row)), row.writable, from_row!(Relations(row)), row.in_public_search.unwrap_or_default()))).fetch_all(conn).await?;
 
         Ok(media

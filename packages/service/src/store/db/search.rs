@@ -210,28 +210,28 @@ impl RelationField for TagField {
         query: &RelationQuery<TagField>,
         builder: &mut QueryBuilder<SqlxDatabase>,
     ) {
-        builder.push("media_view.id IN (");
+        builder.push(r#""media_view"."id" IN ("#);
 
         if query.recursive {
             builder.push(
-                "
-                SELECT media_tag.media
-                FROM tag
-                    JOIN tag_descendent ON tag_descendent.id=tag.id
-                    JOIN media_tag ON media_tag.tag=tag_descendent.descendent
-                ",
+                r#"
+                SELECT "media_tag"."media"
+                FROM "tag"
+                    JOIN "tag_descendent" ON "tag_descendent"."id"="tag"."id"
+                    JOIN "media_tag" ON "media_tag"."tag"="tag_descendent"."descendent"
+                "#,
             );
         } else {
             builder.push(
-                "
-                SELECT media_tag.media
-                FROM tag
-                    JOIN media_tag ON media_tag.tag=tag.id
-                ",
+                r#"
+                SELECT "media_tag"."media"
+                FROM "tag"
+                    JOIN "media_tag" ON "media_tag"."tag"="tag"."id"
+                "#,
             );
         }
 
-        builder.push("WHERE tag.catalog=");
+        builder.push(r#"WHERE "tag"."catalog"="#);
         builder.push_bind(catalog.to_owned());
         builder.push(" AND ");
         query.query.bind_filter(catalog, builder);
@@ -267,17 +267,17 @@ impl RelationField for PersonField {
         query: &RelationQuery<PersonField>,
         builder: &mut QueryBuilder<SqlxDatabase>,
     ) {
-        builder.push("media_view.id IN (");
+        builder.push(r#""media_view"."id" IN ("#);
 
         builder.push(
-            "
-            SELECT media_person.media
-            FROM person
-                JOIN media_person ON media_person.person=person.id
-            ",
+            r#"
+            SELECT "media_person"."media"
+            FROM "person"
+                JOIN "media_person" ON "media_person"."person"="person"."id"
+            "#,
         );
 
-        builder.push("WHERE person.catalog=");
+        builder.push(r#"WHERE "person"."catalog"="#);
         builder.push_bind(catalog.to_owned());
         builder.push(" AND ");
         query.query.bind_filter(catalog, builder);
@@ -313,24 +313,24 @@ impl RelationField for AlbumField {
         query: &RelationQuery<AlbumField>,
         builder: &mut QueryBuilder<SqlxDatabase>,
     ) {
-        builder.push("media_view.id IN (");
+        builder.push(r#""media_view"."id" IN ("#);
 
         if query.recursive {
             builder.push(
-                "
-                SELECT media_album.media
-                FROM album
-                    JOIN album_descendent ON album_descendent.id=album.id
-                    JOIN media_album ON media_album.album=album_descendent.descendent
-                ",
+                r#"
+                SELECT "media_album"."media"
+                FROM "album"
+                    JOIN "album_descendent" ON "album_descendent"."id"="album"."id"
+                    JOIN "media_album" ON "media_album"."album"="album_descendent"."descendent"
+                "#,
             );
         } else {
             builder.push(
-                "
-                SELECT media_album.media
-                FROM album
-                    JOIN media_album ON media_album.album=album.id
-                ",
+                r#"
+                SELECT "media_album"."media"
+                FROM "album"
+                    JOIN "media_album" ON "media_album"."album"="album"."id"
+                "#,
             );
         }
 
@@ -570,11 +570,12 @@ impl CompoundQuery<CompoundItem> {
         catalog: String,
         sender: MediaViewSender,
     ) {
-        let mut builder = QueryBuilder::new("SELECT media_view.* FROM media_view WHERE catalog=");
+        let mut builder =
+            QueryBuilder::new(r#"SELECT "media_view".* FROM "media_view" WHERE "catalog"="#);
         builder.push_bind(&catalog);
         builder.push(" AND ");
         self.bind_filter(&catalog, &mut builder);
-        builder.push(" ORDER BY datetime DESC");
+        builder.push(r#" ORDER BY "datetime" DESC"#);
 
         let stream = builder.build_query_as::<MediaView>().fetch(&mut conn);
         sender.send_stream(stream).await
