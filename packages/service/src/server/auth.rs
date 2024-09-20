@@ -6,7 +6,7 @@ use tracing::{instrument, warn, Instrument};
 use crate::{
     server::{ApiErrorCode, ApiResult, AppState},
     store::{
-        models::{self, AlbumWithCount, SavedSearchWithCount, UserCatalog},
+        models::{self, AlbumWithCount, SavedSearchWithCount, UserCatalogWithCount},
         Isolation,
     },
     Error,
@@ -149,7 +149,7 @@ struct UserState {
     #[serde(flatten)]
     user: models::User,
     storage: Vec<models::Storage>,
-    catalogs: Vec<UserCatalog>,
+    catalogs: Vec<UserCatalogWithCount>,
     people: Vec<models::Person>,
     tags: Vec<models::Tag>,
     albums: Vec<AlbumWithCount>,
@@ -177,9 +177,9 @@ async fn state(
             .in_current_span(),
         store
             .connect()
-            .and_then(
-                |mut conn| async move { models::Catalog::list_for_user(&mut conn, email).await }
-            )
+            .and_then(|mut conn| async move {
+                models::Catalog::list_for_user_with_count(&mut conn, email).await
+            })
             .in_current_span(),
         store
             .connect()

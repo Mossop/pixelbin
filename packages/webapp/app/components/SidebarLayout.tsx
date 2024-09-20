@@ -1,8 +1,8 @@
 import { Location, useLocation } from "@remix-run/react";
+import { inSpan } from "modules/telemetry.mjs";
 
 import { IconList, IconListItem } from "./IconList";
 import { useServerState } from "@/modules/hooks";
-import { inSpan } from "modules/telemetry.mjs";
 import { State, Catalog, SavedSearch, Album } from "@/modules/types";
 import { url } from "@/modules/util";
 
@@ -97,6 +97,7 @@ function CatalogItem({ catalog }: { catalog: CatalogTree }) {
       icon="catalog"
       href={url(["catalog", catalog.id])}
       label={catalog.name}
+      count={catalog.media}
       selected={isSelected(location, ["catalog", catalog.id])}
     >
       <IconList>

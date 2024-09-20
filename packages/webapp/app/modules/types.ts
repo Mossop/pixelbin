@@ -28,6 +28,7 @@ export interface Catalog {
   name: string;
   storage: string;
   writable: boolean;
+  media: number;
 }
 
 export interface Person {

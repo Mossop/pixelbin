@@ -374,21 +374,29 @@ impl Catalog {
             .await?)
     }
 
-    pub(crate) async fn list_for_user(
+    pub(crate) async fn list_for_user_with_count(
         conn: &mut DbConnection<'_>,
         email: &str,
-    ) -> Result<Vec<UserCatalog>> {
+    ) -> Result<Vec<UserCatalogWithCount>> {
         Ok(sqlx::query!(
             r#"
-            SELECT "catalog".*, "writable"
-            FROM "user_catalog" JOIN "catalog" ON "catalog"."id" = "user_catalog"."catalog"
+            SELECT "catalog".*, "writable", "media"
+            FROM "user_catalog"
+                JOIN "catalog" ON "catalog"."id" = "user_catalog"."catalog"
+                LEFT JOIN (
+                    SELECT "catalog", COUNT("id") AS "media"
+                    FROM "media_item"
+                    WHERE NOT "deleted"
+                    GROUP BY "catalog"
+                ) AS "media" ON "media"."catalog"="catalog"."id"
             WHERE "user_catalog"."user" = $1
             "#,
             email
         )
-        .map(|row| UserCatalog {
+        .map(|row| UserCatalogWithCount {
             catalog: from_row!(Catalog(row)),
             writable: row.writable.unwrap_or_default(),
+            media: row.media.unwrap_or_default(),
         })
         .fetch_all(conn)
         .await?)
@@ -428,15 +436,18 @@ impl Catalog {
     ) -> Result<UserCatalogWithCount> {
         let catalog = sqlx::query!(
             r#"
-            SELECT "catalog".*, "user_catalog"."writable", COUNT("media"."id") AS "media"
+            SELECT "catalog".*, "user_catalog"."writable", "media"
             FROM catalog
                 JOIN "user_catalog" ON "catalog"."id"="user_catalog"."catalog"
-                LEFT JOIN (SELECT "id", "catalog" FROM "media_item" WHERE NOT "deleted") AS "media"
-                    ON "media"."catalog"="catalog"."id"
+                LEFT JOIN (
+                    SELECT "catalog", COUNT("id") AS "media"
+                    FROM "media_item"
+                    WHERE NOT "deleted"
+                    GROUP BY "catalog"
+                ) AS "media" ON "media"."catalog"="catalog"."id"
             WHERE
                 "user_catalog"."user"=$1 AND
                 "catalog".id=$2
-            GROUP BY "catalog"."id", "user_catalog"."writable"
             "#,
             email,
             catalog
