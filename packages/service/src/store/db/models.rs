@@ -356,7 +356,6 @@ impl Catalog {
             r#"
             SELECT "media_view".*
             FROM "media_view"
-                JOIN "media_search" ON "media_search"."media"="media_view"."id"
             WHERE "media_view"."catalog"=$1
             ORDER BY "datetime" DESC
             "#,
