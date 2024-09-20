@@ -9,7 +9,7 @@ use crate::{
     store::{
         db::DbConnection,
         models,
-        path::{CatalogStore, ResourcePath},
+        path::{CatalogStore, MediaFileStore, ResourcePath},
         DiskStore, FileStore, Isolation,
     },
     Result, Task,
@@ -65,6 +65,8 @@ pub(super) async fn verify_storage(
     let mut requires_upload: u32 = 0;
     let mut unexpected_local: u32 = 0;
     let mut local_size: u64 = 0;
+    let mut unexpected_temp: u32 = 0;
+    let mut temp_size: u64 = 0;
     let mut unexpected_remote: u32 = 0;
     let mut remote_size: u64 = 0;
     let mut missing_alternates: u32 = 0;
@@ -80,12 +82,14 @@ pub(super) async fn verify_storage(
     let resource = CatalogStore {
         catalog: catalog.to_owned(),
     };
-    let (remote_files, local_files) = join!(
+    let (remote_files, local_files, temp_files) = join!(
         remote_store.list_files(Some(&resource)).in_current_span(),
-        local_store.list_files(Some(&resource)).in_current_span()
+        local_store.list_files(Some(&resource)).in_current_span(),
+        temp_store.list_files(Some(&resource)).in_current_span()
     );
     let mut remote_files = remote_files?;
     let mut local_files = local_files?;
+    let mut temp_files = temp_files?;
 
     let media_files = models::MediaFile::list_for_catalog(&mut conn, catalog).await?;
     let public_items = models::MediaItem::list_public(&mut conn, catalog).await?;
@@ -93,14 +97,21 @@ pub(super) async fn verify_storage(
     let mut bad_media_files = Vec::new();
 
     let mut required_alternates: HashMap<String, Vec<Alternate>> = HashMap::new();
+    let mut complete_media_items: HashMap<String, (models::MediaFile, MediaFileStore)> =
+        HashMap::new();
 
     for (mut media_file, media_file_store) in media_files {
+        complete_media_items.insert(
+            media_file.id.clone(),
+            (media_file.clone(), media_file_store.clone()),
+        );
+
         let metadata_file: ResourcePath = media_file_store.file(METADATA_FILE).into();
         let metadata_exists = local_files.remove(&metadata_file).is_some();
 
         let file_path = media_file_store.file(&media_file.file_name);
 
-        let temp_exists = temp_store.exists(&file_path).await?;
+        let temp_exists = temp_files.contains_key(&file_path.clone().into());
 
         let expected_resource: ResourcePath = file_path.into();
 
@@ -131,12 +142,14 @@ pub(super) async fn verify_storage(
             // This media file is bad
             error!(file=%expected_resource, "Missing temp media file");
             bad_media_files.push(media_file.id.clone());
+            complete_media_items.remove(&media_file.id);
 
             continue;
         };
 
         if media_file.needs_metadata {
             requires_metadata += 1;
+            complete_media_items.remove(&media_file.id);
         }
 
         required_alternates.insert(
@@ -149,6 +162,7 @@ pub(super) async fn verify_storage(
         );
 
         if needs_change {
+            complete_media_items.remove(&media_file.id);
             modified_media_files.push(media_file);
         }
     }
@@ -184,6 +198,8 @@ pub(super) async fn verify_storage(
             }
             alternate_files_to_delete.push(alternate_file.id.clone());
         } else {
+            complete_media_items.remove(&media_file_path.file);
+
             // Waiting to be uploaded.
             if alternate_file.stored.is_none() {
                 missing_alternates += 1;
@@ -209,6 +225,7 @@ pub(super) async fn verify_storage(
         for alternate in alternates {
             missing_alternates += 1;
             modified_alternate_files.push(models::AlternateFile::new(&media_file, alternate));
+            complete_media_items.remove(&media_file);
         }
     }
 
@@ -218,6 +235,10 @@ pub(super) async fn verify_storage(
     models::MediaItem::update_media_files(&mut conn, catalog).await?;
 
     // TODO check unused metadata.json for MediaFiles to recover?
+
+    for (media_file, media_file_store) in complete_media_items.into_values() {
+        temp_files.remove(&media_file_store.file(&media_file.file_name).into());
+    }
 
     for (path, size) in remote_files {
         unexpected_remote += 1;
@@ -232,6 +253,14 @@ pub(super) async fn verify_storage(
         local_size += size;
         if delete_files {
             local_store.delete(&path).await.warn();
+        }
+    }
+
+    for (path, size) in temp_files {
+        unexpected_temp += 1;
+        temp_size += size;
+        if delete_files {
+            temp_store.delete(&path).await.warn();
         }
     }
 
@@ -253,6 +282,8 @@ pub(super) async fn verify_storage(
         missing_alternates,
         unexpected_local,
         local_size,
+        unexpected_temp,
+        temp_size,
         unexpected_remote,
         remote_size,
         "Verify complete"
