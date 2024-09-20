@@ -19,4 +19,3 @@ tracing-opentelemetry = "0.25.0"
 opentelemetry-otlp = { version = "0.17.0", features = ["http-proto", "reqwest-client"] }
 tracing = { version = "0.1.40", features = ["attributes"] }
 opentelemetry_sdk = { version = "0.24.1", features = ["rt-tokio"] }
-backtrace-on-stack-overflow = "0.3.0"

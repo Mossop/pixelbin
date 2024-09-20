@@ -99,7 +99,7 @@ async fn build_alternate(
     mut alternate_file: models::AlternateFile,
 ) -> Result {
     let _guard: Option<()> = if alternate_file.mimetype.type_() == mime::VIDEO {
-        todo!();
+        None
         // Some(conn.config().enter_expensive_task().await)
     } else {
         None

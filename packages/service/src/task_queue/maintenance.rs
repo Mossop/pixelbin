@@ -155,7 +155,7 @@ pub(super) async fn verify_storage(
             media_file.id.clone(),
             alternates_for_media_file(
                 conn.config(),
-                &media_file,
+                media_file,
                 public_items.contains(&media_file.media_item),
             ),
         );
