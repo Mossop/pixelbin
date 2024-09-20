@@ -11,7 +11,12 @@ use crate::{
         METADATA_FILE,
     },
     shared::file_exists,
-    store::{db::models, models::AlternateFileType, DiskStore, FileStore, Isolation},
+    store::{
+        db::models,
+        file::{DiskStore, FileStore},
+        models::AlternateFileType,
+        Isolation,
+    },
     task_queue::{
         opcache::{MediaFileOpCache, OP_CACHE},
         DbConnection,

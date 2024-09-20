@@ -14,8 +14,9 @@ use tokio::{fs, sync::Mutex};
 use crate::{
     metadata::{crop_image, load_source_image, resize_image},
     shared::file_exists,
-    store::{db::DbConnection, models, path::MediaFileStore, DiskStore},
-    FileStore, Result,
+    store::file::FileStore,
+    store::{db::DbConnection, file::DiskStore, models, path::MediaFileStore},
+    Result,
 };
 
 const SOCIAL_WIDTH: u32 = 1200;

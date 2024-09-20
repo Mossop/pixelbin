@@ -18,10 +18,11 @@ use tracing::{debug, instrument, trace};
 
 use crate::{
     store::{
+        file::FileStore,
         models::Storage,
         path::{FilePath, PathLike, ResourcePath},
     },
-    Config, Error, FileStore, Result,
+    Config, Error, Result,
 };
 
 pub(crate) fn joinable(st: &str) -> &str {

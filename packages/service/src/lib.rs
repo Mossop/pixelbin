@@ -8,6 +8,6 @@ mod shared;
 mod store;
 mod task_queue;
 
-pub use store::{FileStore, Store};
+pub use store::{file::FileStore, Store};
 pub use task_queue::Task;
 pub(crate) use task_queue::TaskQueue;

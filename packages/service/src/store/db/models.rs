@@ -36,11 +36,12 @@ use crate::{
             search::{Filterable, SearchQuery},
             MediaAccess,
         },
+        file::FileStore,
         models,
         path::{FilePath, MediaFileStore, MediaItemStore},
         DbConnection,
     },
-    Config, Error, FileStore, Result, Task,
+    Config, Error, Result, Task,
 };
 
 struct Batch<'a, T> {

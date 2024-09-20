@@ -8,9 +8,10 @@ use crate::{
     metadata::{alternates_for_media_file, Alternate, METADATA_FILE},
     store::{
         db::DbConnection,
+        file::{DiskStore, FileStore},
         models,
         path::{CatalogStore, MediaFileStore, ResourcePath},
-        DiskStore, FileStore, Isolation,
+        Isolation,
     },
     Result, Task,
 };

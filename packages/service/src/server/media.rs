@@ -23,8 +23,9 @@ use crate::{
     },
     store::{
         db::{search::SearchQuery, DbConnection},
+        file::DiskStore,
         models::{self, AlternateFile, AlternateFileType, Location, MediaViewStream, Orientation},
-        DiskStore, Isolation,
+        Isolation,
     },
     Error, Result, Task,
 };
