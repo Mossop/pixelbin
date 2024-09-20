@@ -286,9 +286,12 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
 
 fn main() -> ExitCode {
     let _ = dotenv();
+    unsafe {
+        backtrace_on_stack_overflow::enable();
+    }
 
     let runtime = Builder::new_multi_thread()
-        .thread_stack_size(10 * 1024 * 1024)
+        .thread_stack_size(20 * 1024 * 1024)
         .enable_all()
         .build()
         .unwrap();

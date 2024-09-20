@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use futures::join;
 use pixelbin_shared::Ignorable;
@@ -91,21 +91,20 @@ pub(super) async fn verify_storage(
     let mut local_files = local_files?;
     let mut temp_files = temp_files?;
 
-    let media_files = models::MediaFile::list_for_catalog(&mut conn, catalog).await?;
+    let mut media_files: HashMap<String, (models::MediaFile, MediaFileStore)> =
+        models::MediaFile::list_for_catalog(&mut conn, catalog)
+            .await?
+            .into_iter()
+            .map(|(mf, mfs)| (mf.id.clone(), (mf, mfs)))
+            .collect();
     let public_items = models::MediaItem::list_public(&mut conn, catalog).await?;
     let mut modified_media_files = Vec::new();
     let mut bad_media_files = Vec::new();
 
     let mut required_alternates: HashMap<String, Vec<Alternate>> = HashMap::new();
-    let mut complete_media_items: HashMap<String, (models::MediaFile, MediaFileStore)> =
-        HashMap::new();
+    let mut incomplete_media_files: HashSet<String> = HashSet::new();
 
-    for (mut media_file, media_file_store) in media_files {
-        complete_media_items.insert(
-            media_file.id.clone(),
-            (media_file.clone(), media_file_store.clone()),
-        );
-
+    for (media_file, media_file_store) in media_files.values_mut() {
         let metadata_file: ResourcePath = media_file_store.file(METADATA_FILE).into();
         let metadata_exists = local_files.remove(&metadata_file).is_some();
 
@@ -128,28 +127,28 @@ pub(super) async fn verify_storage(
             }
         } else if temp_exists {
             // We can re-upload this.
-            let needs_change = media_file.stored.is_some();
+            let was_stored = media_file.stored.is_some();
             media_file.stored = None;
             requires_upload += 1;
+            incomplete_media_files.insert(media_file.id.clone());
 
             if !metadata_exists || media_file.needs_metadata {
                 media_file.needs_metadata = !metadata_exists;
                 true
             } else {
-                needs_change
+                was_stored
             }
         } else {
             // This media file is bad
             error!(file=%expected_resource, "Missing temp media file");
             bad_media_files.push(media_file.id.clone());
-            complete_media_items.remove(&media_file.id);
 
             continue;
         };
 
         if media_file.needs_metadata {
             requires_metadata += 1;
-            complete_media_items.remove(&media_file.id);
+            incomplete_media_files.insert(media_file.id.clone());
         }
 
         required_alternates.insert(
@@ -162,8 +161,7 @@ pub(super) async fn verify_storage(
         );
 
         if needs_change {
-            complete_media_items.remove(&media_file.id);
-            modified_media_files.push(media_file);
+            modified_media_files.push(media_file.clone());
         }
     }
 
@@ -198,8 +196,6 @@ pub(super) async fn verify_storage(
             }
             alternate_files_to_delete.push(alternate_file.id.clone());
         } else {
-            complete_media_items.remove(&media_file_path.file);
-
             // Waiting to be uploaded.
             if alternate_file.stored.is_none() {
                 missing_alternates += 1;
@@ -216,6 +212,8 @@ pub(super) async fn verify_storage(
                     alternate_file.stored = None;
                     modified_alternate_files.push(alternate_file);
                     missing_alternates += 1;
+
+                    incomplete_media_files.insert(media_file_path.file.clone());
                 }
             }
         }
@@ -225,7 +223,7 @@ pub(super) async fn verify_storage(
         for alternate in alternates {
             missing_alternates += 1;
             modified_alternate_files.push(models::AlternateFile::new(&media_file, alternate));
-            complete_media_items.remove(&media_file);
+            incomplete_media_files.insert(media_file.clone());
         }
     }
 
@@ -236,8 +234,10 @@ pub(super) async fn verify_storage(
 
     // TODO check unused metadata.json for MediaFiles to recover?
 
-    for (media_file, media_file_store) in complete_media_items.into_values() {
-        temp_files.remove(&media_file_store.file(&media_file.file_name).into());
+    for media_file in incomplete_media_files.into_iter() {
+        if let Some((media_file, media_file_store)) = media_files.get(&media_file) {
+            temp_files.remove(&media_file_store.file(&media_file.file_name).into());
+        }
     }
 
     for (path, size) in remote_files {
