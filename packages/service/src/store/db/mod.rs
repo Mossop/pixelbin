@@ -371,3 +371,19 @@ impl<'conn> DbConnection<'conn> {
         Ok(catalogs.into_iter().map(|c| c.id).collect())
     }
 }
+
+pub(crate) trait AsDb<'conn> {
+    fn as_db(&mut self) -> &mut DbConnection<'conn>;
+}
+
+impl AsDb<'static> for Store {
+    fn as_db(&mut self) -> &mut DbConnection<'static> {
+        self
+    }
+}
+
+impl<'conn> AsDb<'conn> for DbConnection<'conn> {
+    fn as_db(&mut self) -> &mut DbConnection<'conn> {
+        self
+    }
+}

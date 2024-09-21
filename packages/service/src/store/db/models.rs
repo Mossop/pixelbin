@@ -34,7 +34,7 @@ use crate::{
         db::{
             functions::{from_mime, from_row},
             search::{Filterable, SearchQuery},
-            MediaAccess,
+            AsDb, MediaAccess,
         },
         file::FileStore,
         models,
@@ -304,8 +304,8 @@ impl Storage {
         .await?)
     }
 
-    pub(crate) async fn list_for_user(
-        conn: &mut DbConnection<'_>,
+    pub(crate) async fn list_for_user<'c, D: AsDb<'c>>(
+        mut conn: D,
         email: &str,
     ) -> Result<Vec<Storage>> {
         Ok(sqlx::query!(
@@ -317,7 +317,7 @@ impl Storage {
             email
         )
         .map(|row| from_row!(Storage(row)))
-        .fetch_all(conn)
+        .fetch_all(conn.as_db())
         .await?)
     }
 }
@@ -375,8 +375,8 @@ impl Catalog {
             .await?)
     }
 
-    pub(crate) async fn list_for_user_with_count(
-        conn: &mut DbConnection<'_>,
+    pub(crate) async fn list_for_user_with_count<'c, D: AsDb<'c>>(
+        mut conn: D,
         email: &str,
     ) -> Result<Vec<UserCatalogWithCount>> {
         Ok(sqlx::query!(
@@ -399,7 +399,7 @@ impl Catalog {
             writable: row.writable.unwrap_or_default(),
             media: row.media.unwrap_or_default(),
         })
-        .fetch_all(conn)
+        .fetch_all(conn.as_db())
         .await?)
     }
 
@@ -473,8 +473,8 @@ pub(crate) struct Person {
 }
 
 impl Person {
-    pub(crate) async fn list_for_user(
-        conn: &mut DbConnection<'_>,
+    pub(crate) async fn list_for_user<'c, D: AsDb<'c>>(
+        mut conn: D,
         email: &str,
     ) -> Result<Vec<Person>> {
         Ok(sqlx::query!(
@@ -488,7 +488,7 @@ impl Person {
             email
         )
         .map(|row| from_row!(Person(row)))
-        .fetch_all(conn)
+        .fetch_all(conn.as_db())
         .await?)
     }
 
@@ -626,8 +626,8 @@ pub(crate) struct Tag {
 }
 
 impl Tag {
-    pub(crate) async fn list_for_user(
-        conn: &mut DbConnection<'_>,
+    pub(crate) async fn list_for_user<'c, D: AsDb<'c>>(
+        mut conn: D,
         email: &str,
     ) -> Result<Vec<Tag>> {
         Ok(sqlx::query!(
@@ -640,7 +640,7 @@ impl Tag {
             email
         )
         .map(|row| from_row!(Tag(row)))
-        .fetch_all(conn)
+        .fetch_all(conn.as_db())
         .await?)
     }
 
@@ -871,8 +871,8 @@ impl Album {
         sender.send_stream(stream).await
     }
 
-    pub(crate) async fn list_for_user_with_count(
-        conn: &mut DbConnection<'_>,
+    pub(crate) async fn list_for_user_with_count<'c, D: AsDb<'c>>(
+        mut conn: D,
         email: &str,
     ) -> Result<Vec<AlbumWithCount>> {
         Ok(sqlx::query!(
@@ -890,7 +890,7 @@ impl Album {
             album: from_row!(Album(row)),
             media: row.count.unwrap_or_default(),
         })
-        .fetch_all(conn)
+        .fetch_all(conn.as_db())
         .await?)
     }
 
@@ -1277,8 +1277,8 @@ impl SavedSearch {
         .await?)
     }
 
-    pub(crate) async fn list_for_user_with_count(
-        conn: &mut DbConnection<'_>,
+    pub(crate) async fn list_for_user_with_count<'c, D: AsDb<'c>>(
+        mut conn: D,
         email: &str,
     ) -> Result<Vec<SavedSearchWithCount>> {
         Ok(sqlx::query!(
@@ -1298,7 +1298,7 @@ impl SavedSearch {
                 media: row.count.unwrap_or_default(),
             })
         })
-        .fetch_all(conn)
+        .fetch_all(conn.as_db())
         .await?)
     }
 }

@@ -1,5 +1,5 @@
 use actix_web::{dev::Payload, get, http::header, post, web, FromRequest, HttpRequest};
-use futures::{future::LocalBoxFuture, join, TryFutureExt};
+use futures::{future::LocalBoxFuture, join};
 use serde::{Deserialize, Serialize};
 use tracing::{instrument, warn, Instrument};
 
@@ -136,7 +136,7 @@ async fn logout(
     token: AuthToken,
 ) -> ApiResult<web::Json<LoginResponse>> {
     if let Some(token) = token.0 {
-        let mut conn = app_state.store.connect().await?;
+        let mut conn = app_state.store.pooled();
         conn.delete_token(&token).await?;
     }
 
@@ -169,40 +169,12 @@ async fn state(
     let user = models::User::get(&mut conn, email).await?;
 
     let (storage, catalogs, albums, people, tags, searches) = join!(
-        store
-            .connect()
-            .and_then(
-                |mut conn| async move { models::Storage::list_for_user(&mut conn, email).await }
-            )
-            .in_current_span(),
-        store
-            .connect()
-            .and_then(|mut conn| async move {
-                models::Catalog::list_for_user_with_count(&mut conn, email).await
-            })
-            .in_current_span(),
-        store
-            .connect()
-            .and_then(|mut conn| async move {
-                models::Album::list_for_user_with_count(&mut conn, email).await
-            })
-            .in_current_span(),
-        store
-            .connect()
-            .and_then(
-                |mut conn| async move { models::Person::list_for_user(&mut conn, email).await }
-            )
-            .in_current_span(),
-        store
-            .connect()
-            .and_then(|mut conn| async move { models::Tag::list_for_user(&mut conn, email).await })
-            .in_current_span(),
-        store
-            .connect()
-            .and_then(|mut conn| async move {
-                models::SavedSearch::list_for_user_with_count(&mut conn, email).await
-            })
-            .in_current_span(),
+        models::Storage::list_for_user(store.clone(), email).in_current_span(),
+        models::Catalog::list_for_user_with_count(store.clone(), email).in_current_span(),
+        models::Album::list_for_user_with_count(store.clone(), email).in_current_span(),
+        models::Person::list_for_user(store.clone(), email).in_current_span(),
+        models::Tag::list_for_user(store.clone(), email).in_current_span(),
+        models::SavedSearch::list_for_user_with_count(store.clone(), email).in_current_span(),
     );
 
     Ok(web::Json(UserState {

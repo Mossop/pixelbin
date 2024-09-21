@@ -25,8 +25,7 @@ use tracing_subscriber::{
 };
 
 async fn list_catalogs(store: &Store) -> Result<Vec<String>> {
-    let mut conn = store.connect().await?;
-    conn.list_catalogs().await
+    store.pooled().list_catalogs().await
 }
 
 #[derive(Args)]
@@ -38,7 +37,7 @@ impl Runnable for Stats {
     }
 
     async fn run(&self, store: &Store) -> Result {
-        let mut conn = store.connect().await?;
+        let mut conn = store.pooled();
         let stats = conn.stats().await?;
         println!("Users:           {}", stats.users);
         println!("Catalogs:        {}", stats.catalogs);
