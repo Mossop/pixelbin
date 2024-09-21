@@ -72,7 +72,7 @@ pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bo
 
     let mut conn = store.isolated(Isolation::Committed).await?;
 
-    let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
+    let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
 
     let remote_store = storage.file_store(conn.config()).await?;
     let local_store = DiskStore::local_store(conn.config());
@@ -294,7 +294,7 @@ pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bo
 pub(super) async fn prune_media_files(store: Store, catalog: &str) -> Result {
     let mut conn = store.isolated(Isolation::Committed).await?;
 
-    let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
+    let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
     let remote_store = storage.file_store(conn.config()).await?;
     let local_store = DiskStore::local_store(conn.config());
     let temp_store = DiskStore::temp_store(conn.config());
@@ -317,7 +317,7 @@ pub(super) async fn prune_media_files(store: Store, catalog: &str) -> Result {
 pub(super) async fn prune_media_items(store: Store, catalog: &str) -> Result {
     let mut conn = store.isolated(Isolation::Committed).await?;
 
-    let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
+    let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
     let remote_store = storage.file_store(conn.config()).await?;
     let local_store = DiskStore::local_store(conn.config());
     let temp_store = DiskStore::temp_store(conn.config());

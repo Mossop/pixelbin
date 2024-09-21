@@ -47,12 +47,12 @@ async fn social_handler(
     app_state: web::Data<AppState>,
     path: web::Path<SocialPath>,
 ) -> ApiResult<impl Responder> {
-    let mut conn = app_state.store.connect().await?;
-    let (alternate, path) = match models::AlternateFile::get_social(&mut conn, &path.item).await {
-        Ok(alternates) => alternates,
-        Err(Error::NotFound) => return not_found(),
-        Err(e) => return Err(e.into()),
-    };
+    let (alternate, path) =
+        match models::AlternateFile::get_social(app_state.store.clone(), &path.item).await {
+            Ok(alternates) => alternates,
+            Err(Error::NotFound) => return not_found(),
+            Err(e) => return Err(e.into()),
+        };
 
     let path = DiskStore::local_store(app_state.store.config()).local_path(&path);
     let file = File::open(&path).await?;
@@ -654,7 +654,6 @@ async fn search_media(
     let (stream, sender) = MediaViewStream::new();
 
     let query = data.query.clone();
-    let conn = app_state.store.connect().await?;
     tokio::spawn(query.stream_media(conn, user_catalog.catalog.id.clone(), sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)

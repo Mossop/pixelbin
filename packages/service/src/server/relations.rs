@@ -77,7 +77,7 @@ async fn edit_album(
 ) -> ApiResult<web::Json<models::Album>> {
     let mut conn = app_state.store.isolated(Isolation::Committed).await?;
     let mut album =
-        models::Album::get_for_user_for_update(&mut conn, &session.user.email, &request.id).await?;
+        models::Album::get_writable_for_user(&mut conn, &session.user.email, &request.id).await?;
 
     album.name.clone_from(&request.album.name);
     album.parent.clone_from(&request.album.parent);
@@ -108,7 +108,7 @@ async fn delete_album(
 
     for id in albums.iter() {
         let album =
-            models::Album::get_for_user_for_update(&mut conn, &session.user.email, id).await?;
+            models::Album::get_writable_for_user(&mut conn, &session.user.email, id).await?;
         catalogs.insert(album.catalog);
         ids.push(album.id);
     }
@@ -154,7 +154,7 @@ async fn album_media_change(
 
     for update in updates.into_inner() {
         let album =
-            models::Album::get_for_user_for_update(&mut conn, &session.user.email, &update.album)
+            models::Album::get_writable_for_user(&mut conn, &session.user.email, &update.album)
                 .await?;
 
         catalogs.insert(album.catalog.clone());
@@ -263,7 +263,6 @@ async fn get_catalog_media(
 
     let (stream, sender) = MediaViewStream::new();
 
-    let conn = app_state.store.connect().await?;
     tokio::spawn(user_catalog.catalog.stream_media(conn, sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)
@@ -290,7 +289,6 @@ async fn get_album_media(
 
     let (stream, sender) = MediaViewStream::new();
 
-    let conn = app_state.store.connect().await?;
     tokio::spawn(album.stream_media(conn, query.recursive, sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)
@@ -312,7 +310,6 @@ async fn get_search_media(
 
     let (stream, sender) = MediaViewStream::new();
 
-    let conn = app_state.store.connect().await?;
     tokio::spawn(search.stream_media(conn, sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)

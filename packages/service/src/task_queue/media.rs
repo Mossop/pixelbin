@@ -47,8 +47,7 @@ async fn extract_metadata(store: Store, op_cache: MediaFileOpCache) -> Result {
         metadata
     };
 
-    let mut media_file =
-        models::MediaFile::get_for_update(&mut conn, &op_cache.media_file.id).await?;
+    let (mut media_file, _) = models::MediaFile::get(&mut conn, &op_cache.media_file.id).await?;
     metadata.apply_to_media_file(&mut media_file);
     models::MediaFile::upsert(&mut conn, vec![media_file.clone()]).await?;
 
@@ -80,7 +79,7 @@ async fn upload_media_file(store: Store, mut op_cache: MediaFileOpCache) -> Resu
     }
 
     let storage =
-        models::Storage::lock_for_catalog(&mut conn, &op_cache.media_file_store.catalog).await?;
+        models::Storage::get_for_catalog(&mut conn, &op_cache.media_file_store.catalog).await?;
     let remote_store = storage.file_store(conn.config()).await?;
 
     remote_store

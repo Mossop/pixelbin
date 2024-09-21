@@ -5,26 +5,19 @@ pub(crate) mod search;
 
 use std::{fmt, mem, sync::Arc};
 
-use chrono::{Duration, Utc};
 use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
 use sqlx::{postgres::PgPoolOptions, Transaction};
 use tokio::sync::Semaphore;
-use tracing::{error, info, instrument, span, span::Id, warn, Level};
+use tracing::{error, info, instrument, span::Id, warn};
 
 use crate::{
-    shared::{long_id, spawn_blocking},
-    store::{
-        db::{functions::from_row, internal::Connection},
-        StoreInner,
-    },
-    Config, Error, Result, Store, Task, TaskQueue,
+    store::{db::internal::Connection, StoreInner},
+    Config, Result, Store, Task, TaskQueue,
 };
 
 pub(crate) type SqlxDatabase = sqlx::Postgres;
 pub(crate) type SqlxPool = sqlx::Pool<SqlxDatabase>;
-
-const TOKEN_EXPIRY_DAYS: i64 = 90;
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -120,6 +113,47 @@ pub struct StoreStats {
     pub alternate_files: u32,
 }
 
+impl StoreStats {
+    pub async fn stats(conn: &mut DbConnection<'_>) -> Result<StoreStats> {
+        let users: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "user""#)
+            .fetch_one(&mut *conn)
+            .await?;
+        let catalogs: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "catalog""#)
+            .fetch_one(&mut *conn)
+            .await?;
+        let albums: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "album""#)
+            .fetch_one(&mut *conn)
+            .await?;
+        let tags: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "tag""#)
+            .fetch_one(&mut *conn)
+            .await?;
+        let people: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "person""#)
+            .fetch_one(&mut *conn)
+            .await?;
+        let media: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "media_item""#)
+            .fetch_one(&mut *conn)
+            .await?;
+        let files: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "media_file""#)
+            .fetch_one(&mut *conn)
+            .await?;
+        let alternate_files: i64 =
+            sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "alternate_file""#)
+                .fetch_one(&mut *conn)
+                .await?;
+
+        Ok(StoreStats {
+            users: users as u32,
+            catalogs: catalogs as u32,
+            albums: albums as u32,
+            tags: tags as u32,
+            people: people as u32,
+            media: media as u32,
+            files: files as u32,
+            alternate_files: alternate_files as u32,
+        })
+    }
+}
+
 pub struct DbConnection<'conn> {
     store_inner: StoreInner,
     connection: Connection<'conn>,
@@ -212,160 +246,6 @@ impl<'conn> DbConnection<'conn> {
         &self.store_inner.config
     }
 
-    #[instrument(skip_all)]
-    pub(crate) async fn verify_credentials(
-        &mut self,
-        email: &str,
-        password: &str,
-    ) -> Result<(models::User, String)> {
-        let mut user = sqlx::query!(
-            r#"
-            SELECT *
-            FROM "user"
-            WHERE "email"=$1
-            FOR UPDATE
-            "#,
-            email
-        )
-        .map(|row| from_row!(User(row)))
-        .fetch_one(&mut *self)
-        .await?;
-
-        if let Some(password_hash) = user.password.clone() {
-            let password = password.to_owned();
-            match spawn_blocking(span!(Level::TRACE, "verify password"), move || {
-                bcrypt::verify(password, &password_hash)
-            })
-            .await
-            {
-                Ok(true) => (),
-                _ => return Err(Error::NotFound),
-            }
-        } else {
-            return Err(Error::NotFound);
-        }
-
-        let token = long_id("T");
-
-        sqlx::query!(
-            r#"
-            INSERT INTO "auth_token" ("email", "token", "expiry")
-            VALUES ($1,$2,$3)
-            "#,
-            email,
-            token,
-            Some(Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS))
-        )
-        .execute(&mut *self)
-        .await?;
-
-        user.last_login = Some(Utc::now());
-
-        sqlx::query!(
-            r#"
-            UPDATE "user"
-            SET "last_login"=$1
-            WHERE "email"=$2
-            "#,
-            user.last_login,
-            email,
-        )
-        .execute(self)
-        .await?;
-
-        Ok((user, token))
-    }
-
-    #[instrument(skip_all)]
-    pub(crate) async fn verify_token(&mut self, token: &str) -> Result<Option<models::User>> {
-        let expiry = Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS);
-
-        let email = match sqlx::query_scalar!(
-            r#"
-            UPDATE "auth_token"
-            SET "expiry"=$1
-            WHERE "token"=$2
-            RETURNING "email"
-            "#,
-            expiry,
-            token
-        )
-        .fetch_optional(&mut *self)
-        .await?
-        {
-            Some(u) => u,
-            None => return Ok(None),
-        };
-
-        let user = sqlx::query!(
-            r#"
-            UPDATE "user"
-            SET "last_login"=CURRENT_TIMESTAMP
-            WHERE "email"=$1
-            RETURNING "user".*
-            "#,
-            email
-        )
-        .map(|row| from_row!(User(row)))
-        .fetch_optional(self)
-        .await?;
-
-        Ok(user)
-    }
-
-    pub(crate) async fn delete_token(&mut self, token: &str) -> Result {
-        sqlx::query!(
-            r#"
-            DELETE FROM "auth_token"
-            WHERE "token"=$1
-            "#,
-            token
-        )
-        .execute(self)
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn stats(&mut self) -> Result<StoreStats> {
-        let users: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "user""#)
-            .fetch_one(&mut *self)
-            .await?;
-        let catalogs: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "catalog""#)
-            .fetch_one(&mut *self)
-            .await?;
-        let albums: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "album""#)
-            .fetch_one(&mut *self)
-            .await?;
-        let tags: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "tag""#)
-            .fetch_one(&mut *self)
-            .await?;
-        let people: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "person""#)
-            .fetch_one(&mut *self)
-            .await?;
-        let media: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "media_item""#)
-            .fetch_one(&mut *self)
-            .await?;
-        let files: i64 = sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "media_file""#)
-            .fetch_one(&mut *self)
-            .await?;
-        let alternate_files: i64 =
-            sqlx::query_scalar!(r#"SELECT COUNT(*) AS "count!" FROM "alternate_file""#)
-                .fetch_one(&mut *self)
-                .await?;
-
-        Ok(StoreStats {
-            users: users as u32,
-            catalogs: catalogs as u32,
-            albums: albums as u32,
-            tags: tags as u32,
-            people: people as u32,
-            media: media as u32,
-            files: files as u32,
-            alternate_files: alternate_files as u32,
-        })
-    }
-
     pub async fn list_catalogs(&mut self) -> Result<Vec<String>> {
         let catalogs = models::Catalog::list(self).await?;
         Ok(catalogs.into_iter().map(|c| c.id).collect())
@@ -383,6 +263,12 @@ impl AsDb<'static> for Store {
 }
 
 impl<'conn> AsDb<'conn> for DbConnection<'conn> {
+    fn as_db(&mut self) -> &mut DbConnection<'conn> {
+        self
+    }
+}
+
+impl<'conn> AsDb<'conn> for &'conn mut DbConnection<'conn> {
     fn as_db(&mut self) -> &mut DbConnection<'conn> {
         self
     }

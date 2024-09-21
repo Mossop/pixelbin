@@ -16,7 +16,7 @@ use opentelemetry_sdk::{
     trace::{self, TracerProvider},
     Resource,
 };
-use pixelbin::server::serve;
+use pixelbin::{server::serve, StoreStats};
 use pixelbin::{Config, Result, Store, Task};
 use tokio::runtime::Builder;
 use tracing::{span, Instrument, Level, Span};
@@ -38,7 +38,7 @@ impl Runnable for Stats {
 
     async fn run(&self, store: &Store) -> Result {
         let mut conn = store.pooled();
-        let stats = conn.stats().await?;
+        let stats = StoreStats::stats(&mut conn).await?;
         println!("Users:           {}", stats.users);
         println!("Catalogs:        {}", stats.catalogs);
         println!("Albums:          {}", stats.albums);

@@ -197,7 +197,7 @@ impl RequestTracker {
     }
 
     async fn prune_blocks(self) -> Result {
-        let mut conn = self.store.connect().await?;
+        let mut conn: DbConnection<'_> = self.store.connect().await?;
 
         Self::prune_database(&mut conn).await?;
 

@@ -7,7 +7,7 @@ use std::{
 };
 
 use actix_web::web::Bytes;
-use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
+use chrono::{DateTime, Duration, NaiveDateTime, Timelike, Utc};
 use enum_repr::EnumRepr;
 use futures::{Stream, StreamExt, TryStreamExt};
 use itertools::Itertools;
@@ -24,11 +24,11 @@ use sqlx::{
     Result as SqlxResult, Row,
 };
 use tokio::sync::mpsc::{channel, Receiver, Sender};
-use tracing::{error, instrument};
+use tracing::{error, instrument, span, Level};
 
 use crate::{
     metadata::{alternates_for_media_file, lookup_timezone, media_datetime, Alternate},
-    shared::{long_id, short_id},
+    shared::{long_id, short_id, spawn_blocking},
     store::{
         aws::AwsClient,
         db::{
@@ -43,6 +43,8 @@ use crate::{
     },
     Config, Error, Result, Task,
 };
+
+const TOKEN_EXPIRY_DAYS: i64 = 90;
 
 struct Batch<'a, T> {
     slice: &'a [T],
@@ -216,7 +218,7 @@ pub(crate) struct User {
 }
 
 impl User {
-    pub(crate) async fn get(conn: &mut DbConnection<'_>, email: &str) -> Result<User> {
+    pub(crate) async fn get<'a, D: AsDb<'a>>(mut conn: D, email: &str) -> Result<User> {
         Ok(sqlx::query!(
             r#"
             SELECT *
@@ -226,8 +228,125 @@ impl User {
             email
         )
         .map(|row| from_row!(User(row)))
-        .fetch_one(conn)
+        .fetch_one(conn.as_db())
         .await?)
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn verify_credentials(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        password: &str,
+    ) -> Result<(models::User, String)> {
+        let mut user = sqlx::query!(
+            r#"
+            SELECT *
+            FROM "user"
+            WHERE "email"=$1
+            "#,
+            email
+        )
+        .map(|row| from_row!(User(row)))
+        .fetch_one(conn.as_db())
+        .await?;
+
+        if let Some(password_hash) = user.password.clone() {
+            let password = password.to_owned();
+            match spawn_blocking(span!(Level::TRACE, "verify password"), move || {
+                bcrypt::verify(password, &password_hash)
+            })
+            .await
+            {
+                Ok(true) => (),
+                _ => return Err(Error::NotFound),
+            }
+        } else {
+            return Err(Error::NotFound);
+        }
+
+        let token = long_id("T");
+
+        sqlx::query!(
+            r#"
+            INSERT INTO "auth_token" ("email", "token", "expiry")
+            VALUES ($1,$2,$3)
+            "#,
+            email,
+            token,
+            Some(Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS))
+        )
+        .execute(conn.as_db())
+        .await?;
+
+        user.last_login = Some(Utc::now());
+
+        sqlx::query!(
+            r#"
+            UPDATE "user"
+            SET "last_login"=$1
+            WHERE "email"=$2
+            "#,
+            user.last_login,
+            email,
+        )
+        .execute(conn.as_db())
+        .await?;
+
+        Ok((user, token))
+    }
+
+    #[instrument(skip_all)]
+    pub(crate) async fn verify_token(
+        conn: &mut DbConnection<'_>,
+        token: &str,
+    ) -> Result<Option<models::User>> {
+        let expiry = Utc::now() + Duration::days(TOKEN_EXPIRY_DAYS);
+
+        let email = match sqlx::query_scalar!(
+            r#"
+            UPDATE "auth_token"
+            SET "expiry"=$1
+            WHERE "token"=$2
+            RETURNING "email"
+            "#,
+            expiry,
+            token
+        )
+        .fetch_optional(conn.as_db())
+        .await?
+        {
+            Some(u) => u,
+            None => return Ok(None),
+        };
+
+        let user = sqlx::query!(
+            r#"
+            UPDATE "user"
+            SET "last_login"=CURRENT_TIMESTAMP
+            WHERE "email"=$1
+            RETURNING "user".*
+            "#,
+            email
+        )
+        .map(|row| from_row!(User(row)))
+        .fetch_optional(conn.as_db())
+        .await?;
+
+        Ok(user)
+    }
+
+    pub(crate) async fn delete_token(conn: &mut DbConnection<'_>, token: &str) -> Result {
+        sqlx::query!(
+            r#"
+            DELETE FROM "auth_token"
+            WHERE "token"=$1
+            "#,
+            token
+        )
+        .execute(conn.as_db())
+        .await?;
+
+        Ok(())
     }
 }
 
@@ -276,26 +395,6 @@ impl Storage {
             SELECT "storage".*
             FROM "storage" JOIN "catalog" ON "catalog"."storage"="storage"."id"
             WHERE "catalog"."id"=$1
-            "#,
-            catalog
-        )
-        .map(|row| from_row!(Storage(row)))
-        .fetch_one(conn)
-        .await?)
-    }
-
-    pub(crate) async fn lock_for_catalog(
-        conn: &mut DbConnection<'_>,
-        catalog: &str,
-    ) -> Result<Storage> {
-        conn.assert_in_transaction();
-
-        Ok(sqlx::query!(
-            r#"
-            SELECT "storage".*
-            FROM "storage" JOIN "catalog" ON "catalog"."storage"="storage"."id"
-            WHERE "catalog"."id"=$1
-            FOR UPDATE
             "#,
             catalog
         )
@@ -894,7 +993,7 @@ impl Album {
         .await?)
     }
 
-    pub(crate) async fn get_for_user_for_update(
+    pub(crate) async fn get_writable_for_user(
         conn: &mut DbConnection<'_>,
         email: &str,
         id: &str,
@@ -908,7 +1007,6 @@ impl Album {
                 FROM "user_catalog"
                 WHERE "user_catalog"."user"=$2 AND "user_catalog"."writable"
             )
-            FOR UPDATE
             "#,
             id,
             email
@@ -2360,21 +2458,6 @@ impl MediaFile {
         Ok((media_file, file_path))
     }
 
-    pub(crate) async fn get_for_update(conn: &mut DbConnection<'_>, id: &str) -> Result<MediaFile> {
-        Ok(sqlx::query!(
-            r#"
-            SELECT "media_file".*
-            FROM "media_file"
-            WHERE "media_file"."id"=$1
-            FOR UPDATE
-            "#,
-            id
-        )
-        .try_map(|row| Ok(from_row!(MediaFile(row))))
-        .fetch_one(conn)
-        .await?)
-    }
-
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: Vec<MediaFile>) -> Result {
         let media_file_map: HashMap<String, &MediaFile> =
@@ -2695,8 +2778,8 @@ impl AlternateFile {
         }
     }
 
-    pub(crate) async fn get_social(
-        conn: &mut DbConnection<'_>,
+    pub(crate) async fn get_social<'c, D: AsDb<'c>>(
+        mut conn: D,
         media_item: &str,
     ) -> Result<(Self, FilePath)> {
         let (alternate, catalog) = sqlx::query!(
@@ -2722,7 +2805,7 @@ impl AlternateFile {
             media_item
         )
         .try_map(|row| Ok((from_row!(AlternateFile(row)), row.catalog)))
-        .fetch_one(conn)
+        .fetch_one(conn.as_db())
         .await?;
 
         let path = FilePath {

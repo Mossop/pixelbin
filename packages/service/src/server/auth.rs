@@ -1,5 +1,6 @@
 use actix_web::{dev::Payload, get, http::header, post, web, FromRequest, HttpRequest};
 use futures::{future::LocalBoxFuture, join};
+use pixelbin_shared::Ignorable;
 use serde::{Deserialize, Serialize};
 use tracing::{instrument, warn, Instrument};
 
@@ -91,7 +92,7 @@ impl FromRequest for MaybeSession {
 
             let data = web::Data::<AppState>::extract(&req).await.unwrap();
             let mut conn = data.store.connect().await?;
-            let user = conn.verify_token(&token).await?;
+            let user = models::User::verify_token(&mut conn, &token).await?;
 
             Ok(MaybeSession(user.map(|user| Session { user })))
         })
@@ -116,16 +117,21 @@ async fn login(
     credentials: web::Json<LoginRequest>,
 ) -> ApiResult<web::Json<LoginResponse>> {
     let mut conn = app_state.store.isolated(Isolation::Committed).await?;
-    match conn
-        .verify_credentials(&credentials.email, &credentials.password)
+    match models::User::verify_credentials(&mut conn, &credentials.email, &credentials.password)
         .await
     {
         Ok((_, token)) => {
             conn.commit().await?;
             Ok(web::Json(LoginResponse { token: Some(token) }))
         }
-        Err(Error::NotFound) => Err(ApiErrorCode::NotLoggedIn),
-        Err(e) => Err(e.into()),
+        Err(Error::NotFound) => {
+            conn.rollback().await.warn();
+            Err(ApiErrorCode::NotLoggedIn)
+        }
+        Err(e) => {
+            conn.rollback().await.warn();
+            Err(e.into())
+        }
     }
 }
 
@@ -137,7 +143,7 @@ async fn logout(
 ) -> ApiResult<web::Json<LoginResponse>> {
     if let Some(token) = token.0 {
         let mut conn = app_state.store.pooled();
-        conn.delete_token(&token).await?;
+        models::User::delete_token(&mut conn, &token).await?;
     }
 
     Ok(web::Json(LoginResponse { token: None }))
@@ -165,8 +171,7 @@ async fn state(
     let store = &app_state.store;
     let email = &session.user.email;
 
-    let mut conn = store.connect().await?;
-    let user = models::User::get(&mut conn, email).await?;
+    let user = models::User::get(store.clone(), email).await?;
 
     let (storage, catalogs, albums, people, tags, searches) = join!(
         models::Storage::list_for_user(store.clone(), email).in_current_span(),
