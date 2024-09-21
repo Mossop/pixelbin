@@ -7,61 +7,59 @@ use tracing::{error, info, Instrument};
 use crate::{
     metadata::{alternates_for_media_file, Alternate, METADATA_FILE},
     store::{
-        db::DbConnection,
+        db::Isolation,
         file::{DiskStore, FileStore},
         models,
         path::{CatalogStore, MediaFileStore, ResourcePath},
-        Isolation,
     },
-    Result, Task,
+    Result, Store, Task,
 };
 
-pub(super) async fn server_startup(conn: &mut DbConnection<'_>) -> Result {
+pub(super) async fn server_startup(store: Store) -> Result {
+    let mut conn = store.connect().await?;
     let catalogs = conn.list_catalogs().await?;
 
     for catalog in catalogs {
-        conn.queue_task(Task::DeleteMedia {
-            catalog: catalog.clone(),
-        })
-        .await;
+        store
+            .queue_task(Task::DeleteMedia {
+                catalog: catalog.clone(),
+            })
+            .await;
 
-        models::MediaItem::update_media_files(conn, &catalog).await?;
+        models::MediaItem::update_media_files(&mut conn, &catalog).await?;
 
-        conn.queue_task(Task::UpdateSearches {
-            catalog: catalog.clone(),
-        })
-        .await;
+        store
+            .queue_task(Task::UpdateSearches {
+                catalog: catalog.clone(),
+            })
+            .await;
 
-        conn.queue_task(Task::ProcessMedia {
-            catalog: catalog.clone(),
-        })
-        .await;
+        store
+            .queue_task(Task::ProcessMedia {
+                catalog: catalog.clone(),
+            })
+            .await;
 
-        conn.queue_task(Task::PruneMediaFiles { catalog }).await;
+        store.queue_task(Task::PruneMediaFiles { catalog }).await;
     }
 
     Ok(())
 }
 
-pub(super) async fn update_searches(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    models::SavedSearch::update_for_catalog(conn, catalog).await
+pub(super) async fn update_searches(store: Store, catalog: &str) -> Result {
+    let mut conn = store.connect().await?;
+    models::SavedSearch::update_for_catalog(&mut conn, catalog).await
 }
 
-pub(super) async fn delete_alternate_files(
-    conn: &mut DbConnection<'_>,
-    alternate_files: &[String],
-) -> Result {
+pub(super) async fn delete_alternate_files(store: Store, alternate_files: &[String]) -> Result {
+    let mut conn = store.connect().await?;
     // TODO: Delete the files here.
-    models::AlternateFile::delete(conn, alternate_files).await?;
+    models::AlternateFile::delete(&mut conn, alternate_files).await?;
 
     Ok(())
 }
 
-pub(super) async fn verify_storage(
-    conn: &mut DbConnection<'_>,
-    catalog: &str,
-    delete_files: bool,
-) -> Result {
+pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bool) -> Result {
     let mut requires_metadata: u32 = 0;
     let mut requires_upload: u32 = 0;
     let mut unexpected_local: u32 = 0;
@@ -72,7 +70,7 @@ pub(super) async fn verify_storage(
     let mut remote_size: u64 = 0;
     let mut missing_alternates: u32 = 0;
 
-    let mut conn = conn.isolated(Isolation::Committed).await?;
+    let mut conn = store.isolated(Isolation::Committed).await?;
 
     let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
 
@@ -293,8 +291,8 @@ pub(super) async fn verify_storage(
     conn.commit().await
 }
 
-pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    let mut conn = conn.isolated(Isolation::Committed).await?;
+pub(super) async fn prune_media_files(store: Store, catalog: &str) -> Result {
+    let mut conn = store.isolated(Isolation::Committed).await?;
 
     let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
     let remote_store = storage.file_store(conn.config()).await?;
@@ -316,8 +314,8 @@ pub(super) async fn prune_media_files(conn: &mut DbConnection<'_>, catalog: &str
     conn.commit().await
 }
 
-pub(super) async fn prune_media_items(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    let mut conn = conn.isolated(Isolation::Committed).await?;
+pub(super) async fn prune_media_items(store: Store, catalog: &str) -> Result {
+    let mut conn = store.isolated(Isolation::Committed).await?;
 
     let storage = models::Storage::lock_for_catalog(&mut conn, catalog).await?;
     let remote_store = storage.file_store(conn.config()).await?;
@@ -338,9 +336,12 @@ pub(super) async fn prune_media_items(conn: &mut DbConnection<'_>, catalog: &str
     conn.commit().await
 }
 
-pub(super) async fn trigger_media_tasks(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    for media_file in models::MediaFile::list_needs_processing(conn, catalog).await? {
-        conn.queue_task(Task::ProcessMediaFile { media_file }).await;
+pub(super) async fn trigger_media_tasks(store: Store, catalog: &str) -> Result {
+    let mut conn = store.connect().await?;
+    for media_file in models::MediaFile::list_needs_processing(&mut conn, catalog).await? {
+        store
+            .queue_task(Task::ProcessMediaFile { media_file })
+            .await;
     }
 
     Ok(())

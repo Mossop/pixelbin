@@ -18,10 +18,10 @@ use crate::{
     },
     shared::short_id,
     store::{
+        db::Isolation,
         models::{
             self, AlbumWithCount, MediaViewStream, SavedSearchWithCount, UserCatalogWithCount,
         },
-        Isolation,
     },
     Task,
 };

@@ -1,5 +1,8 @@
 //! A basic abstraction around the pixelbin data stores.
-use std::future::Future;
+use std::{
+    future::Future,
+    ops::{Deref, DerefMut},
+};
 
 pub(crate) mod aws;
 pub(crate) mod db;
@@ -10,68 +13,89 @@ pub(crate) use db::models;
 use db::{connect, DbConnection};
 use tracing::span::Id;
 
-use crate::{
-    store::db::{Connection, SqlxPool},
-    Config, Result, Task, TaskQueue,
-};
+use crate::{store::db::SqlxPool, Config, Isolation, Result, Task, TaskQueue};
 
-#[derive(Default, Debug, Clone, Copy, PartialEq)]
-pub enum Isolation {
-    #[default]
-    Committed,
-    Repeatable,
-    ReadOnly,
-}
-
-#[derive(Clone)]
-pub struct Store {
+#[derive(Clone, Debug)]
+struct StoreInner {
     config: Config,
     pool: SqlxPool,
     task_queue: TaskQueue,
 }
 
+impl From<StoreInner> for Store {
+    fn from(inner: StoreInner) -> Self {
+        Store {
+            pooled: DbConnection::pooled(inner.clone()),
+            inner,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Store {
+    inner: StoreInner,
+    pooled: DbConnection<'static>,
+}
+
+impl Clone for Store {
+    fn clone(&self) -> Self {
+        self.inner.clone().into()
+    }
+}
+
 impl Store {
     pub async fn new(config: Config, task_span: Option<Id>) -> Result<Self> {
-        let (pool, task_queue) = connect(&config, task_span).await?;
+        connect(&config, task_span).await
+    }
 
-        Ok(Store {
-            task_queue,
+    pub(crate) fn build(config: Config, pool: SqlxPool, task_queue: TaskQueue) -> Self {
+        StoreInner {
             config,
             pool,
-        })
+            task_queue,
+        }
+        .into()
+    }
+
+    pub fn pooled(&self) -> DbConnection<'static> {
+        DbConnection::pooled(self.inner.clone())
     }
 
     pub fn connect(&self) -> impl Future<Output = Result<DbConnection<'static>>> {
-        DbConnection::new(
-            self.pool.clone(),
-            self.config.clone(),
-            self.task_queue.clone(),
-        )
+        DbConnection::connect(self.inner.clone())
     }
 
     pub async fn queue_task(&self, task: Task) {
-        self.task_queue.queue_task(task).await;
+        self.inner.task_queue.queue_task(task).await;
     }
 
     pub async fn finish_tasks(&self) {
-        self.task_queue.finish_tasks().await;
+        self.inner.task_queue.finish_tasks().await;
     }
 
     pub(crate) fn config(&self) -> &Config {
-        &self.config
+        &self.inner.config
     }
 
     pub async fn isolated<'a, 'c>(&'c self, level: Isolation) -> Result<DbConnection<'a>>
     where
         'c: 'a,
     {
-        let inner = self.pool.begin().await?;
+        let tx = self.inner.pool.begin().await?;
+        Ok(DbConnection::from_transaction(self.clone(), level, tx))
+    }
+}
 
-        Ok(DbConnection {
-            connection: Connection::Transaction((level, inner)),
-            pool: self.pool.clone(),
-            config: self.config.clone(),
-            task_queue: self.task_queue.clone(),
-        })
+impl Deref for Store {
+    type Target = DbConnection<'static>;
+
+    fn deref(&self) -> &DbConnection<'static> {
+        &self.pooled
+    }
+}
+
+impl DerefMut for Store {
+    fn deref_mut(&mut self) -> &mut DbConnection<'static> {
+        &mut self.pooled
     }
 }

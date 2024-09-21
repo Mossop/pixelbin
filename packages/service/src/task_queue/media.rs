@@ -1,6 +1,6 @@
 use std::{cmp, collections::HashMap};
 
-use futures::{stream::FuturesUnordered, FutureExt, StreamExt, TryFutureExt};
+use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 use pixelbin_shared::IgnorableFuture;
 use tokio::fs;
 use tracing::{instrument, Instrument};
@@ -13,20 +13,17 @@ use crate::{
     shared::file_exists,
     store::{
         db::models,
+        db::Isolation,
         file::{DiskStore, FileStore},
         models::AlternateFileType,
-        Isolation,
     },
-    task_queue::{
-        opcache::{MediaFileOpCache, OP_CACHE},
-        DbConnection,
-    },
-    Error, Result,
+    task_queue::opcache::{MediaFileOpCache, OP_CACHE},
+    Error, Result, Store,
 };
 
-#[instrument(skip(conn, op_cache), err)]
-async fn extract_metadata(conn: &mut DbConnection<'_>, op_cache: MediaFileOpCache) -> Result {
-    let mut conn = conn.isolated(Isolation::Committed).await?;
+#[instrument(skip(store, op_cache), err)]
+async fn extract_metadata(store: Store, op_cache: MediaFileOpCache) -> Result {
+    let mut conn = store.isolated(Isolation::Committed).await?;
 
     let local_store = DiskStore::local_store(conn.config());
 
@@ -60,9 +57,9 @@ async fn extract_metadata(conn: &mut DbConnection<'_>, op_cache: MediaFileOpCach
     conn.commit().await
 }
 
-#[instrument(skip(conn, op_cache), err)]
-async fn upload_media_file(conn: &mut DbConnection<'_>, mut op_cache: MediaFileOpCache) -> Result {
-    let mut conn = conn.isolated(Isolation::Committed).await?;
+#[instrument(skip(store, op_cache), err)]
+async fn upload_media_file(store: Store, mut op_cache: MediaFileOpCache) -> Result {
+    let mut conn = store.isolated(Isolation::Committed).await?;
 
     if op_cache.media_file.stored.is_some() {
         models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog)
@@ -97,9 +94,9 @@ async fn upload_media_file(conn: &mut DbConnection<'_>, mut op_cache: MediaFileO
     conn.commit().await
 }
 
-#[instrument(skip(conn, op_cache), err)]
+#[instrument(skip(store, op_cache), err)]
 async fn build_alternate(
-    conn: &mut DbConnection<'_>,
+    store: Store,
     op_cache: MediaFileOpCache,
     mut alternate_file: models::AlternateFile,
 ) -> Result {
@@ -110,7 +107,7 @@ async fn build_alternate(
         None
     };
 
-    let mut conn = conn.isolated(Isolation::Committed).await?;
+    let mut conn = store.isolated(Isolation::Committed).await?;
 
     let built_file = if alternate_file.mimetype.type_() == mime::IMAGE {
         let source_image = match alternate_file.file_type {
@@ -153,20 +150,16 @@ async fn build_alternate(
     conn.commit().await
 }
 
-#[instrument(skip(conn), err)]
-pub(super) async fn process_media_file(conn: &mut DbConnection<'_>, media_file_id: &str) -> Result {
-    let op_cache = OP_CACHE.for_media_file(conn, media_file_id).await?;
+#[instrument(skip(store), err)]
+pub(super) async fn process_media_file(store: Store, media_file_id: &str) -> Result {
+    let mut conn = store.connect().await?;
+    let op_cache = OP_CACHE.for_media_file(&mut conn, media_file_id).await?;
 
     let tasks = FuturesUnordered::new();
 
     if op_cache.media_file.stored.is_none() {
-        let store = conn.store();
-        let op_cache = op_cache.clone();
-
         tasks.push(
-            store
-                .connect()
-                .and_then(|mut conn| async move { upload_media_file(&mut conn, op_cache).await })
+            upload_media_file(store.clone(), op_cache.clone())
                 .warn()
                 .in_current_span()
                 .boxed(),
@@ -174,30 +167,20 @@ pub(super) async fn process_media_file(conn: &mut DbConnection<'_>, media_file_i
     }
 
     if op_cache.media_file.needs_metadata {
-        let store = conn.store();
-        let op_cache = op_cache.clone();
-
         tasks.push(
-            store
-                .connect()
-                .and_then(|mut conn| async move { extract_metadata(&mut conn, op_cache).await })
+            extract_metadata(store.clone(), op_cache.clone())
                 .warn()
                 .in_current_span()
                 .boxed(),
         );
     }
 
-    for alternate_file in models::AlternateFile::list_for_media_file(conn, media_file_id).await? {
+    for alternate_file in
+        models::AlternateFile::list_for_media_file(&mut conn, media_file_id).await?
+    {
         if alternate_file.stored.is_none() {
-            let store = conn.store();
-            let op_cache = op_cache.clone();
-
             tasks.push(
-                store
-                    .connect()
-                    .and_then(|mut conn| async move {
-                        build_alternate(&mut conn, op_cache, alternate_file).await
-                    })
+                build_alternate(store.clone(), op_cache.clone(), alternate_file)
                     .warn()
                     .in_current_span()
                     .boxed(),
@@ -207,16 +190,17 @@ pub(super) async fn process_media_file(conn: &mut DbConnection<'_>, media_file_i
 
     tasks.count().await;
 
-    op_cache.release(conn).await
+    op_cache.release(&mut conn).await
 }
 
-#[instrument(skip(conn), err)]
-pub(super) async fn prune_deleted_media(conn: &mut DbConnection<'_>, catalog: &str) -> Result {
-    let media = models::MediaItem::list_deleted(conn, catalog).await?;
+#[instrument(skip(store), err)]
+pub(super) async fn prune_deleted_media(store: Store, catalog: &str) -> Result {
+    let mut conn = store.connect().await?;
+    let media = models::MediaItem::list_deleted(&mut conn, catalog).await?;
 
     let media_ids = media.iter().map(|m| m.id.clone()).collect::<Vec<String>>();
 
-    models::MediaItem::delete(conn, &media_ids).await?;
+    models::MediaItem::delete(&mut conn, &media_ids).await?;
 
     let mut mapped: HashMap<String, Vec<models::MediaItem>> = HashMap::new();
     for m in media {
@@ -227,7 +211,7 @@ pub(super) async fn prune_deleted_media(conn: &mut DbConnection<'_>, catalog: &s
     let temp_store = DiskStore::temp_store(conn.config());
 
     for (catalog, media) in mapped.iter() {
-        let storage = models::Storage::get_for_catalog(conn, catalog).await?;
+        let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
         let remote_store = storage.file_store(conn.config()).await?;
 
         for media in media {
@@ -240,7 +224,7 @@ pub(super) async fn prune_deleted_media(conn: &mut DbConnection<'_>, catalog: &s
     }
 
     for catalog in mapped.keys() {
-        models::SavedSearch::update_for_catalog(conn, catalog).await?;
+        models::SavedSearch::update_for_catalog(&mut conn, catalog).await?;
     }
 
     Ok(())

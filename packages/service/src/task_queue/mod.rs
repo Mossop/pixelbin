@@ -18,10 +18,7 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
     shared::{record_result, DEFAULT_STATUS},
-    store::{
-        db::{DbConnection, SqlxPool},
-        models,
-    },
+    store::{db::SqlxPool, models},
     task_queue::{
         maintenance::{
             delete_alternate_files, prune_media_files, prune_media_items, server_startup,
@@ -29,7 +26,7 @@ use crate::{
         },
         media::{process_media_file, prune_deleted_media},
     },
-    Config, Result,
+    Config, Result, Store,
 };
 
 mod maintenance;
@@ -59,21 +56,21 @@ pub enum Task {
 }
 
 impl Task {
-    async fn run(&self, conn: &mut DbConnection<'_>) -> Result {
+    async fn run(&self, store: Store) -> Result {
         match self {
-            Task::ServerStartup => server_startup(conn).await,
-            Task::DeleteMedia { catalog } => prune_deleted_media(conn, catalog).await,
-            Task::UpdateSearches { catalog } => update_searches(conn, catalog).await,
+            Task::ServerStartup => server_startup(store).await,
+            Task::DeleteMedia { catalog } => prune_deleted_media(store, catalog).await,
+            Task::UpdateSearches { catalog } => update_searches(store, catalog).await,
             Task::VerifyStorage {
                 catalog,
                 delete_files,
-            } => verify_storage(conn, catalog, *delete_files).await,
-            Task::PruneMediaFiles { catalog } => prune_media_files(conn, catalog).await,
-            Task::PruneMediaItems { catalog } => prune_media_items(conn, catalog).await,
-            Task::ProcessMedia { catalog } => trigger_media_tasks(conn, catalog).await,
-            Task::ProcessMediaFile { media_file } => process_media_file(conn, media_file).await,
+            } => verify_storage(store, catalog, *delete_files).await,
+            Task::PruneMediaFiles { catalog } => prune_media_files(store, catalog).await,
+            Task::PruneMediaItems { catalog } => prune_media_items(store, catalog).await,
+            Task::ProcessMedia { catalog } => trigger_media_tasks(store, catalog).await,
+            Task::ProcessMediaFile { media_file } => process_media_file(store, media_file).await,
             Task::DeleteAlternateFiles { alternate_files } => {
-                delete_alternate_files(conn, alternate_files).await
+                delete_alternate_files(store, alternate_files).await
             }
         }
     }
@@ -120,7 +117,7 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
         .collect()
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct TaskQueue {
     pool: SqlxPool,
     config: Config,
@@ -177,10 +174,12 @@ impl TaskQueue {
         self.sender.send((task, context_data)).await.unwrap();
     }
 
+    fn store(&self) -> Store {
+        Store::build(self.config.clone(), self.pool.clone(), self.clone())
+    }
+
     async fn run_task(&self, task: &Task) -> Result {
-        let mut db_conn =
-            DbConnection::new(self.pool.clone(), self.config.clone(), self.clone()).await?;
-        let result = task.run(&mut db_conn).await;
+        let result = task.run(self.store()).await;
 
         let count = self.pending.fetch_sub(1, Ordering::AcqRel) - 1;
         if count == 0 {
@@ -198,8 +197,7 @@ impl TaskQueue {
             now.hour()
         };
 
-        let mut db_conn =
-            DbConnection::new(self.pool.clone(), self.config.clone(), self.clone()).await?;
+        let mut db_conn = self.store().connect().await?;
         let catalogs: Vec<String> = models::Catalog::list(&mut db_conn)
             .await?
             .into_iter()

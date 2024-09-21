@@ -6,8 +6,8 @@ use tracing::{instrument, warn, Instrument};
 use crate::{
     server::{ApiErrorCode, ApiResult, AppState},
     store::{
+        db::Isolation,
         models::{self, AlbumWithCount, SavedSearchWithCount, UserCatalogWithCount},
-        Isolation,
     },
     Error,
 };
