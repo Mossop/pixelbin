@@ -3,7 +3,7 @@ mod internal;
 pub(crate) mod models;
 pub(crate) mod search;
 
-use std::{fmt, mem, sync::Arc};
+use std::{fmt, mem, sync::Arc, time::Duration};
 
 use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
@@ -40,8 +40,9 @@ pub enum Isolation {
 pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<Store> {
     // Set up the async pool.
     let pool = PgPoolOptions::new()
-        .min_connections(5)
+        .min_connections(1)
         .max_connections(10)
+        .acquire_timeout(Duration::from_secs(60 * 5))
         .connect(&config.database_url)
         .await?;
 

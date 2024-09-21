@@ -47,6 +47,16 @@ impl Clone for Store {
 }
 
 impl Store {
+    pub(crate) fn with_pool(&self, pool: SqlxPool) -> Self {
+        StoreInner {
+            pool,
+            task_queue: self.inner.task_queue.clone(),
+            expensive_tasks: self.inner.expensive_tasks.clone(),
+            config: self.inner.config.clone(),
+        }
+        .into()
+    }
+
     pub async fn new(config: Config, task_span: Option<Id>) -> Result<Self> {
         connect(&config, task_span).await
     }

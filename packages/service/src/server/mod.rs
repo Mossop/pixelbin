@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, fmt::Display, result};
+use std::{collections::HashMap, env, fmt::Display, result, time::Duration};
 
 use actix_web::{
     body::BoxBody,
@@ -9,6 +9,7 @@ use actix_web::{
 };
 use pixelbin_shared::ThumbnailConfig;
 use serde::Serialize;
+use sqlx::postgres::PgPoolOptions;
 use tracing::instrument;
 
 use crate::{store::Store, Error, Result};
@@ -161,8 +162,17 @@ async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json
 pub async fn serve(store: &Store) -> Result {
     let port = store.config().port.unwrap_or(DEFAULT_PORT);
 
+    // Use a dedicated pool for the web server so nothing else can starve it of
+    // connections.
+    let pool = PgPoolOptions::new()
+        .min_connections(10)
+        .max_connections(30)
+        .acquire_timeout(Duration::from_secs(10))
+        .connect(&store.config().database_url)
+        .await?;
+
     let state = AppState {
-        store: store.clone(),
+        store: store.with_pool(pool),
         request_tracker: middleware::RequestTracker::new(store.clone()).await,
     };
 
