@@ -3,12 +3,13 @@ mod internal;
 pub(crate) mod models;
 pub(crate) mod search;
 
-use std::{fmt, mem};
+use std::{fmt, mem, sync::Arc};
 
 use chrono::{Duration, Utc};
 use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
 use sqlx::{postgres::PgPoolOptions, Transaction};
+use tokio::sync::Semaphore;
 use tracing::{error, info, instrument, span, span::Id, warn, Level};
 
 use crate::{
@@ -65,13 +66,16 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<St
         }).await?;
     }
 
-    let task_queue = TaskQueue::new(pool.clone(), config.clone(), task_span);
+    let task_queue = TaskQueue::new();
     let mut store: Store = StoreInner {
         pool,
         config: config.clone(),
-        task_queue,
+        task_queue: task_queue.clone(),
+        expensive_tasks: Arc::new(Semaphore::new(1)),
     }
     .into();
+
+    task_queue.spawn(&store, task_span);
 
     // Verify that we can connect and update cached views.
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "user_catalog";"#)

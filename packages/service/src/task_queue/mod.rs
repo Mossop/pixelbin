@@ -18,7 +18,7 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
     shared::{record_result, DEFAULT_STATUS},
-    store::{db::SqlxPool, models},
+    store::models,
     task_queue::{
         maintenance::{
             delete_alternate_files, prune_media_files, prune_media_items, server_startup,
@@ -26,7 +26,7 @@ use crate::{
         },
         media::{process_media_file, prune_deleted_media},
     },
-    Config, Result, Store,
+    Result, Store,
 };
 
 mod maintenance;
@@ -119,40 +119,78 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
 
 #[derive(Clone, Debug)]
 pub(crate) struct TaskQueue {
-    pool: SqlxPool,
-    config: Config,
     notify: Arc<Notify>,
     pending: Arc<AtomicUsize>,
     sender: Sender<TaskMessage>,
+    receiver: Receiver<TaskMessage>,
+}
+
+pub(crate) struct TaskLoop {
+    store: Store,
+    notify: Arc<Notify>,
+    pending: Arc<AtomicUsize>,
+    receiver: Receiver<TaskMessage>,
+}
+
+impl TaskLoop {
+    fn spawn(queue: &TaskQueue, store: &Store, parent_span: Option<Id>) {
+        let this = TaskLoop {
+            store: store.clone(),
+            notify: queue.notify.clone(),
+            pending: queue.pending.clone(),
+            receiver: queue.receiver.clone(),
+        };
+
+        tokio::spawn(this.task_loop(parent_span.clone()));
+    }
+
+    async fn run_task(&self, task: &Task) -> Result {
+        let result = task.run(self.store.clone()).await;
+
+        let count = self.pending.fetch_sub(1, Ordering::AcqRel) - 1;
+        if count == 0 {
+            self.notify.notify_waiters();
+        }
+
+        result
+    }
+
+    async fn task_loop(self, parent_span: Option<Id>) {
+        while let Ok((task, context_data)) = self.receiver.recv().await {
+            let linked_context =
+                global::get_text_map_propagator(|propagator| propagator.extract(&context_data));
+            let linked_span = linked_context.span().span_context().clone();
+
+            let task_name: &'static str = (&task).into();
+            let span = span!(parent: parent_span.clone(), Level::TRACE, "task", "otel.name" = task_name, "otel.status_code" = DEFAULT_STATUS, "otel.status_description" = field::Empty);
+            span.add_link(linked_span);
+
+            let result = self.run_task(&task).instrument(span.clone()).await;
+            record_result(&span, &result);
+        }
+    }
 }
 
 impl TaskQueue {
-    pub(crate) fn new(pool: SqlxPool, config: Config, parent_span: Option<Id>) -> Self {
+    pub(crate) fn new() -> Self {
         let (sender, receiver) = unbounded();
 
-        let queue = Self {
-            pool,
-            config: config.clone(),
+        Self {
             notify: Arc::new(Notify::new()),
             pending: Arc::new(AtomicUsize::new(0)),
             sender,
-        };
+            receiver,
+        }
+    }
 
+    pub(crate) fn spawn(&self, store: &Store, parent_span: Option<Id>) {
         let workers = 3;
 
-        for _ in 1..workers {
-            tokio::spawn(TaskQueue::task_loop(
-                queue.clone(),
-                receiver.clone(),
-                parent_span.clone(),
-            ));
+        for _ in 0..workers {
+            TaskLoop::spawn(self, store, parent_span.clone());
         }
 
-        tokio::spawn(TaskQueue::task_loop(queue.clone(), receiver, parent_span));
-
-        tokio::spawn(TaskQueue::cron_loop(queue.clone()));
-
-        queue
+        tokio::spawn(TaskQueue::cron_loop(store.clone()));
     }
 
     pub(crate) async fn finish_tasks(&self) {
@@ -174,22 +212,7 @@ impl TaskQueue {
         self.sender.send((task, context_data)).await.unwrap();
     }
 
-    fn store(&self) -> Store {
-        Store::build(self.config.clone(), self.pool.clone(), self.clone())
-    }
-
-    async fn run_task(&self, task: &Task) -> Result {
-        let result = task.run(self.store()).await;
-
-        let count = self.pending.fetch_sub(1, Ordering::AcqRel) - 1;
-        if count == 0 {
-            self.notify.notify_waiters();
-        }
-
-        result
-    }
-
-    async fn cron_inner(&self) -> Result {
+    async fn cron_inner(store: &Store) -> Result {
         let now = Local::now();
         let hours = if now.minute() >= 30 {
             now.hour() + 1
@@ -197,7 +220,7 @@ impl TaskQueue {
             now.hour()
         };
 
-        let mut db_conn = self.store().connect().await?;
+        let mut db_conn = store.connect().await?;
         let catalogs: Vec<String> = models::Catalog::list(&mut db_conn)
             .await?
             .into_iter()
@@ -206,32 +229,37 @@ impl TaskQueue {
 
         // Hourly
         for catalog in catalogs.iter() {
-            self.queue_task(Task::UpdateSearches {
-                catalog: catalog.clone(),
-            })
-            .await;
+            store
+                .queue_task(Task::UpdateSearches {
+                    catalog: catalog.clone(),
+                })
+                .await;
         }
 
         // Daily
         {
             let catalogs = partition(&catalogs, 24, hours);
             for catalog in catalogs.iter() {
-                self.queue_task(Task::ProcessMedia {
-                    catalog: catalog.to_string(),
-                })
-                .await;
-                self.queue_task(Task::DeleteMedia {
-                    catalog: catalog.to_string(),
-                })
-                .await;
-                self.queue_task(Task::PruneMediaItems {
-                    catalog: catalog.to_string(),
-                })
-                .await;
-                self.queue_task(Task::PruneMediaFiles {
-                    catalog: catalog.to_string(),
-                })
-                .await;
+                store
+                    .queue_task(Task::ProcessMedia {
+                        catalog: catalog.to_string(),
+                    })
+                    .await;
+                store
+                    .queue_task(Task::DeleteMedia {
+                        catalog: catalog.to_string(),
+                    })
+                    .await;
+                store
+                    .queue_task(Task::PruneMediaItems {
+                        catalog: catalog.to_string(),
+                    })
+                    .await;
+                store
+                    .queue_task(Task::PruneMediaFiles {
+                        catalog: catalog.to_string(),
+                    })
+                    .await;
             }
         }
 
@@ -250,36 +278,22 @@ impl TaskQueue {
 
             let catalogs = partition(&catalogs, days_in_month, now.day0());
             for catalog in catalogs.iter() {
-                self.queue_task(Task::VerifyStorage {
-                    catalog: catalog.to_string(),
-                    delete_files: true,
-                })
-                .await;
+                store
+                    .queue_task(Task::VerifyStorage {
+                        catalog: catalog.to_string(),
+                        delete_files: true,
+                    })
+                    .await;
             }
         }
 
         Ok(())
     }
 
-    async fn cron_loop(self) {
+    async fn cron_loop(store: Store) {
         loop {
             sleep(next_tick()).await;
-            self.cron_inner().await.warn();
-        }
-    }
-
-    async fn task_loop(queue: TaskQueue, receiver: Receiver<TaskMessage>, parent_span: Option<Id>) {
-        while let Ok((task, context_data)) = receiver.recv().await {
-            let linked_context =
-                global::get_text_map_propagator(|propagator| propagator.extract(&context_data));
-            let linked_span = linked_context.span().span_context().clone();
-
-            let task_name: &'static str = (&task).into();
-            let span = span!(parent: parent_span.clone(), Level::TRACE, "task", "otel.name" = task_name, "otel.status_code" = DEFAULT_STATUS, "otel.status_description" = field::Empty);
-            span.add_link(linked_span);
-
-            let result = queue.run_task(&task).instrument(span.clone()).await;
-            record_result(&span, &result);
+            Self::cron_inner(&store).await.warn();
         }
     }
 }

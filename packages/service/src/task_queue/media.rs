@@ -100,9 +100,8 @@ async fn build_alternate(
     op_cache: MediaFileOpCache,
     mut alternate_file: models::AlternateFile,
 ) -> Result {
-    let _guard: Option<()> = if alternate_file.mimetype.type_() == mime::VIDEO {
-        None
-        // Some(conn.config().enter_expensive_task().await)
+    let _guard = if alternate_file.mimetype.type_() == mime::VIDEO {
+        Some(store.enter_expensive_task().await)
     } else {
         None
     };

@@ -2,6 +2,7 @@
 use std::{
     future::Future,
     ops::{Deref, DerefMut},
+    sync::Arc,
 };
 
 pub(crate) mod aws;
@@ -11,6 +12,7 @@ pub(crate) mod path;
 
 pub(crate) use db::models;
 use db::{connect, DbConnection};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use tracing::span::Id;
 
 use crate::{store::db::SqlxPool, Config, Isolation, Result, Task, TaskQueue};
@@ -20,6 +22,7 @@ struct StoreInner {
     config: Config,
     pool: SqlxPool,
     task_queue: TaskQueue,
+    expensive_tasks: Arc<Semaphore>,
 }
 
 impl From<StoreInner> for Store {
@@ -48,21 +51,21 @@ impl Store {
         connect(&config, task_span).await
     }
 
-    pub(crate) fn build(config: Config, pool: SqlxPool, task_queue: TaskQueue) -> Self {
-        StoreInner {
-            config,
-            pool,
-            task_queue,
-        }
-        .into()
-    }
-
     pub fn pooled(&self) -> DbConnection<'static> {
         DbConnection::pooled(self.inner.clone())
     }
 
     pub fn connect(&self) -> impl Future<Output = Result<DbConnection<'static>>> {
         DbConnection::connect(self.inner.clone())
+    }
+
+    pub(crate) async fn enter_expensive_task(&self) -> OwnedSemaphorePermit {
+        self.inner
+            .expensive_tasks
+            .clone()
+            .acquire_owned()
+            .await
+            .unwrap()
     }
 
     pub async fn queue_task(&self, task: Task) {
