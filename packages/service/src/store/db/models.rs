@@ -3455,6 +3455,16 @@ pub(crate) struct Relations {
     pub(crate) searches: Vec<SearchRelation>,
 }
 
+fn decoded<T>(data: Option<Value>) -> SqlxResult<Vec<T>>
+where
+    T: DeserializeOwned,
+{
+    match data {
+        Some(v) => from_value(v).map_err(|e| SqlxError::Decode(Box::new(e))),
+        None => Ok(Vec::new()),
+    }
+}
+
 impl Relations {
     fn decode(
         albums: Option<Value>,
@@ -3463,14 +3473,10 @@ impl Relations {
         searches: Option<Value>,
     ) -> SqlxResult<Self> {
         Ok(Self {
-            albums: from_value(albums.unwrap_or(Value::Null))
-                .map_err(|e| SqlxError::Decode(Box::new(e)))?,
-            tags: from_value(tags.unwrap_or(Value::Null))
-                .map_err(|e| SqlxError::Decode(Box::new(e)))?,
-            people: from_value(people.unwrap_or(Value::Null))
-                .map_err(|e| SqlxError::Decode(Box::new(e)))?,
-            searches: from_value(searches.unwrap_or(Value::Null))
-                .map_err(|e| SqlxError::Decode(Box::new(e)))?,
+            albums: decoded(albums)?,
+            tags: decoded(tags)?,
+            people: decoded(people)?,
+            searches: decoded(searches)?,
         })
     }
 }
@@ -3524,7 +3530,12 @@ impl MediaRelations {
             search,
             email,
             media
-        ).try_map(|row| Ok((from_row!(MediaView(row)), row.writable, from_row!(Relations(row)), row.in_public_search.unwrap_or_default()))).fetch_all(conn).await?;
+        ).try_map(|row| Ok((
+            from_row!(MediaView(row)),
+            row.writable,
+            from_row!(Relations(row)),
+            row.in_public_search.unwrap_or_default()
+        ))).fetch_all(conn).await?;
 
         Ok(media
             .into_iter()

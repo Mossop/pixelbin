@@ -1,6 +1,5 @@
 use std::{env, fs, path::PathBuf, result, str::FromStr, time::Duration};
 
-use crate::{Error, Result};
 use figment::{
     providers::{Env, Format, Json},
     value::{
@@ -11,6 +10,8 @@ use figment::{
 };
 use mime::Mime;
 use serde::{Deserialize, Deserializer, Serialize};
+
+use crate::{Error, Result};
 
 mod mimes {
     use std::str::FromStr;

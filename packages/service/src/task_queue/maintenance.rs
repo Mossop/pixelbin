@@ -99,7 +99,7 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
 
         let _guard = store
             .locks()
-            .media_item(&media_item_store)
+            .media_item(&store, &media_item_store)
             .for_delete()
             .await;
 
@@ -133,6 +133,7 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
             // the right flags.
             let mut changed = false;
             remote_files.remove(&media_file_path);
+
             temp_files.remove(&media_file_path);
 
             if !has_remote && media_file.stored.is_some() {
@@ -160,11 +161,7 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
                 changed = true;
             }
 
-            valid_media_file = if !media_file.needs_metadata && media_file.stored.is_some() {
-                Some(media_file.clone())
-            } else {
-                None
-            };
+            let mut is_complete = !media_file.needs_metadata && media_file.stored.is_some();
 
             let known_alternates =
                 models::AlternateFile::list_for_media_file(&mut conn, &media_file_store.file)
@@ -210,19 +207,19 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
                             "Alternate file was lost."
                         );
 
-                        valid_media_file = None;
+                        is_complete = false;
                         alternate.stored = None;
                         alternates_to_update.push(alternate);
                     } else {
                         store.remove(&resource);
                     }
                 } else {
-                    valid_media_file = None;
+                    is_complete = false;
                 }
             }
 
             if !wanted_alternates.is_empty() {
-                valid_media_file = None;
+                is_complete = false;
             }
 
             for alternate in wanted_alternates {
@@ -236,6 +233,13 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
                 );
 
                 alternates_to_update.push(new_alternate);
+            }
+
+            if is_complete {
+                valid_media_file = Some(media_file.clone());
+            } else {
+                // The temp file is still needed.
+                temp_files.remove(&media_file_path);
             }
 
             if changed {

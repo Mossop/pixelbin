@@ -16,13 +16,17 @@ use opentelemetry_sdk::{
     trace::{self, TracerProvider},
     Resource,
 };
-use pixelbin::{server::serve, StoreStats};
-use pixelbin::{Config, Result, Store, Task};
+use pixelbin::{server::serve, Config, Result, Store, StoreStats, Task};
 use tokio::runtime::Builder;
 use tracing::{span, Instrument, Level, Span};
 use tracing_subscriber::{
     filter::Targets, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry,
 };
+
+#[cfg(not(debug_assertions))]
+const STACK_SIZE: usize = 10 * 1024 * 1024;
+#[cfg(debug_assertions)]
+const STACK_SIZE: usize = 20 * 1024 * 1024;
 
 async fn list_catalogs(store: &Store) -> Result<Vec<String>> {
     store.pooled().list_catalogs().await
@@ -287,7 +291,7 @@ fn main() -> ExitCode {
     let _ = dotenv();
 
     let runtime = Builder::new_multi_thread()
-        .thread_stack_size(200 * 1024 * 1024)
+        .thread_stack_size(STACK_SIZE)
         .enable_all()
         .build()
         .unwrap();

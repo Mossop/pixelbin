@@ -22,8 +22,7 @@ use crate::{
         ApiResponse, ApiResult, AppState,
     },
     store::{
-        db::Isolation,
-        db::{search::SearchQuery, DbConnection},
+        db::{search::SearchQuery, DbConnection, Isolation},
         file::DiskStore,
         models::{self, AlternateFile, AlternateFileType, Location, MediaViewStream, Orientation},
     },

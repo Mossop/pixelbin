@@ -142,6 +142,13 @@ impl MediaFileStore {
             file_name: file_name.to_owned(),
         }
     }
+
+    pub(crate) fn media_item_store(&self) -> MediaItemStore {
+        MediaItemStore {
+            catalog: self.catalog.clone(),
+            item: self.item.clone(),
+        }
+    }
 }
 
 impl PathLike for MediaFileStore {

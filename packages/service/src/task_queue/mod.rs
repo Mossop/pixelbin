@@ -31,7 +31,7 @@ use crate::{
 
 mod maintenance;
 mod media;
-mod opcache;
+pub(crate) mod opcache;
 
 #[derive(Debug, IntoStaticStr)]
 pub enum Task {

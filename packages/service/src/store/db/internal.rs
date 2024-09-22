@@ -17,13 +17,12 @@ use sqlx::{
 };
 use tracing::{field, span, Instrument, Level, Span};
 
+use super::{DbConnection, SqlxDatabase};
 use crate::{
     shared::{record_error, DEFAULT_STATUS},
     store::db::SqlxPool,
     Isolation, Store,
 };
-
-use super::{DbConnection, SqlxDatabase};
 
 type SqlxResult<T> = sqlx::Result<T>;
 

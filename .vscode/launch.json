@@ -2,11 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Next.js",
-      "type": "node-terminal",
+      "type": "lldb",
       "request": "launch",
-      "command": "npm run dev",
-      "cwd": "${workspaceFolder}/packages/webapp"
+      "name": "Launch",
+      "program": "${workspaceFolder}/target/debug/pixelbin",
+      "args": ["reprocess"],
+      "cwd": "${workspaceFolder}",
+      "sourceLanguages": ["rust"]
     }
   ]
 }

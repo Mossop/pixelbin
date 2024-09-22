@@ -15,7 +15,10 @@ pub(crate) use db::models;
 use db::{connect, DbConnection};
 use tracing::span::Id;
 
-use crate::{store::db::SqlxPool, store::locks::Locks, Config, Isolation, Result, Task, TaskQueue};
+use crate::{
+    store::{db::SqlxPool, locks::Locks},
+    Config, Isolation, Result, Task, TaskQueue,
+};
 
 #[derive(Clone)]
 struct StoreInner {
