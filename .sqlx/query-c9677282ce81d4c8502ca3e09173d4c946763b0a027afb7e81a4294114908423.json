@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO \"album\" (\"id\", \"parent\", \"name\", \"catalog\")\n                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[])\n                ON CONFLICT(\"id\") DO UPDATE SET\n                    \"name\"=\"excluded\".\"name\",\n                    \"parent\"=\"excluded\".\"parent\"\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c9677282ce81d4c8502ca3e09173d4c946763b0a027afb7e81a4294114908423"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO \"tag\" (\"id\", \"parent\", \"catalog\", \"name\")\n                    VALUES ($1, $2, $3, $4)\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a454f208e58148518e94e30fe6623eefc70200152befbf888c35901bbd066ef5"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM \"alternate_file\"\n            WHERE \"id\"=ANY($1)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e0512a199f7513069fe342c0dfba86c3cd6a1c0e37a2685325f50fd9bdd95c21"
+}

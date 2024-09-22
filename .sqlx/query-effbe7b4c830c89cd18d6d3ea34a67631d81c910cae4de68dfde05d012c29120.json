@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO \"media_album\" (\n                    \"catalog\",\n                    \"album\",\n                    \"media\"\n                )\n                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])\n                ON CONFLICT DO NOTHING\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "effbe7b4c830c89cd18d6d3ea34a67631d81c910cae4de68dfde05d012c29120"
+}

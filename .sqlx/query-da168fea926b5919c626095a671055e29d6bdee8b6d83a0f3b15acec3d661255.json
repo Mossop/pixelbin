@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT \"client\", COUNT(\"status_code\") AS \"count\", MAX(\"request_time\") AS \"last\"\n                    FROM \"client_error\"\n                    WHERE \"request_time\" > $1\n                    GROUP BY \"client\"\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "client",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "last",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "da168fea926b5919c626095a671055e29d6bdee8b6d83a0f3b15acec3d661255"
+}

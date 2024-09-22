@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"storage\".*\n            FROM \"storage\" JOIN \"catalog\" ON \"catalog\".\"storage\"=\"storage\".\"id\"\n            WHERE \"catalog\".\"id\"=$1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "access_key_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "secret_access_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "bucket",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "region",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "endpoint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "public_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "owner",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "7e39c975f010ec2a1bb692dfc77f7e907134e44aaccaf46ff2aaed39a9af899e"
+}

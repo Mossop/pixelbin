@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"album\".*\n            FROM \"album\"\n                JOIN \"user_catalog\" ON \"user_catalog\".\"catalog\"=\"album\".\"catalog\"\n            WHERE \"user_catalog\".\"user\"=$1 AND \"album\".\"id\"=$2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "catalog",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "7a30b52c0d98126b5b962f5fe9e1455cf13b3f3c976aee62e378b86dedc67a0d"
+}

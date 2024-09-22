@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"catalog\".*,\"writable\"\n            FROM \"catalog\" JOIN \"user_catalog\" ON \"catalog\".\"id\"=\"user_catalog\".\"catalog\"\n            WHERE\n                \"user_catalog\".\"user\"=$1 AND\n                \"catalog\".\"id\"=$2 AND\n                (\"user_catalog\".\"writable\" OR $3)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "storage",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "writable",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "766b15ab63f164f5b759b9fd25fba05251c8b2c3d92e02db636ed8f62bbc88c7"
+}

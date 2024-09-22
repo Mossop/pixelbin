@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM \"media_file\"\n                WHERE \"id\"=ANY($1)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d047cdb1ef0d5f2f4d5bdc9e8c48afecfc1f5ee6b1c84730b471f130ec00df20"
+}

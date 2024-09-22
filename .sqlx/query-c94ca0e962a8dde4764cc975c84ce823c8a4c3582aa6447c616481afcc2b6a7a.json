@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO \"auth_token\" (\"email\", \"token\", \"expiry\")\n            VALUES ($1,$2,$3)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Varchar",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c94ca0e962a8dde4764cc975c84ce823c8a4c3582aa6447c616481afcc2b6a7a"
+}

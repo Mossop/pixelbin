@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"catalog\".*, \"user_catalog\".\"writable\", \"media\"\n            FROM catalog\n                JOIN \"user_catalog\" ON \"catalog\".\"id\"=\"user_catalog\".\"catalog\"\n                LEFT JOIN (\n                    SELECT \"catalog\", COUNT(\"id\") AS \"media\"\n                    FROM \"media_item\"\n                    WHERE NOT \"deleted\"\n                    GROUP BY \"catalog\"\n                ) AS \"media\" ON \"media\".\"catalog\"=\"catalog\".\"id\"\n            WHERE\n                \"user_catalog\".\"user\"=$1 AND\n                \"catalog\".id=$2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "storage",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "writable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "media",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "5e0e5b26de322116749fafcc5480dd115d8e7edba5908908303f8c9f42a527bb"
+}

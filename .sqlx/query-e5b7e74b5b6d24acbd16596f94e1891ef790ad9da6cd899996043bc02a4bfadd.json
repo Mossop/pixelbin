@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO \"media_tag\" (\"catalog\", \"media\", \"tag\")\n                SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])\n                ON CONFLICT DO NOTHING\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e5b7e74b5b6d24acbd16596f94e1891ef790ad9da6cd899996043bc02a4bfadd"
+}

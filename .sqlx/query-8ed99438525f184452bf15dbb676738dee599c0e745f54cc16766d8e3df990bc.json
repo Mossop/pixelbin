@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM \"client_error\" WHERE \"request_time\" < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8ed99438525f184452bf15dbb676738dee599c0e745f54cc16766d8e3df990bc"
+}

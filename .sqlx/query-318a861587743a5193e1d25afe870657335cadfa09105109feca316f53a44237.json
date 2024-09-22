@@ -1,0 +1,208 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"media_item\".*\n            FROM \"media_item\"\n            WHERE\n                \"media_item\".\"id\"=$1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "deleted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "created",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "state",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "country",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "make",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "model",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "lens",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "photographer",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "taken_zone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "orientation",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 19,
+        "name": "iso",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "rating",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 21,
+        "name": "longitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 22,
+        "name": "latitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 23,
+        "name": "altitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 24,
+        "name": "aperture",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 25,
+        "name": "focal_length",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 26,
+        "name": "taken",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 27,
+        "name": "catalog",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 28,
+        "name": "media_file",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 29,
+        "name": "datetime",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 30,
+        "name": "shutter_speed",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 31,
+        "name": "public",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "318a861587743a5193e1d25afe870657335cadfa09105109feca316f53a44237"
+}

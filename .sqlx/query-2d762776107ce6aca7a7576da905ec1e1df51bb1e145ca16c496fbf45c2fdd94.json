@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"album\".*, COUNT(\"media_album\".\"media\") AS count\n            FROM \"user_catalog\"\n                JOIN \"album\" USING (\"catalog\")\n                LEFT JOIN \"media_album\" ON \"media_album\".\"album\"=\"album\".\"id\"\n            WHERE \"user_catalog\".\"user\"=$1\n            GROUP BY \"album\".\"id\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "catalog",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "2d762776107ce6aca7a7576da905ec1e1df51bb1e145ca16c496fbf45c2fdd94"
+}

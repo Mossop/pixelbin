@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"id\"\n            FROM \"media_item\"\n            WHERE \"catalog\"=$1 AND\n                (\n                    \"public\" OR\n                    \"id\" IN (\n                        SELECT \"media_search\".\"media\"\n                        FROM \"media_search\"\n                            JOIN \"saved_search\" ON \"saved_search\".\"id\"=\"media_search\".\"search\"\n                        WHERE \"saved_search\".\"shared\"\n                    )\n                )\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e8899a892ccbc0d3c28cc81addca9e587d796c7078eda270181780a3217fef6f"
+}

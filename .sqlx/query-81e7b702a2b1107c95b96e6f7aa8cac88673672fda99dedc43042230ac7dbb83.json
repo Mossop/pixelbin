@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO \"person\" (\"id\", \"name\", \"catalog\")\n                    VALUES ($1, $2, $3)\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "81e7b702a2b1107c95b96e6f7aa8cac88673672fda99dedc43042230ac7dbb83"
+}

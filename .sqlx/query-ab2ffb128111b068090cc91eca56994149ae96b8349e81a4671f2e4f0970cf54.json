@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"saved_search\".*, COUNT(\"media_search\".\"media\") AS \"count\"\n            FROM \"saved_search\"\n                LEFT JOIN \"media_search\" ON \"saved_search\".\"id\"=\"media_search\".\"search\"\n            WHERE\n                \"saved_search\".\"id\"=$1 AND\n                (\n                    \"saved_search\".\"shared\" OR\n                    \"saved_search\".\"catalog\" IN (\n                        SELECT \"user_catalog\".\"catalog\"\n                        FROM \"user_catalog\"\n                        WHERE \"user\"=$2\n                    )\n                )\n            GROUP BY \"saved_search\".\"id\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "shared",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "query",
+        "type_info": "Json"
+      },
+      {
+        "ordinal": 4,
+        "name": "catalog",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "ab2ffb128111b068090cc91eca56994149ae96b8349e81a4671f2e4f0970cf54"
+}

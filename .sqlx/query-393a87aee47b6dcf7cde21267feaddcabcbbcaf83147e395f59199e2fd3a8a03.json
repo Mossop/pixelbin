@@ -1,0 +1,424 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                \"media_item\".*,\n                \"latest_media_file\".\"id\" AS \"media_file_id\",\n                \"latest_media_file\".\"uploaded\" AS \"media_file_uploaded\",\n                \"latest_media_file\".\"file_name\" AS \"media_file_file_name\",\n                \"latest_media_file\".\"file_size\" AS \"media_file_file_size\",\n                \"latest_media_file\".\"mimetype\" AS \"media_file_mimetype\",\n                \"latest_media_file\".\"width\" AS \"media_file_width\",\n                \"latest_media_file\".\"height\" AS \"media_file_height\",\n                \"latest_media_file\".\"duration\" AS \"media_file_duration\",\n                \"latest_media_file\".\"frame_rate\" AS \"media_file_frame_rate\",\n                \"latest_media_file\".\"bit_rate\" AS \"media_file_bit_rate\",\n                \"latest_media_file\".\"filename\" AS \"media_file_filename\",\n                \"latest_media_file\".\"title\" AS \"media_file_title\",\n                \"latest_media_file\".\"description\" AS \"media_file_description\",\n                \"latest_media_file\".\"label\" AS \"media_file_label\",\n                \"latest_media_file\".\"category\" AS \"media_file_category\",\n                \"latest_media_file\".\"location\" AS \"media_file_location\",\n                \"latest_media_file\".\"city\" AS \"media_file_city\",\n                \"latest_media_file\".\"state\" AS \"media_file_state\",\n                \"latest_media_file\".\"country\" AS \"media_file_country\",\n                \"latest_media_file\".\"make\" AS \"media_file_make\",\n                \"latest_media_file\".\"model\" AS \"media_file_model\",\n                \"latest_media_file\".\"lens\" AS \"media_file_lens\",\n                \"latest_media_file\".\"photographer\" AS \"media_file_photographer\",\n                \"latest_media_file\".\"orientation\" AS \"media_file_orientation\",\n                \"latest_media_file\".\"iso\" AS \"media_file_iso\",\n                \"latest_media_file\".\"rating\" AS \"media_file_rating\",\n                \"latest_media_file\".\"longitude\" AS \"media_file_longitude\",\n                \"latest_media_file\".\"latitude\" AS \"media_file_latitude\",\n                \"latest_media_file\".\"altitude\" AS \"media_file_altitude\",\n                \"latest_media_file\".\"aperture\" AS \"media_file_aperture\",\n                \"latest_media_file\".\"focal_length\" AS \"media_file_focal_length\",\n                \"latest_media_file\".\"taken\" AS \"media_file_taken\",\n                \"latest_media_file\".\"media_item\" AS \"media_file_media_item\",\n                \"latest_media_file\".\"shutter_speed\" AS \"media_file_shutter_speed\",\n                \"latest_media_file\".\"needs_metadata\" AS \"media_file_needs_metadata\",\n                \"latest_media_file\".\"stored\" AS \"media_file_stored\"\n            FROM \"media_item\"\n                LEFT JOIN \"latest_media_file\" ON \"media_item\".\"id\"=\"latest_media_file\".\"media_item\"\n            WHERE\n                \"media_item\".\"catalog\"=$1 AND\n                \"media_item\".\"media_file\" IS DISTINCT FROM \"latest_media_file\".\"id\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "deleted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "created",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "state",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "country",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "make",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "model",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "lens",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "photographer",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "taken_zone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "orientation",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 19,
+        "name": "iso",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "rating",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 21,
+        "name": "longitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 22,
+        "name": "latitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 23,
+        "name": "altitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 24,
+        "name": "aperture",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 25,
+        "name": "focal_length",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 26,
+        "name": "taken",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 27,
+        "name": "catalog",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 28,
+        "name": "media_file",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 29,
+        "name": "datetime",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 30,
+        "name": "shutter_speed",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 31,
+        "name": "public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 32,
+        "name": "media_file_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 33,
+        "name": "media_file_uploaded",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 34,
+        "name": "media_file_file_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 35,
+        "name": "media_file_file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 36,
+        "name": "media_file_mimetype",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 37,
+        "name": "media_file_width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 38,
+        "name": "media_file_height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 39,
+        "name": "media_file_duration",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 40,
+        "name": "media_file_frame_rate",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 41,
+        "name": "media_file_bit_rate",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 42,
+        "name": "media_file_filename",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 43,
+        "name": "media_file_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 44,
+        "name": "media_file_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 45,
+        "name": "media_file_label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 46,
+        "name": "media_file_category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 47,
+        "name": "media_file_location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 48,
+        "name": "media_file_city",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 49,
+        "name": "media_file_state",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 50,
+        "name": "media_file_country",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 51,
+        "name": "media_file_make",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 52,
+        "name": "media_file_model",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 53,
+        "name": "media_file_lens",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 54,
+        "name": "media_file_photographer",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 55,
+        "name": "media_file_orientation",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 56,
+        "name": "media_file_iso",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 57,
+        "name": "media_file_rating",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 58,
+        "name": "media_file_longitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 59,
+        "name": "media_file_latitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 60,
+        "name": "media_file_altitude",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 61,
+        "name": "media_file_aperture",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 62,
+        "name": "media_file_focal_length",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 63,
+        "name": "media_file_taken",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 64,
+        "name": "media_file_media_item",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 65,
+        "name": "media_file_shutter_speed",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 66,
+        "name": "media_file_needs_metadata",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 67,
+        "name": "media_file_stored",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "393a87aee47b6dcf7cde21267feaddcabcbbcaf83147e395f59199e2fd3a8a03"
+}

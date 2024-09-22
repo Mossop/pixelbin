@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT *\n            FROM \"saved_search\"\n            WHERE \"catalog\"=$1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "shared",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "query",
+        "type_info": "Json"
+      },
+      {
+        "ordinal": 4,
+        "name": "catalog",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "13fd842434358ee656873a65c4148385b43ae3080befc65835f0c239626ca767"
+}

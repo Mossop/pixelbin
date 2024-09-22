@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM \"media_tag\"\n            WHERE \"media\"=$1 AND \"tag\"!=ALL($2)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a12128b0bf99398f1067c1afe7f4084528841846cf6ff3d1e2755b9cceb4bfa9"
+}

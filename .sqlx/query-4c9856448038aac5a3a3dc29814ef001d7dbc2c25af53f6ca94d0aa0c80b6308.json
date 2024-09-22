@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT COUNT(\"status_code\") AS \"count\"\n                    FROM \"client_error\"\n                    WHERE \"request_time\" > $1 AND \"client\" = $2\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4c9856448038aac5a3a3dc29814ef001d7dbc2c25af53f6ca94d0aa0c80b6308"
+}
