@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, path::Path, time::Duration};
+use std::{fmt, path::Path, time::Duration};
 
 use async_trait::async_trait;
 use aws_config::{AppName, BehaviorVersion};
@@ -20,7 +20,7 @@ use crate::{
     store::{
         file::FileStore,
         models::Storage,
-        path::{FilePath, PathLike, ResourcePath},
+        path::{FilePath, PathLike, ResourceList, ResourcePath},
     },
     Config, Error, Result,
 };
@@ -131,7 +131,7 @@ impl FileStore for AwsClient {
 
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
-    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<HashMap<ResourcePath, u64>>
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<ResourceList>
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
@@ -154,7 +154,7 @@ impl FileStore for AwsClient {
                 message: format!("Failed to list files: {e}"),
             })?
             .into_iter()
-            .fold(HashMap::<ResourcePath, u64>::new(), |mut files, output| {
+            .fold(ResourceList::new(), |mut files, output| {
                 files.extend(output.contents().iter().map(|o| {
                     (
                         ResourcePath::try_from(self.strip_prefix(o.key().unwrap()).split('/'))

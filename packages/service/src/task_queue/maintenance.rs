@@ -1,16 +1,16 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::VecDeque;
 
 use futures::join;
 use pixelbin_shared::Ignorable;
-use tracing::{error, info, Instrument};
+use tracing::{debug, warn, Instrument};
 
 use crate::{
-    metadata::{alternates_for_media_file, Alternate, METADATA_FILE},
+    metadata::{alternates_for_media_file, METADATA_FILE},
     store::{
         db::Isolation,
         file::{DiskStore, FileStore},
         models,
-        path::{CatalogStore, MediaFileStore, ResourcePath},
+        path::{CatalogStore, MediaFileStore, ResourceList, ResourcePath},
     },
     Result, Store, Task,
 };
@@ -59,236 +59,266 @@ pub(super) async fn delete_alternate_files(store: Store, alternate_files: &[Stri
     Ok(())
 }
 
-pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bool) -> Result {
-    let mut requires_metadata: u32 = 0;
-    let mut requires_upload: u32 = 0;
-    let mut unexpected_local: u32 = 0;
-    let mut local_size: u64 = 0;
-    let mut unexpected_temp: u32 = 0;
-    let mut temp_size: u64 = 0;
-    let mut unexpected_remote: u32 = 0;
-    let mut remote_size: u64 = 0;
-    let mut missing_alternates: u32 = 0;
+async fn prune_storage<S: FileStore>(store: &S, root: &ResourcePath, list: ResourceList) -> Result {
+    for (resource, _) in list {
+        store.delete(&resource).await?;
+    }
 
-    let mut conn = store.isolated(Isolation::Committed).await?;
+    store.prune(root).await
+}
 
-    let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
+pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files: bool) -> Result {
+    let storage = models::Storage::get_for_catalog(&mut store, catalog).await?;
 
-    let remote_store = storage.file_store(conn.config()).await?;
-    let local_store = DiskStore::local_store(conn.config());
-    let temp_store = DiskStore::temp_store(conn.config());
+    let remote_store = storage.file_store(store.config()).await?;
+    let local_store = DiskStore::local_store(store.config());
+    let temp_store = DiskStore::temp_store(store.config());
 
     let resource = CatalogStore {
         catalog: catalog.to_owned(),
     };
+
     let (remote_files, local_files, temp_files) = join!(
         remote_store.list_files(Some(&resource)).in_current_span(),
         local_store.list_files(Some(&resource)).in_current_span(),
         temp_store.list_files(Some(&resource)).in_current_span()
     );
+
     let mut remote_files = remote_files?;
     let mut local_files = local_files?;
     let mut temp_files = temp_files?;
 
-    let mut media_files: HashMap<String, (models::MediaFile, MediaFileStore)> =
-        models::MediaFile::list_for_catalog(&mut conn, catalog)
-            .await?
-            .into_iter()
-            .map(|(mf, mfs)| (mf.id.clone(), (mf, mfs)))
-            .collect();
+    let mut conn = store.pooled();
     let public_items = models::MediaItem::list_public(&mut conn, catalog).await?;
-    let mut modified_media_files = Vec::new();
-    let mut bad_media_files = Vec::new();
 
-    let mut required_alternates: HashMap<String, Vec<Alternate>> = HashMap::new();
-    let mut incomplete_media_files: HashSet<String> = HashSet::new();
+    for media_item_store in models::MediaItem::list_not_deleted(&mut conn, catalog).await? {
+        let mut media_files_to_update: Vec<models::MediaFile> = Vec::new();
+        let mut media_files_to_delete: Vec<String> = Vec::new();
+        let mut alternates_to_update: Vec<models::AlternateFile> = Vec::new();
+        let mut alternates_to_delete: Vec<String> = Vec::new();
 
-    for (media_file, media_file_store) in media_files.values_mut() {
-        let metadata_file: ResourcePath = media_file_store.file(METADATA_FILE).into();
-        let metadata_exists = local_files.remove(&metadata_file).is_some();
+        let _guard = store
+            .locks()
+            .media_item(&media_item_store)
+            .for_delete()
+            .await;
 
-        let file_path = media_file_store.file(&media_file.file_name);
-
-        let temp_exists = temp_files.contains_key(&file_path.clone().into());
-
-        let expected_resource: ResourcePath = file_path.into();
-
-        let needs_change = if remote_files.remove(&expected_resource)
-            == Some(media_file.file_size as u64)
-            && media_file.stored.is_some()
-        {
-            // Media file is correctly uploaded.
-            if !metadata_exists || media_file.needs_metadata {
-                media_file.needs_metadata = !metadata_exists;
-                true
-            } else {
-                false
-            }
-        } else if temp_exists {
-            // We can re-upload this.
-            let was_stored = media_file.stored.is_some();
-            media_file.stored = None;
-            requires_upload += 1;
-            incomplete_media_files.insert(media_file.id.clone());
-
-            if !metadata_exists || media_file.needs_metadata {
-                media_file.needs_metadata = !metadata_exists;
-                true
-            } else {
-                was_stored
-            }
-        } else {
-            // This media file is bad
-            error!(file=%expected_resource, "Missing temp media file");
-            bad_media_files.push(media_file.id.clone());
-
-            continue;
-        };
-
-        if media_file.needs_metadata {
-            requires_metadata += 1;
-            incomplete_media_files.insert(media_file.id.clone());
-        }
-
-        required_alternates.insert(
-            media_file.id.clone(),
-            alternates_for_media_file(
-                conn.config(),
-                media_file,
-                public_items.contains(&media_file.media_item),
-            ),
+        let mut media_files = VecDeque::<(models::MediaFile, MediaFileStore)>::from(
+            models::MediaFile::list_for_item(&mut conn, &media_item_store.item).await?,
         );
 
-        if needs_change {
-            modified_media_files.push(media_file.clone());
-        }
-    }
+        // Find the first valid media file (basically anything with either a local temporary copy
+        // or the uploaded version).
+        let mut valid_media_file: Option<models::MediaFile> = None;
 
-    models::MediaFile::upsert(&mut conn, modified_media_files).await?;
-    models::MediaFile::delete(&mut conn, &bad_media_files).await?;
+        while let Some((mut media_file, media_file_store)) = media_files.pop_front() {
+            let media_file_path = media_file_store.file(&media_file.file_name);
 
-    let alternate_files = models::AlternateFile::list_for_catalog(&mut conn, catalog).await?;
-    let mut modified_alternate_files = Vec::new();
-    let mut alternate_files_to_delete = Vec::new();
+            let has_remote = media_file.stored.is_some()
+                && remote_files.get(&media_file_path) == Some(media_file.file_size as u64);
+            let has_local = temp_files.get(&media_file_path) == Some(media_file.file_size as u64);
 
-    for (mut alternate_file, media_file_path) in alternate_files {
-        let expected_resource: ResourcePath = media_file_path.clone().into();
-
-        let wanted = if let Some(required_alternates) =
-            required_alternates.get_mut(&alternate_file.media_file)
-        {
-            let len = required_alternates.len();
-            required_alternates.retain(|alt| !alt.matches(&alternate_file));
-            len != required_alternates.len()
-        } else {
-            false
-        };
-
-        if !wanted {
-            let path = media_file_path
-                .media_file_store()
-                .file(&alternate_file.file_name);
-            if alternate_file.local {
-                local_store.delete(&path).await?;
-            } else {
-                remote_store.delete(&path).await?;
+            if !has_remote && !has_local {
+                // This is a bad media file.
+                debug!(
+                    media_item = media_file.media_item,
+                    media_file = media_file.id,
+                    "Found a bad media file."
+                );
+                media_files_to_delete.push(media_file.id.clone());
+                continue;
             }
-            alternate_files_to_delete.push(alternate_file.id.clone());
-        } else {
-            // Waiting to be uploaded.
-            if alternate_file.stored.is_none() {
-                missing_alternates += 1;
+
+            // This is ultimately the best MediaFile for this MediaItem. Make sure it has all
+            // the right flags.
+            let mut changed = false;
+            remote_files.remove(&media_file_path);
+            temp_files.remove(&media_file_path);
+
+            if !has_remote && media_file.stored.is_some() {
+                warn!(
+                    media_item = media_file.media_item,
+                    media_file = media_file.id,
+                    "Remote file was lost."
+                );
+                changed = true;
+                media_file.stored = None;
+            }
+
+            if local_files
+                .remove(&media_file_store.file(METADATA_FILE))
+                .is_none()
+                && !media_file.needs_metadata
+            {
+                warn!(
+                    media_item = media_file.media_item,
+                    media_file = media_file.id,
+                    "Metadata file was lost."
+                );
+
+                media_file.needs_metadata = true;
+                changed = true;
+            }
+
+            valid_media_file = if !media_file.needs_metadata && media_file.stored.is_some() {
+                Some(media_file.clone())
             } else {
-                let stored_files = if alternate_file.local {
-                    &mut local_files
-                } else {
-                    &mut remote_files
+                None
+            };
+
+            let known_alternates =
+                models::AlternateFile::list_for_media_file(&mut conn, &media_file_store.file)
+                    .await?;
+
+            let mut wanted_alternates = alternates_for_media_file(
+                store.config(),
+                &media_file,
+                public_items.contains(&media_file.media_item),
+            );
+
+            for mut alternate in known_alternates {
+                let is_wanted = {
+                    let len = wanted_alternates.len();
+                    wanted_alternates.retain(|alt| !alt.matches(&alternate));
+                    wanted_alternates.len() < len
                 };
 
-                if stored_files.remove(&expected_resource) != Some(alternate_file.file_size as u64)
-                {
-                    // We can re-upload this.
-                    alternate_file.stored = None;
-                    modified_alternate_files.push(alternate_file);
-                    missing_alternates += 1;
+                if !is_wanted {
+                    alternates_to_delete.push(alternate.id.clone());
+                    continue;
+                }
 
-                    incomplete_media_files.insert(media_file_path.file.clone());
+                if alternate.stored.is_some() {
+                    let store = if alternate.local {
+                        &mut local_files
+                    } else {
+                        &mut remote_files
+                    };
+
+                    let resource = media_file_store.file(&alternate.file_name);
+                    let is_stored = if let Some(size) = store.get(&resource) {
+                        size == alternate.file_size as u64
+                    } else {
+                        false
+                    };
+
+                    if !is_stored {
+                        warn!(
+                            media_item = media_file.media_item,
+                            media_file = media_file.id,
+                            alternate = alternate.id,
+                            "Alternate file was lost."
+                        );
+
+                        valid_media_file = None;
+                        alternate.stored = None;
+                        alternates_to_update.push(alternate);
+                    } else {
+                        store.remove(&resource);
+                    }
+                } else {
+                    valid_media_file = None;
                 }
             }
+
+            if !wanted_alternates.is_empty() {
+                valid_media_file = None;
+            }
+
+            for alternate in wanted_alternates {
+                let new_alternate = models::AlternateFile::new(&media_file.id, alternate);
+
+                warn!(
+                    media_item = media_file.media_item,
+                    media_file = media_file.id,
+                    alternate = new_alternate.id,
+                    "Missing alternate added."
+                );
+
+                alternates_to_update.push(new_alternate);
+            }
+
+            if changed {
+                media_files_to_update.push(media_file);
+            }
+
+            break;
         }
-    }
 
-    for (media_file, alternates) in required_alternates.into_iter() {
-        for alternate in alternates {
-            missing_alternates += 1;
-            modified_alternate_files.push(models::AlternateFile::new(&media_file, alternate));
-            incomplete_media_files.insert(media_file.clone());
+        while let Some((media_file, media_file_store)) = media_files.pop_front() {
+            // If we don't yet have a valid media file then we want to keep potential alternatives.
+            if valid_media_file.is_none() {
+                let media_file_path = media_file_store.file(&media_file.file_name);
+
+                let has_remote = media_file.stored.is_some()
+                    && remote_files.get(&media_file_path) == Some(media_file.file_size as u64);
+                let has_local =
+                    temp_files.get(&media_file_path) == Some(media_file.file_size as u64);
+
+                if !has_remote && !has_local {
+                    // This media file is bad and needs to be deleted.
+                    media_files_to_delete.push(media_file.id.clone());
+                    continue;
+                }
+
+                // Otherwise just flag all its files as ignored.
+                remote_files.remove(&media_file_path);
+                temp_files.remove(&media_file_path);
+                local_files.remove(&media_file_store.file(METADATA_FILE));
+
+                let known_alternates =
+                    models::AlternateFile::list_for_media_file(&mut conn, &media_file_store.file)
+                        .await?;
+
+                for alternate in known_alternates {
+                    let resource = media_file_store.file(&alternate.file_name);
+                    if alternate.local {
+                        local_files.remove(&resource);
+                    } else {
+                        remote_files.remove(&resource);
+                    }
+                }
+            } else {
+                warn!(
+                    media_item = media_file.media_item,
+                    media_file = media_file.id,
+                    "Deleting old media file."
+                );
+
+                media_files_to_delete.push(media_file.id.clone());
+            }
         }
+
+        let mut conn = store.connect().await?;
+        let mut media_item = models::MediaItem::get(&mut conn, &media_item_store.item).await?;
+        media_item.sync_with_file(valid_media_file.as_ref());
+        models::MediaItem::upsert(&mut conn, &[media_item]).await?;
+
+        models::MediaFile::upsert(&mut conn, &media_files_to_update).await?;
+        models::MediaFile::delete(&mut conn, &media_files_to_delete).await?;
+        models::AlternateFile::upsert(&mut conn, &alternates_to_update).await?;
+        models::AlternateFile::delete(&mut conn, &alternates_to_delete).await?;
     }
-
-    models::AlternateFile::upsert(&mut conn, modified_alternate_files).await?;
-    models::AlternateFile::delete(&mut conn, &alternate_files_to_delete).await?;
-
-    models::MediaItem::update_media_files(&mut conn, catalog).await?;
-
-    // TODO check unused metadata.json for MediaFiles to recover?
-
-    for media_file in incomplete_media_files.into_iter() {
-        if let Some((media_file, media_file_store)) = media_files.get(&media_file) {
-            temp_files.remove(&media_file_store.file(&media_file.file_name).into());
-        }
-    }
-
-    for (path, size) in remote_files {
-        unexpected_remote += 1;
-        remote_size += size;
-        if delete_files {
-            remote_store.delete(&path).await.warn();
-        }
-    }
-
-    for (path, size) in local_files {
-        unexpected_local += 1;
-        local_size += size;
-        if delete_files {
-            local_store.delete(&path).await.warn();
-        }
-    }
-
-    for (path, size) in temp_files {
-        unexpected_temp += 1;
-        temp_size += size;
-        if delete_files {
-            temp_store.delete(&path).await.warn();
-        }
-    }
-
-    let catalog_resource = CatalogStore {
-        catalog: catalog.to_owned(),
-    };
 
     if delete_files {
-        remote_store.prune(&catalog_resource).await?;
-        local_store.prune(&catalog_resource).await?;
-        temp_store.prune(&catalog_resource).await?;
+        let catalog = CatalogStore {
+            catalog: catalog.to_owned(),
+        }
+        .into();
+
+        prune_storage(&local_store, &catalog, local_files).await?;
+        prune_storage(&temp_store, &catalog, temp_files).await?;
+        prune_storage(&remote_store, &catalog, remote_files).await?;
+    } else {
+        debug!(
+            remote_files = remote_files.len(),
+            local_files = local_files.len(),
+            temp_store = temp_files.len(),
+            "Skipping deletion"
+        );
     }
 
-    info!(
-        catalog = catalog,
-        bad_media = bad_media_files.len(),
-        requires_metadata,
-        requires_upload,
-        missing_alternates,
-        unexpected_local,
-        local_size,
-        unexpected_temp,
-        temp_size,
-        unexpected_remote,
-        remote_size,
-        "Verify complete"
-    );
-
-    conn.commit().await
+    Ok(())
 }
 
 pub(super) async fn prune_media_files(store: Store, catalog: &str) -> Result {

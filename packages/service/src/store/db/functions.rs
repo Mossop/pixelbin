@@ -165,9 +165,9 @@ macro_rules! from_row {
     };
     (MediaFile($row:ident)) => {
         crate::store::db::models::MediaFile {
-            id: $row.id,
+            id: $row.id.clone(),
             uploaded: $row.uploaded,
-            file_name: $row.file_name,
+            file_name: $row.file_name.clone(),
             file_size: $row.file_size,
             mimetype: crate::store::db::functions::from_mime(&$row.mimetype)?,
             width: $row.width,
@@ -175,7 +175,7 @@ macro_rules! from_row {
             duration: $row.duration,
             frame_rate: $row.frame_rate,
             bit_rate: $row.bit_rate,
-            media_item: $row.media_item,
+            media_item: $row.media_item.clone(),
             needs_metadata: $row.needs_metadata,
             stored: $row.stored,
             metadata: crate::store::db::functions::from_row!(MediaMetadata($row)),

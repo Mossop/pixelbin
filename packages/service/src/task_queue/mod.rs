@@ -117,7 +117,7 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
         .collect()
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub(crate) struct TaskQueue {
     notify: Arc<Notify>,
     pending: Arc<AtomicUsize>,

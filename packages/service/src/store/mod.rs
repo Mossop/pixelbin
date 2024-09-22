@@ -1,28 +1,28 @@
 //! A basic abstraction around the pixelbin data stores.
 use std::{
+    fmt,
     future::Future,
     ops::{Deref, DerefMut},
-    sync::Arc,
 };
 
 pub(crate) mod aws;
 pub(crate) mod db;
 pub(crate) mod file;
+pub(crate) mod locks;
 pub(crate) mod path;
 
 pub(crate) use db::models;
 use db::{connect, DbConnection};
-use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use tracing::span::Id;
 
-use crate::{store::db::SqlxPool, Config, Isolation, Result, Task, TaskQueue};
+use crate::{store::db::SqlxPool, store::locks::Locks, Config, Isolation, Result, Task, TaskQueue};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct StoreInner {
     config: Config,
     pool: SqlxPool,
     task_queue: TaskQueue,
-    expensive_tasks: Arc<Semaphore>,
+    locks: Locks,
 }
 
 impl From<StoreInner> for Store {
@@ -34,10 +34,15 @@ impl From<StoreInner> for Store {
     }
 }
 
-#[derive(Debug)]
 pub struct Store {
     inner: StoreInner,
     pooled: DbConnection<'static>,
+}
+
+impl fmt::Debug for Store {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.inner.config.fmt(f)
+    }
 }
 
 impl Clone for Store {
@@ -51,8 +56,8 @@ impl Store {
         StoreInner {
             pool,
             task_queue: self.inner.task_queue.clone(),
-            expensive_tasks: self.inner.expensive_tasks.clone(),
             config: self.inner.config.clone(),
+            locks: self.inner.locks.clone(),
         }
         .into()
     }
@@ -69,13 +74,8 @@ impl Store {
         DbConnection::connect(self.inner.clone())
     }
 
-    pub(crate) async fn enter_expensive_task(&self) -> OwnedSemaphorePermit {
-        self.inner
-            .expensive_tasks
-            .clone()
-            .acquire_owned()
-            .await
-            .unwrap()
+    pub(crate) fn locks(&self) -> &Locks {
+        &self.inner.locks
     }
 
     pub async fn queue_task(&self, task: Task) {

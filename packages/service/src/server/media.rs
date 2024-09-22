@@ -585,8 +585,8 @@ async fn upload_media(
 
     let media_file_id = media_file.id.clone();
 
-    models::MediaFile::upsert(&mut conn, vec![media_file]).await?;
-    models::AlternateFile::upsert(&mut conn, alternate_files).await?;
+    models::MediaFile::upsert(&mut conn, &[media_file]).await?;
+    models::AlternateFile::upsert(&mut conn, &alternate_files).await?;
     conn.commit().await?;
 
     app_state

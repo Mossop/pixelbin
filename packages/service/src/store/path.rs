@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 use enum_dispatch::enum_dispatch;
 
@@ -194,5 +194,63 @@ impl PathLike for FilePath {
 impl fmt::Display for FilePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.path_parts().join("/"))
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct ResourceList {
+    inner: HashMap<ResourcePath, u64>,
+}
+
+impl ResourceList {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn contains_key<T: Clone + Into<ResourcePath>>(&self, path: &T) -> bool {
+        self.inner.contains_key(&path.clone().into())
+    }
+
+    pub fn get<T: Clone + Into<ResourcePath>>(&self, path: &T) -> Option<u64> {
+        self.inner.get(&path.clone().into()).copied()
+    }
+
+    pub fn remove<T: Clone + Into<ResourcePath>>(&mut self, path: &T) -> Option<u64> {
+        self.inner.remove(&path.clone().into())
+    }
+
+    pub fn insert<T: Into<ResourcePath>>(&mut self, path: T, size: u64) {
+        self.inner.insert(path.into(), size);
+    }
+}
+
+impl<T> From<HashMap<T, u64>> for ResourceList
+where
+    T: Into<ResourcePath>,
+{
+    fn from(list: HashMap<T, u64>) -> Self {
+        Self {
+            inner: list.into_iter().map(|(t, size)| (t.into(), size)).collect(),
+        }
+    }
+}
+
+impl IntoIterator for ResourceList {
+    type Item = <HashMap<ResourcePath, u64> as IntoIterator>::Item;
+
+    type IntoIter = <HashMap<ResourcePath, u64> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
+    }
+}
+
+impl Extend<(ResourcePath, u64)> for ResourceList {
+    fn extend<T: IntoIterator<Item = (ResourcePath, u64)>>(&mut self, iter: T) {
+        self.inner.extend(iter)
     }
 }

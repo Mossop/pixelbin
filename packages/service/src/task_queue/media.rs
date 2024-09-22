@@ -49,7 +49,7 @@ async fn extract_metadata(store: Store, op_cache: MediaFileOpCache) -> Result {
 
     let (mut media_file, _) = models::MediaFile::get(&mut conn, &op_cache.media_file.id).await?;
     metadata.apply_to_media_file(&mut media_file);
-    models::MediaFile::upsert(&mut conn, vec![media_file.clone()]).await?;
+    models::MediaFile::upsert(&mut conn, &[media_file]).await?;
 
     models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog).await?;
 
@@ -100,7 +100,7 @@ async fn build_alternate(
     mut alternate_file: models::AlternateFile,
 ) -> Result {
     let _guard = if alternate_file.mimetype.type_() == mime::VIDEO {
-        Some(store.enter_expensive_task().await)
+        Some(store.locks().enter_expensive_task().await)
     } else {
         None
     };

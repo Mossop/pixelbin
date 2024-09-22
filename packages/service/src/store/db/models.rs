@@ -653,6 +653,10 @@ impl MediaPerson {
         media: &str,
         people: &[MediaPerson],
     ) -> Result {
+        if people.is_empty() {
+            return Ok(());
+        }
+
         MediaPerson::upsert(conn, people).await?;
 
         let people_ids: Vec<String> = people.iter().map(|p| p.person.clone()).collect();
@@ -675,6 +679,10 @@ impl MediaPerson {
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, people: &[MediaPerson]) -> Result {
+        if people.is_empty() {
+            return Ok(());
+        }
+
         for records in batch(people, 500) {
             let mut catalog: Vec<String> = Vec::new();
             let mut media: Vec<String> = Vec::new();
@@ -858,6 +866,10 @@ impl MediaAlbum {
         media: &str,
         albums: &[MediaAlbum],
     ) -> Result {
+        if albums.is_empty() {
+            return Ok(());
+        }
+
         MediaAlbum::upsert(conn, albums).await?;
 
         let album_ids: Vec<String> = albums.iter().map(|a| a.album.clone()).collect();
@@ -878,6 +890,10 @@ impl MediaAlbum {
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, albums: &[MediaAlbum]) -> Result {
+        if albums.is_empty() {
+            return Ok(());
+        }
+
         for records in batch(albums, 500) {
             let mut catalog: Vec<String> = Vec::new();
             let mut album: Vec<String> = Vec::new();
@@ -1090,6 +1106,10 @@ impl Album {
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, albums: &[Album]) -> Result {
+        if albums.is_empty() {
+            return Ok(());
+        }
+
         for records in batch(albums, 500) {
             let mut id: Vec<String> = Vec::new();
             let mut catalog: Vec<String> = Vec::new();
@@ -1171,6 +1191,10 @@ impl SavedSearch {
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, searches: &[SavedSearch]) -> Result {
+        if searches.is_empty() {
+            return Ok(());
+        }
+
         for records in batch(searches, 500) {
             let mut id: Vec<String> = Vec::new();
             let mut catalog: Vec<String> = Vec::new();
@@ -1421,6 +1445,10 @@ impl MediaTag {
         media: &str,
         tags: &[MediaTag],
     ) -> Result {
+        if tags.is_empty() {
+            return Ok(());
+        }
+
         MediaTag::upsert(conn, tags).await?;
 
         let tag_ids = tags.iter().map(|t| t.tag.clone()).collect_vec();
@@ -1441,6 +1469,10 @@ impl MediaTag {
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, tags: &[MediaTag]) -> Result {
+        if tags.is_empty() {
+            return Ok(());
+        }
+
         for records in batch(tags, 500) {
             let mut catalog: Vec<String> = Vec::new();
             let mut media: Vec<String> = Vec::new();
@@ -1596,6 +1628,26 @@ impl MediaItem {
         }
     }
 
+    pub(crate) async fn list_not_deleted(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Vec<MediaItemStore>> {
+        Ok(sqlx::query!(
+            r#"
+            SELECT *
+            FROM "media_item"
+            WHERE NOT "deleted" AND "catalog"=$1
+            "#,
+            catalog
+        )
+        .map(|row| MediaItemStore {
+            catalog: row.catalog,
+            item: row.id,
+        })
+        .fetch_all(conn.as_db())
+        .await?)
+    }
+
     pub(crate) async fn list_deleted(
         conn: &mut DbConnection<'_>,
         catalog: &str,
@@ -1670,8 +1722,14 @@ impl MediaItem {
                 LEFT JOIN "media_file" ON "media_item"."id"="media_file"."media_item"
             WHERE
                 "media_item"."catalog"=$1 AND
-                "media_file"."id" IS NULL AND
-                "media_item"."created" < (CURRENT_TIMESTAMP - interval '1 week')
+                (
+                    (
+                        "media_file"."id" IS NULL AND
+                        "media_item"."created" < (CURRENT_TIMESTAMP - interval '1 week')
+                    )
+                    OR
+                    "media_item"."deleted"
+                )
             "#,
             catalog
         )
@@ -1697,6 +1755,21 @@ impl MediaItem {
             .await?;
 
         Ok(())
+    }
+
+    pub(crate) async fn get(conn: &mut DbConnection<'_>, id: &str) -> Result<Self> {
+        Ok(sqlx::query!(
+            r#"
+            SELECT "media_item".*
+            FROM "media_item"
+            WHERE
+                "media_item"."id"=$1
+            "#,
+            id
+        )
+        .try_map(|row| Ok(from_row!(MediaItem(row))))
+        .fetch_one(conn)
+        .await?)
     }
 
     pub(crate) async fn get_for_user(
@@ -1793,6 +1866,10 @@ impl MediaItem {
 
     #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_items: &[MediaItem]) -> Result {
+        if media_items.is_empty() {
+            return Ok(());
+        }
+
         for records in batch(media_items, 500) {
             let mut id = Vec::<String>::new();
             let mut deleted = Vec::<bool>::new();
@@ -2290,6 +2367,36 @@ impl MediaFile {
     }
 
     #[instrument(skip_all)]
+    pub(crate) async fn list_for_item(
+        conn: &mut DbConnection<'_>,
+        item: &str,
+    ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
+        Ok(sqlx::query!(
+            r#"
+            SELECT "media_file".*, "media_item"."catalog"
+            FROM "media_file"
+                JOIN "media_item" ON "media_item"."id"="media_file"."media_item"
+            WHERE
+                "media_item"."id"=$1
+            ORDER BY "media_file"."uploaded" DESC
+            "#,
+            item
+        )
+        .try_map(|row| {
+            Ok((
+                from_row!(MediaFile(row)),
+                MediaFileStore {
+                    catalog: row.catalog,
+                    item: row.media_item,
+                    file: row.id,
+                },
+            ))
+        })
+        .fetch_all(conn)
+        .await?)
+    }
+
+    #[instrument(skip_all)]
     pub(crate) async fn list_needs_processing(
         conn: &mut DbConnection<'_>,
         catalog: &str,
@@ -2459,7 +2566,11 @@ impl MediaFile {
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: Vec<MediaFile>) -> Result {
+    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, media_files: &[MediaFile]) -> Result {
+        if media_files.is_empty() {
+            return Ok(());
+        }
+
         let media_file_map: HashMap<String, &MediaFile> =
             media_files.iter().map(|m| (m.id.clone(), m)).collect();
         let media_file_ids: Vec<String> = media_file_map.keys().cloned().collect();
@@ -2482,7 +2593,7 @@ impl MediaFile {
             }
         });
 
-        for records in batch(&media_files, 500) {
+        for records in batch(media_files, 500) {
             let mut id = Vec::<String>::new();
             let mut uploaded = Vec::<DateTime<Utc>>::new();
             let mut file_name = Vec::<String>::new();
@@ -2890,39 +3001,7 @@ impl AlternateFile {
             .await;
         }
 
-        AlternateFile::upsert(conn, to_create).await
-    }
-
-    pub(crate) async fn list_for_catalog(
-        conn: &mut DbConnection<'_>,
-        catalog: &str,
-    ) -> Result<Vec<(AlternateFile, FilePath)>> {
-        let files = sqlx::query!(
-            r#"
-            SELECT "alternate_file".*, "media_file"."media_item"
-            FROM "alternate_file"
-                JOIN "media_file" ON "media_file"."id"="alternate_file"."media_file"
-                JOIN "media_item" ON "media_item"."id"="media_file"."media_item"
-            WHERE "media_item"."catalog"=$1
-            "#,
-            catalog
-        )
-        .try_map(|row| Ok((from_row!(AlternateFile(row)), row.media_item)))
-        .fetch_all(conn)
-        .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|(alternate, media_item)| {
-                let file_path = FilePath {
-                    catalog: catalog.to_owned(),
-                    item: media_item,
-                    file: alternate.media_file.clone(),
-                    file_name: alternate.file_name.clone(),
-                };
-                (alternate, file_path)
-            })
-            .collect())
+        AlternateFile::upsert(conn, &to_create).await
     }
 
     pub(crate) async fn list_for_media_file(
@@ -3058,9 +3137,13 @@ impl AlternateFile {
     #[instrument(skip_all)]
     pub(crate) async fn upsert(
         conn: &mut DbConnection<'_>,
-        alternate_files: Vec<AlternateFile>,
+        alternate_files: &[AlternateFile],
     ) -> Result {
-        for records in batch(&alternate_files, 500) {
+        if alternate_files.is_empty() {
+            return Ok(());
+        }
+
+        for records in batch(alternate_files, 500) {
             let mut id = Vec::<String>::new();
             let mut file_type = Vec::<String>::new();
             let mut file_name = Vec::<String>::new();

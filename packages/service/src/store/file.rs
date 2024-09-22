@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fmt,
     io::ErrorKind,
     iter::once,
@@ -14,13 +13,13 @@ use tokio::fs;
 use tracing::{debug, instrument};
 
 use crate::{
-    store::path::{FilePath, PathLike, ResourcePath},
+    store::path::{FilePath, PathLike, ResourceList, ResourcePath},
     Result,
 };
 
 #[async_trait]
 pub trait FileStore {
-    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<HashMap<ResourcePath, u64>>
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<ResourceList>
     where
         P: PathLike + Send + Sync + fmt::Debug;
 
@@ -139,11 +138,11 @@ impl FileStore for DiskStore {
 
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), err)]
-    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<HashMap<ResourcePath, u64>>
+    async fn list_files<P>(&self, prefix: Option<&P>) -> Result<ResourceList>
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
-        let mut files = HashMap::<ResourcePath, u64>::new();
+        let mut files = ResourceList::new();
 
         let root = if let Some(prefix) = prefix {
             self.local_path(prefix)

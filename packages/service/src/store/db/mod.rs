@@ -3,16 +3,15 @@ mod internal;
 pub(crate) mod models;
 pub(crate) mod search;
 
-use std::{fmt, mem, sync::Arc, time::Duration};
+use std::{fmt, mem, time::Duration};
 
 use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
 use sqlx::{postgres::PgPoolOptions, Transaction};
-use tokio::sync::Semaphore;
 use tracing::{error, info, instrument, span::Id, warn};
 
 use crate::{
-    store::{db::internal::Connection, StoreInner},
+    store::{db::internal::Connection, locks::Locks, StoreInner},
     Config, Result, Store, Task, TaskQueue,
 };
 
@@ -65,7 +64,7 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<St
         pool,
         config: config.clone(),
         task_queue: task_queue.clone(),
-        expensive_tasks: Arc::new(Semaphore::new(1)),
+        locks: Locks::new(),
     }
     .into();
 
