@@ -8,14 +8,14 @@
   list-style-type: none;
 
   .item-label {
-    padding-inline-start: calc(var(--list-item-depth) * 1rem + 0.25rem);
+    padding-inline-start: calc(var(--list-item-depth) * 1rem + 0.5rem);
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    padding-inline-end: 0.25rem;
-    padding-top: 0.25em;
-    padding-bottom: 0.25em;
+    padding-inline-end: 0.5rem;
+    padding-top: 0.2em;
+    padding-bottom: 0.2em;
   }
 
   .item-icon {
