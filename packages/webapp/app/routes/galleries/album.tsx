@@ -1,12 +1,8 @@
-import {
-  LoaderFunctionArgs,
-  MetaFunction,
-  SerializeFrom,
-  json,
-} from "@remix-run/node";
+import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { Outlet, useLoaderData } from "@remix-run/react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
+import { HeaderButtons } from "@/components/AppBar";
 import { IconLink } from "@/components/Icon";
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
@@ -26,34 +22,6 @@ export async function loader({
   return json({ title: album.name, album });
 }
 
-export const handle = {
-  headerButtons(data: SerializeFrom<typeof loader>) {
-    let query: SearchQuery = {
-      queries: [
-        {
-          type: "album",
-          queries: [
-            {
-              type: "field",
-              field: AlbumField.Id,
-              operator: "equal",
-              value: data.album.id,
-            },
-          ],
-        },
-      ],
-    };
-
-    let params = new URLSearchParams({ q: JSON.stringify(query) });
-    return (
-      <IconLink
-        icon="search"
-        to={url(["catalog", data.album.catalog, "search"], params)}
-      />
-    );
-  },
-};
-
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   if (data) {
     return [{ title: data.title }];
@@ -69,14 +37,40 @@ export default function AlbumLayout() {
     [album],
   );
 
+  let searchUrl = useMemo(() => {
+    let query: SearchQuery = {
+      queries: [
+        {
+          type: "album",
+          queries: [
+            {
+              type: "field",
+              field: AlbumField.Id,
+              operator: "equal",
+              value: album.id,
+            },
+          ],
+        },
+      ],
+    };
+
+    let params = new URLSearchParams({ q: JSON.stringify(query) });
+    return url(["catalog", album.catalog, "search"], params);
+  }, [album]);
+
   return (
-    <MediaGallery
-      type="album"
-      url={url(["album", album.id])}
-      requestStream={requestStream}
-    >
-      <MediaGrid />
-      <Outlet />
-    </MediaGallery>
+    <>
+      <HeaderButtons>
+        <IconLink icon="search" to={searchUrl} />
+      </HeaderButtons>
+      <MediaGallery
+        type="album"
+        url={url(["album", album.id])}
+        requestStream={requestStream}
+      >
+        <MediaGrid />
+        <Outlet />
+      </MediaGallery>
+    </>
   );
 }

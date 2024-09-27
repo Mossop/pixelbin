@@ -17,6 +17,7 @@ import { getRequestContext } from "./modules/RequestContext";
 import { config, state } from "./modules/api";
 
 import "styles/main.scss";
+import { PortalContext } from "./components/Portal";
 
 export const links: LinksFunction = () => [
   {
@@ -60,14 +61,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
           crossOrigin=""
         />
       </head>
-      <body>
-        <CastManager>
-          <AppBar />
-          <SidebarLayout>{children}</SidebarLayout>
-        </CastManager>
-        <ScrollRestoration />
-        <Scripts />
-      </body>
+      <PortalContext>
+        <body>
+          <CastManager>
+            <AppBar />
+            <SidebarLayout>{children}</SidebarLayout>
+          </CastManager>
+          <ScrollRestoration />
+          <Scripts />
+        </body>
+      </PortalContext>
     </html>
   );
 }

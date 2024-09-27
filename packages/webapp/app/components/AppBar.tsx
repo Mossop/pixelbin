@@ -2,33 +2,17 @@ import { UIMatch, useMatches } from "@remix-run/react";
 
 import Avatar from "./Avatar";
 import NavMenu from "./NavMenu";
+import { generatePortalId, Portal, portaled } from "./Portal";
 import { CastButton } from "@/components/CastManager";
 import { useServerState } from "@/modules/hooks";
-
 import "styles/components/AppBar.scss";
 
-type ButtonProvider = UIMatch<
-  any,
-  { headerButtons(data: any): React.ReactNode }
->;
-
-function hasButtons(match: UIMatch): match is ButtonProvider {
-  if (!match.handle) {
-    return false;
-  }
-
-  return typeof match.handle == "object" && "headerButtons" in match.handle;
-}
-
-function HeaderButton({ provider }: { provider: ButtonProvider }) {
-  return provider.handle.headerButtons(provider.data);
-}
+const headerButtonsPortal = generatePortalId();
+export const HeaderButtons = portaled(headerButtonsPortal);
 
 export default function AppBar() {
   let serverState = useServerState();
   let email = serverState?.email;
-
-  let matches = useMatches();
 
   return (
     <header className="c-appbar sl-theme-dark apply-theme">
@@ -38,11 +22,7 @@ export default function AppBar() {
         <h1>PixelBin</h1>
       </div>
       <div className="actions">
-        <div className="buttons">
-          {matches.filter(hasButtons).map((p) => (
-            <HeaderButton key={p.id} provider={p} />
-          ))}
-        </div>
+        <Portal id={headerButtonsPortal} className="buttons" />
         <CastButton />
         <Avatar email={email} />
       </div>

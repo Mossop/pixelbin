@@ -50,5 +50,11 @@
     align-items: center;
     gap: var(--sl-spacing-large);
     font-size: 150%;
+
+    .c-portal {
+      display: flex;
+      align-items: center;
+      gap: var(--sl-spacing-large);
+    }
   }
 }

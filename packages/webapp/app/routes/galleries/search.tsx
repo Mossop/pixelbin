@@ -1,7 +1,9 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
+import { HeaderButtons } from "@/components/AppBar";
+import { IconButton, IconLink } from "@/components/Icon";
 import MediaGallery from "@/components/MediaGallery";
 import MediaGrid from "@/components/MediaGrid";
 import SearchBar from "@/components/SearchBar";
@@ -48,23 +50,34 @@ export default function SearchLayout() {
     [navigate, search],
   );
 
+  let searchUrl = useMemo(() => {
+    let params = new URLSearchParams({ q: JSON.stringify(search.query) });
+    return url(["catalog", search.catalog, "search"], params);
+  }, [search]);
+
   return (
-    <MediaGallery
-      type="savedSearch"
-      url={url(["search", search.id])}
-      requestStream={requestStream}
-    >
-      <div className="search-gallery">
-        <SearchBar
-          catalog={search.catalog}
-          searchQuery={search.query}
-          setQuery={setQuery}
-        />
-        <div className="grid">
-          <MediaGrid />
+    <>
+      <HeaderButtons>
+        <IconButton icon="subscribe" onClick={() => {}} />
+        <IconLink icon="search" to={searchUrl} />
+      </HeaderButtons>
+      <MediaGallery
+        type="savedSearch"
+        url={url(["search", search.id])}
+        requestStream={requestStream}
+      >
+        <div className="search-gallery">
+          <SearchBar
+            catalog={search.catalog}
+            searchQuery={search.query}
+            setQuery={setQuery}
+          />
+          <div className="grid">
+            <MediaGrid />
+          </div>
         </div>
-      </div>
-      <Outlet />
-    </MediaGallery>
+        <Outlet />
+      </MediaGallery>
+    </>
   );
 }

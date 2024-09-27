@@ -38,6 +38,7 @@ const ICONS = {
   addTagSearch: "tag-plus",
   addAlbumSearch: "image-plus",
   share: "share-variant",
+  subscribe: "email-sync-outline",
 };
 
 export type IconName = keyof typeof ICONS;
