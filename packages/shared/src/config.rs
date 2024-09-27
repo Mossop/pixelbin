@@ -86,10 +86,25 @@ impl Default for ThumbnailConfig {
     }
 }
 
+#[derive(Default, Deserialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum MailServer {
+    #[default]
+    None,
+    Address(String),
+    Options {
+        address: String,
+        port: Option<u16>,
+    },
+}
+
 #[derive(Clone, Debug)]
 pub struct Config {
     /// The hostname of the opentelemetry endpoint to use.
     pub telemetry_host: Option<String>,
+
+    /// The host and port of the smtp server to use.
+    pub mail_server: MailServer,
 
     /// The location of locally stored alternate files.
     pub local_storage: PathBuf,
@@ -125,6 +140,8 @@ struct StoragePaths {
 #[serde(rename_all = "camelCase")]
 struct ParsedConfig {
     telemetry_host: Option<String>,
+    #[serde(default)]
+    mail_server: MailServer,
     storage: Option<Either<RelativePathBuf, StoragePaths>>,
     database_url: String,
     port: Option<u16>,
@@ -198,6 +215,7 @@ impl Config {
 
         Ok(Config {
             telemetry_host: parsed.telemetry_host,
+            mail_server: parsed.mail_server,
             local_storage: resolve(local)?,
             temp_storage: resolve(temp)?,
             database_url: parsed.database_url,

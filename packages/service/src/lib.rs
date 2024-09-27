@@ -1,6 +1,7 @@
 #![deny(unreachable_pub)]
 pub use pixelbin_shared::{Config, Error, Result};
 
+mod mail;
 mod metadata;
 #[cfg(feature = "webserver")]
 pub mod server;

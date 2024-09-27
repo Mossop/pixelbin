@@ -4,7 +4,7 @@ use std::{fmt::Debug, future::Future, result};
 mod config;
 mod error;
 
-pub use config::{Config, ThumbnailConfig};
+pub use config::{Config, MailServer, ThumbnailConfig};
 pub use error::Error;
 use tracing::warn;
 

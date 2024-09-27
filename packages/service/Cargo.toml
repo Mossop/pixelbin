@@ -54,6 +54,8 @@ itertools = "0.13.0"
 pixelbin_shared = { path = "../shared" }
 pixelbin_migrations = { path = "../migrations" }
 enum-repr = "0.2.6"
+mail-send = "0.4.9"
+askama = "0.12.1"
 
 actix-web = { version = "4.9.0", optional = true }
 actix-multipart = { version = "0.7.2", optional = true }
