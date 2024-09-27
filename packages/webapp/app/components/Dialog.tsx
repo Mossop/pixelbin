@@ -8,7 +8,7 @@ function useDialogDefined() {
 
   useEffect(() => {
     if (!defined) {
-      customElements.whenDefined("sl-dialog").then(() => setDefined(true));
+      void customElements.whenDefined("sl-dialog").then(() => setDefined(true));
     }
   }, [defined]);
 

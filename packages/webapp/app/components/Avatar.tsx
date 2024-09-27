@@ -34,7 +34,6 @@ function Login() {
       {
         action: "/login",
         method: "POST",
-        navigate: false,
       },
     );
   }, [fetcher, email, password]);
@@ -109,7 +108,6 @@ function Menu({ email }: { email: string }) {
     fetcher.submit(null, {
       action: "/logout",
       method: "POST",
-      navigate: true,
     });
   }, [fetcher]);
 

@@ -4,6 +4,11 @@ import { Dispatch, SetStateAction } from "react";
 export type Replace<A, B> = Omit<A, keyof B> & B;
 export type DispatchSSA<T> = Dispatch<SetStateAction<T>>;
 
+export interface HistoryState {
+  fromGallery?: boolean;
+  expandSearchBar?: boolean;
+}
+
 export interface User {
   email: string;
   fullname: string | null;

@@ -1,13 +1,23 @@
-import { useRouteLoaderData } from "@remix-run/react";
+import { useLocation, useRouteLoaderData } from "@remix-run/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiConfig } from "./api";
-import { Catalog, State } from "./types";
+import { Catalog, HistoryState, State } from "./types";
+import { SerializeFrom } from "@remix-run/node";
+
+export interface RootData {
+  serverConfig: ApiConfig;
+  serverState: State | undefined;
+}
+
+export function useHistoryState(): HistoryState | undefined {
+  return useLocation().state as unknown as HistoryState | undefined;
+}
 
 export function useTimeout(
   timeout: number,
   onFire: () => void,
-  initialTrigger: boolean = false,
+  initialTrigger = false,
 ): [trigger: (timeout?: number) => void, cancel: () => void] {
   let [target, setTarget] = useState(() =>
     initialTrigger ? Date.now() + timeout : null,
@@ -205,10 +215,10 @@ export function useFullscreen(): FullscreenProps {
   }, []);
 
   let enterFullscreen = useCallback(() => {
-    element?.requestFullscreen();
+    element?.requestFullscreen().catch(console.error);
   }, [element]);
   let exitFullscreen = useCallback(() => {
-    document.exitFullscreen();
+    document.exitFullscreen().catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -234,18 +244,20 @@ export function useFullscreen(): FullscreenProps {
   );
 }
 
+function useRootLoaderData(): SerializeFrom<RootData> {
+  return useRouteLoaderData("root")!;
+}
+
 export function useServerState(): State | undefined {
-  // @ts-ignore
-  return useRouteLoaderData("root")?.serverState;
+  return useRootLoaderData().serverState;
 }
 
 export function useCatalog(id: string): Catalog | undefined {
-  return useServerState()?.catalogs.find((c) => c.id == id);
+  return useServerState()?.catalogs?.find((c) => c.id == id);
 }
 
 export function useServerConfig(): ApiConfig {
-  // @ts-ignore
-  return useRouteLoaderData("root")!.serverConfig;
+  return useRootLoaderData().serverConfig;
 }
 
 export abstract class BaseContext extends EventTarget {

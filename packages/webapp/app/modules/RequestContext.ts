@@ -5,9 +5,9 @@ import {
 } from "@remix-run/node";
 import { Request as ExpressRequest } from "express";
 
-type SessionData = {
+interface SessionData {
   token: string | null;
-};
+}
 
 const COOKIE_NAME = "px_session";
 
@@ -27,7 +27,7 @@ const {
 });
 
 export class RequestContext {
-  private static CONTEXTS: WeakMap<Request, RequestContext> = new WeakMap();
+  private static CONTEXTS = new WeakMap<Request, RequestContext>();
 
   private constructor(
     public readonly request: Request,

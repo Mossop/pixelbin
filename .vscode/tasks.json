@@ -45,6 +45,62 @@
       "runOptions": {
         "runOn": "default"
       }
+    },
+    {
+      "type": "shell",
+      "command": "mise",
+      "args": [
+        "watch",
+        "-t",
+        "lint"
+      ],
+      "problemMatcher": {
+        "base": "$eslint-stylish",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[Running: ",
+          "endsPattern": "^\\[Command exited with"
+        },
+      },
+      "label": "Lint web app",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never",
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "runOptions": {
+        "runOn": "default"
+      }
+    },
+    {
+      "type": "shell",
+      "command": "mise",
+      "args": [
+        "watch",
+        "-t",
+        "typecheck"
+      ],
+      "problemMatcher": {
+        "base": "$tsc",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[Running: ",
+          "endsPattern": "^\\[Command exited with"
+        },
+      },
+      "label": "Typecheck web app",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never",
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      },
+      "runOptions": {
+        "runOn": "default"
+      }
     }
   ]
 }

@@ -176,9 +176,11 @@ function Map({ media }: { media: MediaRelations }) {
 
   useEffect(() => {
     if (media.longitude !== null && media.latitude !== null) {
-      import("./Map").then((map) => {
-        setMap(() => map.default);
-      });
+      import("./Map")
+        .then((map) => {
+          setMap(() => map.default);
+        })
+        .catch(console.error);
     }
   }, [media]);
 
@@ -211,13 +213,13 @@ function Metadata<P extends keyof MediaView & keyof typeof LABELS>({
 
   return (
     <Row label={property}>
-      {/* @ts-ignore */}
+      {/* @ts-expect-error */}
       {media[property]}
     </Row>
   );
 }
 
-export default memo(({ media }: { media: MediaRelations }) => {
+export default memo(function MediaInfo({ media }: { media: MediaRelations }) {
   let taken = useMemo(() => {
     if (media.taken === null) {
       return null;

@@ -184,7 +184,7 @@ function RelationCompoundDescription<R extends keyof RelationFields>({
             return (
               <PersonFieldDescription
                 key={keyFor(fieldQuery)}
-                // @ts-ignore
+                // @ts-expect-error
                 query={fieldQuery}
                 serverState={serverState}
               />
@@ -193,7 +193,7 @@ function RelationCompoundDescription<R extends keyof RelationFields>({
             return (
               <AlbumFieldDescription
                 key={keyFor(fieldQuery)}
-                // @ts-ignore
+                // @ts-expect-error
                 query={fieldQuery}
                 serverState={serverState}
               />
@@ -202,7 +202,7 @@ function RelationCompoundDescription<R extends keyof RelationFields>({
             return (
               <TagFieldDescription
                 key={keyFor(fieldQuery)}
-                // @ts-ignore
+                // @ts-expect-error
                 query={fieldQuery}
                 serverState={serverState}
               />

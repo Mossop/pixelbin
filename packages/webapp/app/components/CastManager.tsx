@@ -99,7 +99,10 @@ class CastManager extends BaseContext {
       let { url: targetUrl } = await response.json();
 
       if (media === this.currentMedia && this.castSession) {
-        let mediaInfo = new chrome.cast.media.MediaInfo(targetUrl, mimetype);
+        let mediaInfo = new chrome.cast.media.MediaInfo(
+          String(targetUrl),
+          mimetype,
+        );
         let request = new chrome.cast.media.LoadRequest(mediaInfo);
         try {
           await this.castSession.loadMedia(request);
@@ -117,7 +120,7 @@ class CastManager extends BaseContext {
 
     this.castSession = session;
     if (session && this.currentMedia) {
-      this.loadMedia(this.currentMedia);
+      void this.loadMedia(this.currentMedia);
     }
 
     this.changed();
@@ -132,7 +135,7 @@ class CastManager extends BaseContext {
       this.currentMedia = media;
 
       if (this.castSession) {
-        this.loadMedia(media);
+        void this.loadMedia(media);
       }
     } else {
       this.currentMedia = null;
@@ -159,7 +162,7 @@ export function CastButton() {
 
   return (
     <div className="c-cast-button">
-      {/* @ts-ignore */}
+      {/* @ts-expect-error */}
       <google-cast-launcher />
     </div>
   );
@@ -175,7 +178,6 @@ export default function Provider({ children }: { children: React.ReactNode }) {
       return undefined;
     }
 
-    // @ts-ignore
     if (window.castState) {
       init();
 

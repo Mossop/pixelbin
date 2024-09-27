@@ -64,7 +64,7 @@ function Photo({
       "media",
       "encoding",
       media.id,
-      file!.id,
+      file.id,
       urlMimetype,
       `${filename}.${extension}`,
     ]);
@@ -81,7 +81,6 @@ function Photo({
       {Array.from(alternateTypes, (type) => (
         <source key={type} srcSet={source(type)} type={type} />
       ))}
-      {/* eslint-disable-next-line jsx-a11y/alt-text */}
       <img
         ref={imageElement}
         onLoad={onLoaded}
@@ -184,18 +183,17 @@ function Video({
       "media",
       "encoding",
       media.id,
-      file!.id,
+      file.id,
       urlMimetype,
       `${filename}.${extension}`,
     ]);
   };
 
   let startPlaying = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    event.currentTarget.play();
+    void event.currentTarget.play();
   }, []);
 
   return (
-    // eslint-disable-next-line jsx-a11y/media-has-caption
     <video
       ref={videoElement}
       poster={source("image/jpeg")}

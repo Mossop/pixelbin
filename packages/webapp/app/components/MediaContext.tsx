@@ -63,7 +63,7 @@ class MediaContext extends BaseContext {
   }
 
   play() {
-    this.videoState?.element?.play();
+    void this.videoState?.element?.play();
   }
 
   pause() {

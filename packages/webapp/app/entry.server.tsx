@@ -4,32 +4,19 @@ import { PassThrough } from "node:stream";
 
 import { createReadableStreamFromReadable } from "@remix-run/node";
 import { RemixServer } from "@remix-run/react";
-import * as isbotModule from "isbot";
+import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 
 import { inSpan } from "modules/telemetry.mjs";
 
 const ABORT_DELAY = 5_000;
 
-// We have some Remix apps in the wild already running with isbot@3 so we need
-// to maintain backwards compatibility even though we want new apps to use
-// isbot@4.  That way, we can ship this as a minor Semver update to @remix-run/dev.
 function isBotRequest(userAgent: string | null) {
   if (!userAgent) {
     return false;
   }
 
-  // isbot >= 3.8.0, >4
-  if ("isbot" in isbotModule && typeof isbotModule.isbot === "function") {
-    return isbotModule.isbot(userAgent);
-  }
-
-  // isbot < 3.8.0
-  if ("default" in isbotModule && typeof isbotModule.default === "function") {
-    return isbotModule.default(userAgent);
-  }
-
-  return false;
+  return isbot(userAgent);
 }
 
 function handleBotRequest(
@@ -65,7 +52,7 @@ function handleBotRequest(
           pipe(body);
         },
         onShellError(error: unknown) {
-          reject(error);
+          reject(error as Error);
         },
         onError(error: unknown) {
           responseStatusCode = 500;
@@ -116,7 +103,7 @@ function handleBrowserRequest(
           pipe(body);
         },
         onShellError(error: unknown) {
-          reject(error);
+          reject(error as Error);
         },
         onError(error: unknown) {
           responseStatusCode = 500;

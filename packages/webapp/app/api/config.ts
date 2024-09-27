@@ -2,7 +2,7 @@ import { LoaderFunctionArgs } from "@remix-run/node";
 
 import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";
-import { apiResponse, forwardedRequest } from "@/modules/api";
+import { ApiConfig, apiResponse, forwardedRequest } from "@/modules/api";
 
 export const loader = safeLoader(
   async ({ request, context }: LoaderFunctionArgs) => {
@@ -17,7 +17,7 @@ export const loader = safeLoader(
       return response;
     }
 
-    let config = await response.json();
+    let config = (await response.json()) as unknown as ApiConfig;
     if ("SOURCE_CHANGESET" in process.env) {
       config.webappChangeset = process.env.SOURCE_CHANGESET;
     }

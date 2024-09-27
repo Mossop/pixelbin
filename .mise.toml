@@ -13,11 +13,41 @@ sources = [
   "packages/service/Cargo.toml",
   "packages/service/src/**/*.rs",
   "packages/cli/Cargo.toml",
-  "packages/cli/src/**/*.rs"
+  "packages/cli/src/**/*.rs",
 ]
 
 [tasks.webserver]
 description = "Run the web server"
 run = "npm run dev"
 dir = "packages/webapp"
-sources = ["packages/webapp/package.json", "packages/webapp/instrumentation.mjs", "packages/webapp/**/*.ts"]
+sources = [
+  "packages/webapp/package.json",
+  "packages/webapp/instrumentation.mjs",
+  "packages/webapp/**/*.ts",
+]
+
+[tasks.lint]
+description = "Lint the webapp"
+run = "npm run lint"
+sources = [
+  "packages/webapp/**/*.json",
+  "packages/webapp/**/*.ts",
+  "packages/webapp/**/*.tsx",
+  "packages/webapp/**/*.js",
+  "packages/webapp/**/*.jsx",
+  "packages/webapp/**/*.cjs",
+  "packages/webapp/**/*.mjs",
+]
+
+[tasks.typecheck]
+description = "Typecheck the webapp"
+run = "npm run typecheck"
+sources = [
+  "packages/webapp/**/*.json",
+  "packages/webapp/**/*.ts",
+  "packages/webapp/**/*.tsx",
+  "packages/webapp/**/*.js",
+  "packages/webapp/**/*.jsx",
+  "packages/webapp/**/*.cjs",
+  "packages/webapp/**/*.mjs",
+]

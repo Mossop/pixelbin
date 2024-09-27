@@ -1,10 +1,5 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
-import {
-  Outlet,
-  useLoaderData,
-  useLocation,
-  useSearchParams,
-} from "@remix-run/react";
+import { Outlet, useLoaderData, useSearchParams } from "@remix-run/react";
 import { useCallback, useMemo } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
@@ -14,6 +9,7 @@ import { getRequestContext } from "@/modules/RequestContext";
 import { getCatalog } from "@/modules/api";
 import { SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
+import { useHistoryState } from "@/modules/hooks";
 
 export async function loader({
   request,
@@ -36,7 +32,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 export default function Search() {
   let { catalog } = useLoaderData<typeof loader>();
   let [searchParams, setSearchParams] = useSearchParams();
-  let { state } = useLocation();
+  let state = useHistoryState();
 
   let [searchQuery, queryParams] = useMemo<
     [SearchQuery, URLSearchParams]
@@ -46,7 +42,10 @@ export default function Search() {
       let query: SearchQuery = { queries: [] };
       return [query, new URLSearchParams({ q: JSON.stringify(query) })];
     }
-    return [JSON.parse(param), new URLSearchParams({ q: param })];
+    return [
+      JSON.parse(param) as SearchQuery,
+      new URLSearchParams({ q: param }),
+    ];
   }, [searchParams]);
 
   let requestStream = useCallback(

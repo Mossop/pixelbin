@@ -9,18 +9,14 @@ import { ResponseError } from "./api";
 
 function fixError(e: unknown): unknown {
   if (e instanceof ResponseError) {
-    // eslint-disable-next-line @typescript-eslint/no-throw-literal
     return e.response;
   }
 
   if (e instanceof Error) {
-    // eslint-disable-next-line @typescript-eslint/no-throw-literal
     return new Response(e.stack, { status: 500, statusText: e.message });
   }
 
-  /* @ts-ignore */
-  // eslint-disable-next-line @typescript-eslint/no-throw-literal
-  return new Response(e.toString(), {
+  return new Response(String(e), {
     status: 500,
     statusText: "Internal Server Error",
   });

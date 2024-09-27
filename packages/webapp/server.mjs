@@ -92,7 +92,7 @@ async function initServer() {
     });
   }
 
-  app.all("*", async (request, response, next) => {
+  app.all("*", (request, response, next) => {
     let parentContext = propagation.extract(context.active(), request.headers, {
       keys(headers) {
         return Object.keys(headers);

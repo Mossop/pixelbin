@@ -4,6 +4,7 @@ import { SlTag, SlTagProps } from "shoelace-react";
 import Icon, { IconName } from "./Icon";
 
 import "styles/components/Chip.scss";
+import { HistoryState } from "@/modules/types";
 
 export default function Chip({
   icon,
@@ -17,7 +18,7 @@ export default function Chip({
   variant?: SlTagProps["variant"];
   to?: string;
   replace?: boolean;
-  state?: any;
+  state?: HistoryState;
   children: React.ReactNode;
 }) {
   if (to) {

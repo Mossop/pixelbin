@@ -7,5 +7,7 @@
         "editor.formatOnSave": true
     },
     "Lua.workspace.library": ["/Users/dave/workspace/lightroom-lua/library"],
-    "Lua.runtime.special": {"import": "require"}
+    "Lua.runtime.special": {
+        "import": "require"
+    },
 }

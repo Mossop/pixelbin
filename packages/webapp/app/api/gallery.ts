@@ -2,7 +2,8 @@ import { LoaderFunctionArgs } from "@remix-run/node";
 
 import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";
-import { listMedia, searchMedia } from "@/modules/api";
+import { isMediaSource, listMedia, searchMedia } from "@/modules/api";
+import { SearchQuery } from "@/modules/types";
 
 export const loader = safeLoader(
   async ({
@@ -10,19 +11,14 @@ export const loader = safeLoader(
     context,
     params: { container, id, type },
   }: LoaderFunctionArgs) => {
-    if (!["catalog", "album", "search"].includes(container!)) {
+    if (!isMediaSource(container)) {
       throw new Error(`Unknown container: ${container}`);
     }
 
     let session = await getRequestContext(request, context);
 
     if (type == "media") {
-      return listMedia(
-        session,
-        // @ts-ignore
-        container!,
-        id!,
-      );
+      return listMedia(session, container, id!);
     }
 
     if (type == "search") {
@@ -32,7 +28,7 @@ export const loader = safeLoader(
         throw new Error("No search query specified");
       }
 
-      let query = JSON.parse(param);
+      let query = JSON.parse(param) as unknown as SearchQuery;
       return searchMedia(session, id!, query);
     }
 

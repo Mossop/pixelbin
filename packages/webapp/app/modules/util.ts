@@ -10,9 +10,12 @@ import {
   MediaViewFile,
 } from "./types";
 
+function isActionSetter<T>(ssa: SetStateAction<T>): ssa is (prev: T) => T {
+  return typeof ssa == "function";
+}
+
 export function applySSA<T>(previous: T, ssa: SetStateAction<T>): T {
-  // @ts-ignore
-  return typeof ssa == "function" ? ssa(previous) : ssa;
+  return isActionSetter(ssa) ? ssa(previous) : ssa;
 }
 
 export function url(parts: string[], params?: URLSearchParams): string {
@@ -81,7 +84,7 @@ export function serializeMediaView(media: MediaView): ApiMediaView {
     created: media.created.toISO()!,
     updated: media.updated.toISO()!,
     datetime: media.datetime.toISO()!,
-    taken: media.taken?.toISO() || null,
+    taken: media.taken?.toISO() ?? null,
     file: mediaFile,
   };
 }
@@ -96,15 +99,16 @@ export function formatTime(seconds: number): string {
   return duration.toFormat("m:ss");
 }
 
-const KEY_SYMBOL = Symbol("key");
+const KEY_MAP = new WeakMap<object, string>();
+
 let keyId = 0;
 export function keyFor(obj: object): string {
-  if (!(KEY_SYMBOL in obj)) {
-    // @ts-expect-error
-    // eslint-disable-next-line no-param-reassign
-    obj[KEY_SYMBOL] = `obj${keyId++}`;
+  let key = KEY_MAP.get(obj);
+  if (key) {
+    return key;
   }
 
-  // @ts-expect-error
-  return obj[KEY_SYMBOL];
+  key = `obj${keyId++}`;
+  KEY_MAP.set(obj, key);
+  return key;
 }

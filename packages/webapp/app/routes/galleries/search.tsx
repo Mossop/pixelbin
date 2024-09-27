@@ -1,6 +1,6 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
 import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { HeaderButtons } from "@/components/AppBar";
 import { IconButton, IconLink } from "@/components/Icon";
@@ -55,10 +55,16 @@ export default function SearchLayout() {
     return url(["catalog", search.catalog, "search"], params);
   }, [search]);
 
+  let [_showSubscribeDialog, setShowSubscribeDialog] = useState(false);
+  let openSubscribeDialog = useCallback(
+    () => setShowSubscribeDialog(true),
+    [setShowSubscribeDialog],
+  );
+
   return (
     <>
       <HeaderButtons>
-        <IconButton icon="subscribe" onClick={() => {}} />
+        <IconButton icon="subscribe" onClick={openSubscribeDialog} />
         <IconLink icon="search" to={searchUrl} />
       </HeaderButtons>
       <MediaGallery

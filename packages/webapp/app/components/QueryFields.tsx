@@ -98,7 +98,6 @@ function StringValue<F>({
     (event: SlInputChangeEvent) => {
       setField((previous) => ({
         ...previous,
-        // @ts-ignore
         value: event.target.value,
       }));
     },
@@ -131,7 +130,7 @@ function NumberValue<F>({
       setField((previous) => {
         let newField: FieldQuery<F> = {
           ...previous,
-          // @ts-ignore
+          // @ts-expect-error
           value: event.target.valueAsNumber,
         };
 
@@ -167,7 +166,7 @@ function DateValue<F>({
       setField((previous) => {
         let newField: FieldQuery<F> = {
           ...previous,
-          // @ts-ignore
+          // @ts-expect-error
           value: event.target.valueAsDate.toISOString(),
         };
 
@@ -225,7 +224,7 @@ function PeopleValue({
       setField((previous) => {
         let newField: FieldQuery<PersonField> = {
           ...previous,
-          // @ts-ignore
+          // @ts-expect-error
           value: event.currentTarget.value,
         };
 
@@ -235,7 +234,7 @@ function PeopleValue({
     [setField],
   );
 
-  // @ts-ignore
+  // @ts-expect-error
   let { value } = field;
 
   return (
@@ -271,7 +270,7 @@ function AlbumValue({
       setField((previous) => {
         let newField: FieldQuery<AlbumField> = {
           ...previous,
-          // @ts-ignore
+          // @ts-expect-error
           value: event.currentTarget.value,
         };
 
@@ -281,7 +280,7 @@ function AlbumValue({
     [setField],
   );
 
-  // @ts-ignore
+  // @ts-expect-error
   let { value } = field;
 
   return (
@@ -317,7 +316,7 @@ function TagValue({
       setField((previous) => {
         let newField: FieldQuery<TagField> = {
           ...previous,
-          // @ts-ignore
+          // @ts-expect-error
           value: event.currentTarget.value,
         };
 
@@ -327,7 +326,7 @@ function TagValue({
     [setField],
   );
 
-  // @ts-ignore
+  // @ts-expect-error
   let { value } = field;
 
   return (
@@ -367,9 +366,9 @@ export function FieldValue<F>({
     case ValueType.Person:
       return (
         <PeopleValue
-          // @ts-ignore
+          // @ts-expect-error
           field={field}
-          // @ts-ignore
+          // @ts-expect-error
           setField={setField}
           catalog={catalog}
           serverState={serverState}
@@ -378,9 +377,9 @@ export function FieldValue<F>({
     case ValueType.Tag:
       return (
         <TagValue
-          // @ts-ignore
+          // @ts-expect-error
           field={field}
-          // @ts-ignore
+          // @ts-expect-error
           setField={setField}
           catalog={catalog}
           serverState={serverState}
@@ -389,9 +388,9 @@ export function FieldValue<F>({
     case ValueType.Album:
       return (
         <AlbumValue
-          // @ts-ignore
+          // @ts-expect-error
           field={field}
-          // @ts-ignore
+          // @ts-expect-error
           setField={setField}
           catalog={catalog}
           serverState={serverState}
@@ -421,13 +420,13 @@ function NumberOperator({
 
         if (value.startsWith("not-")) {
           newField.invert = true;
-          // @ts-ignore
+          // @ts-expect-error
           newField.operator = value.substring(4);
         } else {
           if (newField.invert) {
             newField.invert = undefined;
           }
-          // @ts-ignore
+          // @ts-expect-error
           newField.operator = value;
         }
 
@@ -475,13 +474,13 @@ function StringOperator({
 
         if (value.startsWith("not-")) {
           newField.invert = true;
-          // @ts-ignore
+          // @ts-expect-error
           newField.operator = value.substring(4);
         } else {
           if (newField.invert) {
             newField.invert = undefined;
           }
-          // @ts-ignore
+          // @ts-expect-error
           newField.operator = value;
         }
 
@@ -563,19 +562,19 @@ export function RelationQueryField<F>({
 
         if (value.startsWith("not-")) {
           newField.invert = true;
-          // @ts-ignore
+          // @ts-expect-error
           newField.operator = value.substring(4);
         } else {
           if (newField.invert) {
             newField.invert = undefined;
           }
-          // @ts-ignore
+          // @ts-expect-error
           newField.operator = value;
         }
 
         newField.field = newField.operator == "equal" ? id : name;
         if (newField.field !== previous.field) {
-          // @ts-ignore
+          // @ts-expect-error
           newField.value = "";
         }
 
@@ -714,11 +713,11 @@ export function QueryField({
 
           switch (type) {
             case ValueType.Number:
-              // @ts-ignore
+              // @ts-expect-error
               next.value = 0;
               break;
             default:
-              // @ts-ignore
+              // @ts-expect-error
               next.value = "";
           }
         }

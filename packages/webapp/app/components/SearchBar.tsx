@@ -173,7 +173,7 @@ function CompoundFooter<
   );
 
   let addField = useCallback(() => {
-    // @ts-ignore
+    // @ts-expect-error
     appendField({
       type: "field",
       field: isOuter ? "title" : "id",
@@ -183,7 +183,7 @@ function CompoundFooter<
   }, [isOuter, appendField]);
 
   let addCompound = useCallback(() => {
-    // @ts-ignore
+    // @ts-expect-error
     appendField({
       type: "compound",
       queries: [],
@@ -191,7 +191,7 @@ function CompoundFooter<
   }, [appendField]);
 
   let addPerson = useCallback(() => {
-    // @ts-ignore
+    // @ts-expect-error
     appendField({
       type: "person",
       queries: [],
@@ -199,7 +199,7 @@ function CompoundFooter<
   }, [appendField]);
 
   let addTag = useCallback(() => {
-    // @ts-ignore
+    // @ts-expect-error
     appendField({
       type: "tag",
       queries: [],
@@ -207,7 +207,7 @@ function CompoundFooter<
   }, [appendField]);
 
   let addAlbum = useCallback(() => {
-    // @ts-ignore
+    // @ts-expect-error
     appendField({
       type: "album",
       queries: [],
@@ -272,13 +272,12 @@ function RenderTagItem({
   serverState: State;
   catalog: string;
 }) {
-  // eslint-disable-next-line default-case
   switch (item.type) {
     case "compound":
       return (
         <Compound
           query={item}
-          // @ts-ignore
+          // @ts-expect-error
           setQuery={setItem}
           renderer={RenderTagItem}
           serverState={serverState}
@@ -293,7 +292,7 @@ function RenderTagItem({
           id={TagField.Id}
           name={TagField.Name}
           field={item}
-          // @ts-ignore
+          // @ts-expect-error
           setField={setItem}
           serverState={serverState}
           catalog={catalog}
@@ -314,13 +313,12 @@ function RenderAlbumItem({
   serverState: State;
   catalog: string;
 }) {
-  // eslint-disable-next-line default-case
   switch (item.type) {
     case "compound":
       return (
         <Compound
           query={item}
-          // @ts-ignore
+          // @ts-expect-error
           setQuery={setItem}
           renderer={RenderAlbumItem}
           serverState={serverState}
@@ -335,7 +333,7 @@ function RenderAlbumItem({
           id={AlbumField.Id}
           name={AlbumField.Name}
           field={item}
-          // @ts-ignore
+          // @ts-expect-error
           setField={setItem}
           serverState={serverState}
           catalog={catalog}
@@ -356,13 +354,12 @@ function RenderPersonItem({
   serverState: State;
   catalog: string;
 }) {
-  // eslint-disable-next-line default-case
   switch (item.type) {
     case "compound":
       return (
         <Compound
           query={item}
-          // @ts-ignore
+          // @ts-expect-error
           setQuery={setItem}
           renderer={RenderPersonItem}
           serverState={serverState}
@@ -377,7 +374,7 @@ function RenderPersonItem({
           id={PersonField.Id}
           name={PersonField.Name}
           field={item}
-          // @ts-ignore
+          // @ts-expect-error
           setField={setItem}
           serverState={serverState}
           catalog={catalog}
@@ -398,13 +395,12 @@ function RenderCompoundQueryItem({
   serverState: State;
   catalog: string;
 }) {
-  // eslint-disable-next-line default-case
   switch (item.type) {
     case "compound":
       return (
         <Compound
           query={item}
-          // @ts-ignore
+          // @ts-expect-error
           setQuery={setItem}
           renderer={RenderCompoundQueryItem}
           serverState={serverState}
@@ -416,7 +412,7 @@ function RenderCompoundQueryItem({
       return (
         <Compound
           query={item}
-          // @ts-ignore
+          // @ts-expect-error
           setQuery={setItem}
           renderer={RenderAlbumItem}
           serverState={serverState}
@@ -428,7 +424,7 @@ function RenderCompoundQueryItem({
       return (
         <Compound
           query={item}
-          // @ts-ignore
+          // @ts-expect-error
           setQuery={setItem}
           renderer={RenderPersonItem}
           serverState={serverState}
@@ -440,7 +436,7 @@ function RenderCompoundQueryItem({
       return (
         <Compound
           query={item}
-          // @ts-ignore
+          // @ts-expect-error
           setQuery={setItem}
           renderer={RenderTagItem}
           serverState={serverState}
@@ -452,7 +448,7 @@ function RenderCompoundQueryItem({
       return (
         <QueryField
           field={item}
-          // @ts-ignore
+          // @ts-expect-error
           setField={setItem}
           serverState={serverState}
           catalog={catalog}

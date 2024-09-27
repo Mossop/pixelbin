@@ -1,4 +1,9 @@
-import { LinksFunction, LoaderFunctionArgs, json } from "@remix-run/node";
+import {
+  LinksFunction,
+  LoaderFunctionArgs,
+  TypedResponse,
+  json,
+} from "@remix-run/node";
 import {
   Links,
   Meta,
@@ -18,6 +23,7 @@ import { config, state } from "./modules/api";
 
 import "styles/main.scss";
 import { PortalContext } from "./components/Portal";
+import { RootData } from "./modules/hooks";
 
 export const links: LinksFunction = () => [
   {
@@ -27,7 +33,10 @@ export const links: LinksFunction = () => [
   },
 ];
 
-export async function loader({ request, context }: LoaderFunctionArgs) {
+export async function loader({
+  request,
+  context,
+}: LoaderFunctionArgs): Promise<TypedResponse<RootData>> {
   let session = await getRequestContext(request, context);
   let serverConfig = await config(session);
   let serverState = await state(session);

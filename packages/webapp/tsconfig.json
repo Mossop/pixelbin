@@ -1,5 +1,5 @@
 {
-  "extends": "@mossop/config/remix-ts/tsconfig.base.json",
+  "extends": "@mossop/config/remix/tsconfig",
 
   "compilerOptions": {
     "baseUrl": ".",
@@ -10,5 +10,5 @@
     },
   },
 
-  "include": ["**/*.ts", "**/*.tsx", "*.cjs", "modules/**/*.mjs"],
+  "include": ["**/*", ".*"],
 }

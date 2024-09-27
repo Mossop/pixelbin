@@ -17,7 +17,7 @@ export function generatePortalId(): PortalId {
 }
 
 class Portals extends BaseContext {
-  private portals: Map<PortalId, Element> = new Map();
+  private portals = new Map<PortalId, Element>();
 
   public setPortal(id: PortalId, element: Element | null) {
     if (element) {

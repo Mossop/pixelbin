@@ -1,5 +1,3 @@
-/* eslint-disable prefer-arrow-callback */
-
 import { memo } from "react";
 
 import Icon from "./Icon";

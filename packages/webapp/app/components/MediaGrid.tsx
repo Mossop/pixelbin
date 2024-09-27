@@ -1,5 +1,3 @@
-/* eslint-disable prefer-arrow-callback */
-
 import { Link } from "@remix-run/react";
 import mime from "mime-types";
 import {
@@ -76,7 +74,7 @@ const ThumbnailImage = memo(function ThumbnailImage({
             "media",
             "thumb",
             media.id,
-            file!.id,
+            file.id,
             Math.max(t.width, t.height).toString(),
             urlMimetype,
             `${filename}.${extension}`,

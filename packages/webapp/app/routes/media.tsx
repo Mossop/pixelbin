@@ -1,11 +1,17 @@
-import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
+import {
+  LoaderFunctionArgs,
+  MetaFunction,
+  SerializeFrom,
+  json,
+} from "@remix-run/node";
 import { MetaDescriptor, useLoaderData } from "@remix-run/react";
 
 import MediaLayout from "@/components/MediaLayout";
 import { getRequestContext } from "@/modules/RequestContext";
-import { ApiConfig, getMedia } from "@/modules/api";
+import { getMedia } from "@/modules/api";
 import { AlternateFileType } from "@/modules/types";
 import { deserializeMediaView, mediaTitle, url } from "@/modules/util";
+import { RootData } from "@/modules/hooks";
 
 export async function loader({
   request,
@@ -23,19 +29,24 @@ export async function loader({
   return json(media);
 }
 
+function isTitleProvider(val: unknown): val is { title: string } {
+  return (
+    !!val &&
+    typeof val === "object" &&
+    "title" in val &&
+    typeof val.title === "string"
+  );
+}
+
 export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   let media = deserializeMediaView(data!);
-  // @ts-ignore
-  let parentTitle = matches.at(-2)?.data?.title as unknown as
-    | string
-    | undefined;
+  let parentData = matches.at(-2)?.data;
+  let parentTitle = isTitleProvider(parentData) ? parentData.title : undefined;
 
-  // @ts-ignore
-  let { serverConfig } = matches.find((m) => m.id == "root").data as {
-    serverConfig: ApiConfig;
-  };
+  let { serverConfig } = matches.find((m) => m.id == "root")
+    ?.data as SerializeFrom<RootData>;
 
-  let title: string | null | undefined = mediaTitle(media!);
+  let title: string | null | undefined = mediaTitle(media);
 
   if (title && parentTitle) {
     title = `${title} - ${parentTitle}`;

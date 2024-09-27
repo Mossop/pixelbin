@@ -28,6 +28,11 @@ import {
 export const GET = (): ApiRequest => ({ method: "GET", headers: {} });
 export const POST = (): ApiRequest => ({ method: "POST", headers: {} });
 
+async function toJson<T>(response: Response): Promise<T> {
+  let result = await response.json();
+  return result as unknown as T;
+}
+
 function apiUrl(): string {
   let url = process.env.PIXELBIN_API_URL;
   if (url?.endsWith("/")) {
@@ -133,7 +138,6 @@ export function apiResponse(
     async (span: Span) => {
       propagation.inject(telemetryContext.active(), init.headers, {
         set(headers: Record<string, string>, key: string, value: string) {
-          // eslint-disable-next-line no-param-reassign
           headers[key] = value;
         },
       });
@@ -181,7 +185,8 @@ async function jsonApiCall<T>(
     authenticated(context),
     ...builders,
   );
-  return response.json();
+
+  return toJson(response);
 }
 
 export interface ThumbnailConfig {
@@ -202,7 +207,7 @@ export async function config(context: RequestContext): Promise<ApiConfig> {
     "config",
     forwardedRequest(context),
   );
-  return response.json();
+  return toJson(response);
 }
 
 export async function login(
@@ -231,7 +236,7 @@ export async function login(
 
 export async function logout(context: RequestContext) {
   if (context.get("token")) {
-    jsonApiCall(context, "/api/logout", "logout", POST, (init) => ({
+    return jsonApiCall(context, "/api/logout", "logout", POST, (init) => ({
       ...init,
       cache: "no-store",
     }));
@@ -250,7 +255,7 @@ export async function state(
         authenticated(context),
       );
 
-      return await response.json();
+      return await toJson(response);
     } catch (e) {
       console.error(e);
     }
@@ -289,9 +294,19 @@ interface ListMediaResponse<T> {
   media: T[];
 }
 
+export type MediaSource = "album" | "catalog" | "search";
+export function isMediaSource(
+  container: string | undefined,
+): container is MediaSource {
+  if (!container) {
+    return false;
+  }
+  return ["catalog", "album", "search"].includes(container);
+}
+
 export function listMedia(
   context: RequestContext,
-  source: "album" | "catalog" | "search",
+  source: MediaSource,
   id: string,
 ): Promise<Response> {
   if (source != "search") {
@@ -342,7 +357,7 @@ export async function getMedia(
     return response.media[0];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-throw-literal
+  // eslint-disable-next-line @typescript-eslint/only-throw-error
   throw new Response(null, {
     status: 404,
     statusText: "Not Found",
@@ -351,7 +366,7 @@ export async function getMedia(
 
 export async function markMediaPublic(
   context: RequestContext,
-  id: String,
+  id: string,
 ): Promise<void> {
   await jsonApiCall<ApiResponse>(
     context,

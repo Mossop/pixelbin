@@ -1,4 +1,4 @@
-import { useFetcher, useLocation, useNavigate } from "@remix-run/react";
+import { useFetcher, useNavigate } from "@remix-run/react";
 import { useCallback, useMemo, useState } from "react";
 import { SlTooltip } from "shoelace-react";
 
@@ -21,7 +21,7 @@ import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
-import { useFullscreen } from "@/modules/hooks";
+import { useFullscreen, useHistoryState } from "@/modules/hooks";
 import { MediaRelations, MediaView } from "@/modules/types";
 import { formatTime, mediaDate, url } from "@/modules/util";
 
@@ -35,7 +35,7 @@ function GalleryNavigation({
   children: React.ReactNode;
 }) {
   let gallery = useGalleryMedia();
-  let fromGallery = !!useLocation().state?.fromGallery;
+  let fromGallery = !!useHistoryState()?.fromGallery;
   let getMediaUrl = useGetMediaUrl();
 
   let mediaUrl = useCallback(
@@ -120,7 +120,7 @@ function VideoInfo({ videoState }: { videoState: VideoState }) {
 
 export default function MediaLayout({ media }: { media: MediaRelations }) {
   let gallery = useGalleryUrl();
-  let fromGallery = !!useLocation().state?.fromGallery;
+  let fromGallery = !!useHistoryState()?.fromGallery;
   let currentMedia = useCurrentMedia();
   let galleryType = useGalleryType();
   let displayingMedia = currentMedia ?? media;
@@ -168,7 +168,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
 
   let [shareTooltipOpen, setShareTooltipOpen] = useState(false);
 
-  let share = useCallback(async () => {
+  let share = useCallback(() => {
     if (
       !displayingMedia.public &&
       displayingMedia.access == "writableCatalog"
@@ -178,7 +178,6 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
         {
           action: "/markPublic",
           method: "POST",
-          navigate: false,
         },
       );
     }
@@ -192,9 +191,10 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
       ).toString();
     }
 
-    navigator.clipboard.writeText(shareUrl);
-
-    setShareTooltipOpen(true);
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => setShareTooltipOpen(true))
+      .catch((e) => console.error(e));
   }, [fetcher, displayingMedia]);
 
   return (

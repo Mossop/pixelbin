@@ -1,3 +1,4 @@
+import { HistoryState } from "@/modules/types";
 import { useNavigate } from "@remix-run/react";
 import clsx from "clsx";
 import { useCallback } from "react";
@@ -73,7 +74,7 @@ export function IconLink({
   className?: string;
   download?: string;
   replace?: boolean;
-  state?: any;
+  state?: HistoryState;
   onClick?: (event: React.MouseEvent) => void;
 }) {
   let navigate = useNavigate();

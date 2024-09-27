@@ -3,6 +3,15 @@ import { SpanStatusCode, trace, context } from "@opentelemetry/api";
 /** @import { Span } from "@opentelemetry/api" */
 
 /**
+ * @template T
+ * @param {Promise<T> | T} val
+ * @returns {val is Promise<T>}
+ */
+function isPromise(val) {
+  return val && typeof result == "object" && "catch" in val && "finally" in val;
+}
+
+/**
  * @template R
  * @template {(span: Span) => R} F
  * @param {string | SpanConfig} config
@@ -30,15 +39,10 @@ export function inSpan(config, task) {
       try {
         let result = task(span);
 
-        if (
-          result &&
-          typeof result == "object" &&
-          "catch" in result &&
-          "finally" in result
-        ) {
-          // @ts-expect-error Duck typed
+        if (isPromise(result)) {
           result = result
             .catch((e) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               span.recordException(e);
               span.setStatus({
                 code: SpanStatusCode.ERROR,

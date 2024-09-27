@@ -30,7 +30,6 @@ export default function MapComponent({
   let latlng = { lat: latitude, lng: longitude, alt: altitude ?? undefined };
 
   return (
-    // eslint-disable-next-line jsx-a11y/control-has-associated-label
     <a
       target="_blank"
       href={`https://www.openstreetmap.org/#map=15/${latitude}/${longitude}`}
