@@ -234,6 +234,24 @@ export async function login(
   }
 }
 
+export async function subscribe(
+  context: RequestContext,
+  email: string,
+  search: string,
+) {
+  await apiCall(
+    "/api/subscribe",
+    "subscribe",
+    POST,
+    json({
+      email,
+      search,
+    }),
+    forwardedRequest(context),
+    (init) => ({ ...init, cache: "no-store" }),
+  );
+}
+
 export async function logout(context: RequestContext) {
   if (context.get("token")) {
     return jsonApiCall(context, "/api/logout", "logout", POST, (init) => ({

@@ -49,6 +49,7 @@ export default defineConfig({
           route("/login", "actions/login.ts");
           route("/logout", "actions/logout.ts");
           route("/markPublic", "actions/markPublic.ts");
+          route("/subscribe", "actions/subscribe.ts");
           route("/*", "routes/notfound.tsx");
         });
       },

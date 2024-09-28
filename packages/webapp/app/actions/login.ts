@@ -6,18 +6,18 @@ import { login } from "@/modules/api";
 
 export const action = safeAction(
   async ({ request, context }: ActionFunctionArgs) => {
-    let session = await getRequestContext(request, context);
+    let requestContext = await getRequestContext(request, context);
     let formData = await request.formData();
     let email = String(formData.get("email"));
     let password = String(formData.get("password"));
 
-    await login(session, email, password);
+    await login(requestContext, email, password);
 
     return json(
       {},
       {
         headers: {
-          "Set-Cookie": await session.commit(),
+          "Set-Cookie": await requestContext.commit(),
         },
       },
     );

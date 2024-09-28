@@ -59,7 +59,7 @@ function Login() {
         onClick={performLogin}
         type="primary"
         label="Login"
-        disabled={email == ""}
+        disabled={email == "" && fetcher.state == "idle"}
       />
     </>
   );

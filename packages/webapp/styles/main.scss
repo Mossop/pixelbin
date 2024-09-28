@@ -2,6 +2,12 @@
 
 :root {
   @include theme.vars;
+
+  font-family: var(--sl-font-sans);
+  font-weight: var(--sl-font-weight-normal);
+  font-size: var(--sl-font-size-medium);
+  letter-spacing: var(--sl-letter-spacing-normal);
+  line-height: var(--sl-line-height-normal);
 }
 
 :root,
@@ -31,12 +37,6 @@ body {
   flex-direction: column;
   align-items: stretch;
   overflow: hidden;
-
-  font-family: var(--sl-font-sans);
-  font-weight: var(--sl-font-weight-normal);
-  font-size: var(--sl-font-size-medium);
-  letter-spacing: var(--sl-letter-spacing-normal);
-  line-height: var(--sl-line-height-normal);
 }
 
 body.sl-scroll-lock {

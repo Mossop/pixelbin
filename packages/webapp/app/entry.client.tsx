@@ -4,6 +4,7 @@ import { registerIconLibrary } from "@shoelace-style/shoelace/dist/utilities/ico
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 
+import "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import "@shoelace-style/shoelace/dist/components/badge/badge.js";
 import "@shoelace-style/shoelace/dist/components/button/button.js";
 import "@shoelace-style/shoelace/dist/components/card/card.js";

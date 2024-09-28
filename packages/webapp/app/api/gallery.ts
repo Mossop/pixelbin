@@ -15,10 +15,10 @@ export const loader = safeLoader(
       throw new Error(`Unknown container: ${container}`);
     }
 
-    let session = await getRequestContext(request, context);
+    let requestContext = await getRequestContext(request, context);
 
     if (type == "media") {
-      return listMedia(session, container, id!);
+      return listMedia(requestContext, container, id!);
     }
 
     if (type == "search") {
@@ -29,7 +29,7 @@ export const loader = safeLoader(
       }
 
       let query = JSON.parse(param) as unknown as SearchQuery;
-      return searchMedia(session, id!, query);
+      return searchMedia(requestContext, id!, query);
     }
 
     throw new Error(`Unknown lookup type: ${type}`);

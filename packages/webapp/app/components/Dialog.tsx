@@ -1,19 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCustomElementDefined } from "@/modules/hooks";
 import { SlDialog } from "shoelace-react";
 
 import "styles/components/Dialog.scss";
-
-function useDialogDefined() {
-  let [defined, setDefined] = useState(false);
-
-  useEffect(() => {
-    if (!defined) {
-      void customElements.whenDefined("sl-dialog").then(() => setDefined(true));
-    }
-  }, [defined]);
-
-  return defined;
-}
 
 export default function Dialog({
   label,
@@ -28,7 +16,7 @@ export default function Dialog({
   onClosed?: () => void;
   children: React.ReactNode;
 }) {
-  let defined = useDialogDefined();
+  let defined = useCustomElementDefined("sl-dialog");
 
   if (!defined) {
     return null;

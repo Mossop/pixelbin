@@ -301,3 +301,15 @@ export function contextPropertyHook<C extends BaseContext, P extends keyof C>(
   return () =>
     useContextProperty(contextGetter(), (context: C): C[P] => context[prop]);
 }
+
+export function useCustomElementDefined(element: string): boolean {
+  let [defined, setDefined] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (defined !== element) {
+      void customElements.whenDefined(element).then(() => setDefined(element));
+    }
+  }, [element, defined]);
+
+  return defined === element;
+}

@@ -6,11 +6,11 @@ import { ApiConfig, apiResponse, forwardedRequest } from "@/modules/api";
 
 export const loader = safeLoader(
   async ({ request, context }: LoaderFunctionArgs) => {
-    let session = await getRequestContext(request, context);
+    let requestContext = await getRequestContext(request, context);
     let response = await apiResponse(
       "/api/config",
       "config",
-      forwardedRequest(session),
+      forwardedRequest(requestContext),
     );
 
     if (response.status < 200 || response.status >= 300) {

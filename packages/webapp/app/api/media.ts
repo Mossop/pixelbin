@@ -6,7 +6,7 @@ import { ApiRequest, apiResponse, forwardedRequest, GET } from "@/modules/api";
 
 export const loader = safeLoader(
   async ({ request, context, params }: LoaderFunctionArgs) => {
-    let session = await getRequestContext(request, context);
+    let requestContext = await getRequestContext(request, context);
     let init: ApiRequest = GET();
     init.redirect = "manual";
 
@@ -15,7 +15,7 @@ export const loader = safeLoader(
       init.headers.Accept = accept;
     }
 
-    let token = session.get("token");
+    let token = requestContext.get("token");
     if (token) {
       init.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,7 +24,7 @@ export const loader = safeLoader(
       `/media/${params["*"]}`,
       "media",
       () => init,
-      forwardedRequest(session),
+      forwardedRequest(requestContext),
     );
 
     if (response.status >= 300 && response.status < 400) {

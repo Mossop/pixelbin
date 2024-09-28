@@ -1,3 +1,10 @@
+sl-dialog {
+  font-size: 1rem;
+  --header-spacing: var(--sl-spacing-medium);
+  --body-spacing: 0 var(--sl-spacing-medium) var(--sl-spacing-medium)
+    var(--sl-spacing-medium);
+}
+
 sl-dialog .footer {
   display: flex;
   align-items: stretch;
