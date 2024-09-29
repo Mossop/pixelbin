@@ -15,12 +15,50 @@ import Dialog from "@/components/Dialog";
 import TextField from "@/components/TextField";
 import Button from "@/components/Button";
 import { showToast } from "@/modules/toast";
+import { useServerConfig, useServerState } from "@/modules/hooks";
 
 function SubscribeButton({ search }: { search: SavedSearch }) {
   let [dialogShown, setDialogShown] = useState(false);
+  let config = useServerConfig();
+  let serverState = useServerState();
 
   let [email, setEmail] = useState("");
   let [submitting, setSubmitting] = useState(false);
+
+  let startSubscription = useCallback(
+    (email: string, search: string) => {
+      fetch(`${config.apiUrl}api/subscribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, search }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return showToast(
+              "danger",
+              `Subscription failed: ${response.statusText}`,
+              { duration: 5000 },
+            );
+          } else {
+            setDialogShown(false);
+            return showToast(
+              "success",
+              `Check your email for further instructions`,
+              { duration: 5000 },
+            );
+          }
+        })
+        .catch((error) => {
+          return showToast("danger", `Subscription failed: ${error}`, {
+            duration: 5000,
+          });
+        })
+        .finally(() => setSubmitting(false));
+    },
+    [config],
+  );
 
   let submit = useCallback(() => {
     if (email == "") {
@@ -28,35 +66,16 @@ function SubscribeButton({ search }: { search: SavedSearch }) {
     }
 
     setSubmitting(true);
-    let formData = new FormData();
-    formData.append("email", email);
-    formData.append("search", search.id);
+    startSubscription(email, search.id);
+  }, [email, search, startSubscription]);
 
-    fetch("/subscribe", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => {
-        if (!response.ok) {
-          return showToast(
-            "danger",
-            `Subscription failed: ${response.statusText}`,
-            { duration: 5000 },
-          );
-        } else {
-          setDialogShown(false);
-          return showToast(
-            "success",
-            `Check your email for further instructions`,
-            { duration: 5000 },
-          );
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-      .finally(() => setSubmitting(false));
-  }, [email, search]);
+  let subscribe = useCallback(() => {
+    if (serverState?.email) {
+      startSubscription(serverState.email, search.id);
+    } else {
+      setDialogShown(true);
+    }
+  }, [serverState, search, startSubscription, setDialogShown]);
 
   let closed = useCallback(() => {
     setEmail("");
@@ -85,7 +104,7 @@ function SubscribeButton({ search }: { search: SavedSearch }) {
 
   return (
     <>
-      <IconButton icon="subscribe" onClick={() => setDialogShown(true)} />
+      <IconButton icon="subscribe" onClick={subscribe} />
       <Dialog
         show={dialogShown}
         onClosed={closed}

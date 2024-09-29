@@ -234,13 +234,29 @@ export async function login(
   }
 }
 
-export async function subscribe(
+export async function verifySubscription(
   context: RequestContext,
-  email: string,
-  search: string,
+  token: string,
 ) {
   await apiCall(
-    "/api/subscribe",
+    "/api/verify",
+    "subscribe",
+    POST,
+    json({
+      token,
+    }),
+    forwardedRequest(context),
+    (init) => ({ ...init, cache: "no-store" }),
+  );
+}
+
+export async function cancelSubscription(
+  context: RequestContext,
+  email: string,
+  search: string | null,
+) {
+  await apiCall(
+    "/api/unsubscribe",
     "subscribe",
     POST,
     json({

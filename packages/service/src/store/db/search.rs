@@ -558,6 +558,16 @@ pub(crate) struct CompoundQuery<Q> {
     pub(crate) queries: Vec<Q>,
 }
 
+impl<Q> Default for CompoundQuery<Q> {
+    fn default() -> Self {
+        Self {
+            invert: Default::default(),
+            join: Default::default(),
+            queries: Default::default(),
+        }
+    }
+}
+
 impl CompoundQuery<CompoundItem> {
     pub(crate) fn decode(value: Value) -> SqlxResult<Self> {
         serde_json::from_value(value).map_err(|e| SqlxError::Decode(Box::new(e)))

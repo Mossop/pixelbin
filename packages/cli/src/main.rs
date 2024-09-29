@@ -16,7 +16,9 @@ use opentelemetry_sdk::{
     trace::{self, TracerProvider},
     Resource,
 };
-use pixelbin::{server::serve, Config, Result, Store, StoreStats, Task};
+use pixelbin::{
+    send_test_message, server::serve, Config, Result, Store, StoreStats, Task, TestMessage,
+};
 use tokio::runtime::Builder;
 use tracing::{span, Instrument, Level, Span};
 use tracing_subscriber::{
@@ -51,6 +53,29 @@ impl Runnable for Stats {
         println!("Media:           {}", stats.media);
         println!("Files:           {}", stats.files);
         println!("Alternate files: {}", stats.alternate_files);
+
+        Ok(())
+    }
+}
+
+#[derive(Args)]
+struct SendMail {
+    // The address to email
+    address: String,
+}
+
+impl Runnable for SendMail {
+    fn span(&self) -> Span {
+        span!(Level::INFO, "sendmail")
+    }
+
+    async fn run(&self, store: &Store) -> Result {
+        send_test_message(
+            store.config(),
+            &self.address,
+            TestMessage::SubscriptionRequest,
+        )
+        .await;
 
         Ok(())
     }
@@ -170,6 +195,8 @@ enum Command {
     Reprocess,
     /// Verifies database and storage consistency.
     Verify,
+    /// Sends test emails.
+    SendMail,
 }
 
 #[enum_dispatch(Command)]
@@ -207,9 +234,9 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<Option<TracerProvider
     // let filter = EnvFilter::from_default_env().or(TracingFilter {});
 
     let default_level = if cfg!(debug_assertions) {
-        Level::DEBUG
+        Level::TRACE
     } else {
-        Level::WARN
+        Level::INFO
     };
 
     let formatter = tracing_subscriber::fmt::layer()

@@ -1,5 +1,6 @@
 use std::{env, fs, path::PathBuf, result, str::FromStr, time::Duration};
 
+use actix_web::http::Uri;
 use figment::{
     providers::{Env, Format, Json},
     value::{
@@ -9,7 +10,10 @@ use figment::{
     Figment,
 };
 use mime::Mime;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{
+    de::{Error as _, Unexpected},
+    Deserialize, Deserializer, Serialize,
+};
 
 use crate::{Error, Result};
 
@@ -49,6 +53,9 @@ mod mimes {
             })
     }
 }
+
+const DEFAULT_API_PORT: u16 = 8283;
+const DEFAULT_WEB_PORT: u16 = 3000;
 
 fn duration_from_secs<'de, D>(deserializer: D) -> result::Result<Duration, D::Error>
 where
@@ -106,6 +113,9 @@ pub struct Config {
     /// The host and port of the smtp server to use.
     pub mail_server: MailServer,
 
+    /// The email address to send from.
+    pub mail_address: Option<String>,
+
     /// The location of locally stored alternate files.
     pub local_storage: PathBuf,
 
@@ -115,11 +125,17 @@ pub struct Config {
     /// The database connection url.
     pub database_url: String,
 
-    /// The port to run the webserver on.
-    pub port: Option<u16>,
+    /// The port to run the API server on.
+    pub api_port: u16,
+
+    /// The port to run the web server on.
+    pub web_port: u16,
+
+    /// The canonical website hostname.
+    pub base_url: Uri,
 
     /// The canonical API host url.
-    pub api_url: Option<String>,
+    pub api_url: Uri,
 
     pub thumbnails: ThumbnailConfig,
 
@@ -136,16 +152,38 @@ struct StoragePaths {
     temp: RelativePathBuf,
 }
 
+fn optional_uri<'de, D>(deserializer: D) -> result::Result<Option<Uri>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    if let Some(uri) = Option::<String>::deserialize(deserializer)? {
+        match uri.parse() {
+            Ok(uri) => Ok(Some(uri)),
+            Err(_) => Err(D::Error::invalid_value(
+                Unexpected::Str(&uri),
+                &"a valid URI",
+            )),
+        }
+    } else {
+        Ok(None)
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ParsedConfig {
     telemetry_host: Option<String>,
     #[serde(default)]
     mail_server: MailServer,
+    mail_address: Option<String>,
     storage: Option<Either<RelativePathBuf, StoragePaths>>,
     database_url: String,
-    port: Option<u16>,
-    api_url: Option<String>,
+    api_port: Option<u16>,
+    web_port: Option<u16>,
+    #[serde(default, deserialize_with = "optional_uri")]
+    base_url: Option<Uri>,
+    #[serde(default, deserialize_with = "optional_uri")]
+    api_url: Option<Uri>,
     thumbnails: Option<ThumbnailConfig>,
     rate_limits: Option<Vec<RateLimit>>,
     #[serde(default)]
@@ -185,6 +223,15 @@ fn map_env(key: &UncasedStr) -> Uncased<'_> {
         .into()
 }
 
+fn local_address(port: u16) -> Uri {
+    match port {
+        80 => "http://localhost/".parse(),
+        443 => "https://localhost/".parse(),
+        p => format!("http://localhost:{p}/").parse(),
+    }
+    .unwrap()
+}
+
 impl Config {
     pub fn load(config_file: Option<&str>) -> Result<Self> {
         let file_provider = if let Some(path) = config_file {
@@ -213,14 +260,23 @@ impl Config {
             }
         };
 
+        let api_port = parsed.api_port.unwrap_or(DEFAULT_API_PORT);
+        let web_port = parsed.web_port.unwrap_or(DEFAULT_WEB_PORT);
+
+        let api_url = parsed.api_url.unwrap_or_else(|| local_address(api_port));
+        let base_url = parsed.base_url.unwrap_or_else(|| local_address(web_port));
+
         Ok(Config {
             telemetry_host: parsed.telemetry_host,
             mail_server: parsed.mail_server,
+            mail_address: parsed.mail_address,
             local_storage: resolve(local)?,
             temp_storage: resolve(temp)?,
             database_url: parsed.database_url,
-            port: parsed.port,
-            api_url: parsed.api_url,
+            api_port,
+            web_port,
+            base_url,
+            api_url,
             thumbnails: parsed.thumbnails.unwrap_or_default(),
             rate_limits: parsed.rate_limits.unwrap_or_else(|| {
                 vec![

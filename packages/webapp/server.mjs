@@ -129,7 +129,7 @@ async function main() {
   initTelemetry();
   let app = await initServer();
 
-  let port = 3000;
+  let port = process.env.PIXELBIN_WEB_PORT ?? 3000;
   app.listen(port, () =>
     console.log(`Listening on http://localhost:${port}...`),
   );

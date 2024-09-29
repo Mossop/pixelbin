@@ -10,7 +10,10 @@ use std::{
 use actix_web::{
     body::{EitherBody, MessageBody},
     dev::{ServiceRequest, ServiceResponse},
-    http::{header::HeaderMap, StatusCode},
+    http::{
+        header::{HeaderMap, HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
+        StatusCode,
+    },
     middleware::Next,
     web::Data,
     Error, FromRequest, HttpRequest, HttpResponse,
@@ -417,7 +420,19 @@ pub(super) async fn middleware<B: MessageBody>(
     }
 
     let start = Instant::now();
-    let res = next.call(req).instrument(span.clone()).await?;
+    let mut res = next.call(req).instrument(span.clone()).await?;
+
+    let base_url = &app_data.store.config().base_url;
+    let web_origin = format!(
+        "{}://{}",
+        base_url.scheme().unwrap(),
+        base_url.authority().unwrap()
+    );
+
+    res.headers_mut().insert(
+        ACCESS_CONTROL_ALLOW_ORIGIN,
+        HeaderValue::from_str(&web_origin).unwrap(),
+    );
 
     let duration = Instant::now().duration_since(start).as_millis();
     let status = res.status();

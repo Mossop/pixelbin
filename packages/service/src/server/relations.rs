@@ -316,3 +316,64 @@ async fn get_search_media(
         .append_header((header::CONTENT_TYPE, "application/x-ndjson"))
         .streaming(stream))
 }
+
+#[derive(Debug, Deserialize)]
+struct SubscribeRequest {
+    search: String,
+    email: String,
+}
+
+#[post("/subscribe")]
+#[instrument(err, skip(app_state))]
+async fn subscribe(
+    app_state: web::Data<AppState>,
+    request: web::Json<SubscribeRequest>,
+) -> ApiResult<web::Json<ApiResponse>> {
+    let mut conn = app_state.store.connect().await?;
+    let search =
+        models::SavedSearch::get_for_user(&mut conn, Some(&request.email), &request.search).await?;
+
+    tokio::spawn(search.subscribe(conn, request.email.clone()));
+
+    Ok(web::Json(Default::default()))
+}
+
+#[derive(Debug, Deserialize)]
+struct VerifyRequest {
+    token: String,
+}
+
+#[post("/verify")]
+#[instrument(err, skip(app_state))]
+async fn verify_subscription(
+    app_state: web::Data<AppState>,
+    request: web::Json<VerifyRequest>,
+) -> ApiResult<web::Json<ApiResponse>> {
+    let conn = app_state.store.connect().await?;
+
+    tokio::spawn(models::SavedSearch::confirm_subscription(
+        conn,
+        request.token.clone(),
+    ));
+
+    Ok(web::Json(Default::default()))
+}
+
+#[derive(Debug, Deserialize)]
+struct UnsubscribeRequest {
+    email: String,
+    search: Option<String>,
+}
+
+#[post("/unsubscribe")]
+#[instrument(err, skip(app_state))]
+async fn unsubscribe(
+    app_state: web::Data<AppState>,
+    request: web::Json<UnsubscribeRequest>,
+) -> ApiResult<web::Json<ApiResponse>> {
+    let mut conn = app_state.store.connect().await?;
+
+    models::SavedSearch::unsubscribe(&mut conn, &request.email, request.search.as_deref()).await?;
+
+    Ok(web::Json(Default::default()))
+}

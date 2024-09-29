@@ -3,9 +3,17 @@ use std::{collections::HashMap, env, fmt::Display, result, time::Duration};
 use actix_web::{
     body::BoxBody,
     get,
-    http::{StatusCode, Uri},
+    guard::GuardContext,
+    http::{
+        header::{
+            HeaderValue, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
+            ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_MAX_AGE, ACCESS_CONTROL_REQUEST_METHOD,
+            ORIGIN,
+        },
+        Method, StatusCode, Uri,
+    },
     middleware::from_fn,
-    web, App, HttpResponse, HttpServer, ResponseError,
+    web, App, HttpRequest, HttpResponse, HttpServer, ResponseError,
 };
 use pixelbin_shared::ThumbnailConfig;
 use serde::Serialize;
@@ -19,8 +27,6 @@ mod media;
 mod middleware;
 mod relations;
 mod util;
-
-const DEFAULT_PORT: u16 = 8283;
 
 #[derive(Debug)]
 enum ApiErrorCode {
@@ -133,6 +139,7 @@ struct ApiConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     service_changeset: Option<String>,
     api_url: String,
+    base_url: String,
     thumbnails: ThumbnailConfig,
 }
 
@@ -141,27 +148,71 @@ struct ApiConfig {
 async fn config(app_state: web::Data<AppState>, uri: Uri) -> ApiResult<web::Json<ApiConfig>> {
     let config = app_state.store.config();
 
-    let api_url = config.api_url.clone().unwrap_or_else(|| {
-        let path = uri.path();
-        let end = path.len() - 10;
-
-        format!(
-            "http://localhost:{}{}",
-            config.port.unwrap_or(DEFAULT_PORT),
-            &path[0..end]
-        )
-    });
-
     Ok(web::Json(ApiConfig {
         service_changeset: env::var("SOURCE_CHANGESET").ok(),
-        api_url,
+        api_url: config.api_url.to_string(),
+        base_url: config.base_url.to_string(),
         thumbnails: config.thumbnails.clone(),
     }))
 }
 
-pub async fn serve(store: &Store) -> Result {
-    let port = store.config().port.unwrap_or(DEFAULT_PORT);
+fn preflight_guard(ctx: &GuardContext<'_>) -> bool {
+    if ctx.head().method != Method::OPTIONS {
+        return false;
+    }
 
+    if ctx.head().headers().get(ORIGIN).is_none() {
+        return false;
+    }
+
+    if ctx
+        .head()
+        .headers()
+        .get(ACCESS_CONTROL_REQUEST_METHOD)
+        .is_none()
+    {
+        return false;
+    }
+
+    true
+}
+
+async fn preflight(req: HttpRequest, app_state: web::Data<AppState>) -> HttpResponse {
+    let headers = req.headers();
+
+    let base_url = &app_state.store.config().base_url;
+    let web_origin = format!(
+        "{}://{}",
+        base_url.scheme().unwrap(),
+        base_url.authority().unwrap()
+    );
+
+    if *headers.get(ORIGIN).unwrap() == *web_origin {
+        let mut response = HttpResponse::new(StatusCode::NO_CONTENT);
+        response.headers_mut().insert(
+            ACCESS_CONTROL_ALLOW_ORIGIN,
+            HeaderValue::from_str(&web_origin).unwrap(),
+        );
+        response.headers_mut().insert(
+            ACCESS_CONTROL_ALLOW_METHODS,
+            HeaderValue::from_str("POST,GET,OPTIONS").unwrap(),
+        );
+        response.headers_mut().insert(
+            ACCESS_CONTROL_ALLOW_HEADERS,
+            HeaderValue::from_str("Content-Type").unwrap(),
+        );
+        response.headers_mut().insert(
+            ACCESS_CONTROL_MAX_AGE,
+            HeaderValue::from_str("86400").unwrap(),
+        );
+
+        response
+    } else {
+        HttpResponse::new(StatusCode::NOT_ACCEPTABLE)
+    }
+}
+
+pub async fn serve(store: &Store) -> Result {
     // Use a dedicated pool for the web server so nothing else can starve it of
     // connections.
     let pool = PgPoolOptions::new()
@@ -183,6 +234,11 @@ pub async fn serve(store: &Store) -> Result {
             .app_data(app_data.clone())
             .wrap(from_fn(middleware::middleware))
             .service(
+                web::resource("/{any:.*}")
+                    .guard(preflight_guard)
+                    .to(preflight),
+            )
+            .service(
                 web::scope("/api")
                     .service(config)
                     .service(auth::login)
@@ -203,7 +259,10 @@ pub async fn serve(store: &Store) -> Result {
                     .service(relations::create_album)
                     .service(relations::edit_album)
                     .service(relations::delete_album)
-                    .service(relations::album_media_change),
+                    .service(relations::album_media_change)
+                    .service(relations::subscribe)
+                    .service(relations::verify_subscription)
+                    .service(relations::unsubscribe),
             )
             .service(
                 web::scope("/media")
@@ -213,7 +272,7 @@ pub async fn serve(store: &Store) -> Result {
                     .service(media::social_handler),
             )
     })
-    .bind(("0.0.0.0", port))?
+    .bind(("0.0.0.0", store.config().api_port))?
     .run()
     .await?;
 

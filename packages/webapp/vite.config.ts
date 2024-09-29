@@ -45,11 +45,12 @@ export default defineConfig({
           galleryRoutes(route, "search");
           route("/api/:container/:id/:type", "api/gallery.ts");
           route("/api/config", "api/config.ts");
+          route("/search/subscribe", "api/subscribe.ts");
+          route("/search/unsubscribe", "api/unsubscribe.ts");
           route("/media/*", "api/media.ts");
           route("/login", "actions/login.ts");
           route("/logout", "actions/logout.ts");
           route("/markPublic", "actions/markPublic.ts");
-          route("/subscribe", "actions/subscribe.ts");
           route("/*", "routes/notfound.tsx");
         });
       },

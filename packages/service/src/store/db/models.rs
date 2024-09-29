@@ -27,6 +27,7 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tracing::{error, instrument, span, Level};
 
 use crate::{
+    mail::{send_messages, Subscribed, SubscriptionRequest},
     metadata::{alternates_for_media_file, lookup_timezone, media_datetime, Alternate},
     shared::{long_id, short_id, spawn_blocking},
     store::{
@@ -1160,6 +1161,7 @@ pub(crate) struct SavedSearch {
     pub(crate) shared: bool,
     pub(crate) query: SearchQuery,
     pub(crate) catalog: String,
+    pub(crate) last_update: DateTime<Utc>,
 }
 
 #[derive(Serialize)]
@@ -1187,6 +1189,124 @@ impl SavedSearch {
         .fetch(&mut conn);
 
         sender.send_stream(stream).await
+    }
+
+    pub(crate) async fn subscribe(self, mut conn: DbConnection<'_>, email: String) -> Result {
+        let token = long_id("")[1..].to_string();
+
+        let existing = sqlx::query_scalar!(
+            r#"
+            SELECT "email"
+            FROM "subscription"
+            WHERE "email"=$1 AND "search"=$2
+            "#,
+            &email,
+            &self.id,
+        )
+        .fetch_optional(&mut conn)
+        .await?;
+
+        if existing.is_some() {
+            let template = Subscribed {
+                base_url: conn.config().base_url.to_string(),
+                email: &email,
+                search: &self,
+            };
+
+            send_messages(conn.config(), &[template]).await;
+        } else {
+            sqlx::query!(
+                r#"
+                INSERT INTO "subscription_request" ("email", "search", "token")
+                VALUES ($1, $2, $3)
+                "#,
+                &email,
+                &self.id,
+                &token,
+            )
+            .execute(&mut conn)
+            .await?;
+
+            let template = SubscriptionRequest {
+                base_url: conn.config().base_url.to_string(),
+                email: &email,
+                search: &self,
+                token: &token,
+            };
+
+            send_messages(conn.config(), &[template]).await;
+        }
+
+        Ok(())
+    }
+
+    pub(crate) async fn confirm_subscription(mut conn: DbConnection<'_>, token: String) -> Result {
+        let (email, search) = sqlx::query!(
+            r#"
+            DELETE FROM "subscription_request"
+            USING "saved_search"
+            WHERE
+                "subscription_request"."search"="saved_search"."id" AND
+                "token"=$1 AND "request" > CURRENT_TIMESTAMP - INTERVAL '1 day'
+            RETURNING "email", "saved_search".*
+            "#,
+            &token
+        )
+        .try_map(|row| Ok((row.email, from_row!(SavedSearch(row)))))
+        .fetch_one(&mut conn)
+        .await?;
+
+        sqlx::query!(
+            r#"
+            INSERT INTO "subscription" ("email", "search")
+            VALUES ($1,$2)
+            "#,
+            &email,
+            &search.id
+        )
+        .execute(&mut conn)
+        .await?;
+
+        let template = Subscribed {
+            base_url: conn.config().base_url.to_string(),
+            email: &email,
+            search: &search,
+        };
+
+        send_messages(conn.config(), &[template]).await;
+
+        Ok(())
+    }
+
+    pub(crate) async fn unsubscribe(
+        conn: &mut DbConnection<'_>,
+        email: &str,
+        search: Option<&str>,
+    ) -> Result {
+        if let Some(search) = search {
+            sqlx::query!(
+                r#"
+                DELETE FROM subscription
+                WHERE email=$1 AND search=$2
+                "#,
+                &email,
+                &search
+            )
+            .execute(conn)
+            .await?;
+        } else {
+            sqlx::query!(
+                r#"
+                DELETE FROM subscription
+                WHERE email=$1
+                "#,
+                &email
+            )
+            .execute(conn)
+            .await?;
+        }
+
+        Ok(())
     }
 
     #[instrument(skip_all)]

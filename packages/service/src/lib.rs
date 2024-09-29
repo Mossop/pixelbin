@@ -9,6 +9,7 @@ mod shared;
 mod store;
 mod task_queue;
 
+pub use mail::{send_test_message, TestMessage};
 pub use store::{
     db::{Isolation, StoreStats},
     file::FileStore,
