@@ -1,7 +1,7 @@
 use askama::Template;
 use chrono::Utc;
 use mail_send::{
-    mail_builder::{headers::address::Address, MessageBuilder},
+    mail_builder::{headers::address::Address, mime::MimePart, MessageBuilder},
     SmtpClientBuilder,
 };
 use pixelbin_shared::{Config, MailServer};
@@ -10,16 +10,28 @@ use tracing::{error, trace, warn};
 
 use crate::store::models::SavedSearch;
 
+const LOGO_IMAGE: &[u8; 7140] = include_bytes!("../templates/logo.png");
+
 pub(crate) trait MessageTemplate: Template {
     fn address(&self) -> String;
 
     fn subject(&self) -> String;
 
     fn build_message(&self) -> MessageBuilder {
+        let mimeparts = MimePart::new(
+            "multipart/related",
+            vec![
+                MimePart::new("text/html", self.render().unwrap()),
+                MimePart::new("image/png", LOGO_IMAGE.to_vec())
+                    .inline()
+                    .cid("logo_image"),
+            ],
+        );
+
         MessageBuilder::new()
             .subject(self.subject())
             .to(self.address())
-            .html_body(self.render().unwrap())
+            .body(mimeparts)
     }
 }
 

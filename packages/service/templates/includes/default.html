@@ -5,10 +5,18 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>{% block title %}{{ Self::subject(self) }}{% endblock %}</title>
     <style media="all" type="text/css">
+      #logo {
+        width: 50px;
+        vertical-align: top;
+      }
     </style>
   </head>
   <body>
-{% block body %}
-{% endblock %}
+    <table border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td id="logo" align="left" valign="top"><img width="50" alt="PixelBin Logo" src="cid:logo_image" /></td>
+        <td>{% block body %}{% endblock %}</td>
+      </tr>
+    </table>
   </body>
 </html>
