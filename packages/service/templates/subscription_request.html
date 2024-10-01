@@ -3,7 +3,7 @@
 {% block body %}
 <p>Someone has attempted to subscribe this email address to updates to the <a href="{{ base_url }}search/{{ search.id }}">{{ search.name }}</a> album.</p>
 <p>If this was you then <a href="{{ base_url }}search/subscribe?token={{ token }}">click here to subscribe</a> and you will receive an email every day with any
-  new content added to the album.
+  new content added to the album. This link will expire in one day.
 </p>
 <p>If you don't wish to be subscribed then you can ignore this email.</p>
 {% endblock %}

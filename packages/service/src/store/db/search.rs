@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use serde_plain::derive_display_from_serialize;
-use sqlx::{Error as SqlxError, QueryBuilder, Result as SqlxResult};
+use sqlx::QueryBuilder;
 use tracing::instrument;
 
 use crate::store::{
@@ -569,10 +568,6 @@ impl<Q> Default for CompoundQuery<Q> {
 }
 
 impl CompoundQuery<CompoundItem> {
-    pub(crate) fn decode(value: Value) -> SqlxResult<Self> {
-        serde_json::from_value(value).map_err(|e| SqlxError::Decode(Box::new(e)))
-    }
-
     #[instrument(skip_all)]
     pub(crate) async fn stream_media(
         self,

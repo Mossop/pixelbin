@@ -68,7 +68,7 @@ macro_rules! from_row {
             id: $row.id,
             name: $row.name,
             shared: $row.shared,
-            query: SearchQuery::decode($row.query)?,
+            query: crate::shared::json::FromDb::decode($row.query)?,
             catalog: $row.catalog,
         }
     };
@@ -149,7 +149,7 @@ macro_rules! from_row {
     (AlternateFile($row:ident)) => {
         crate::store::db::models::AlternateFile {
             id: $row.id,
-            file_type: AlternateFileType::decode(&$row.r#type)?,
+            file_type: crate::store::db::models::AlternateFileType::decode(&$row.r#type)?,
             file_name: $row.file_name,
             file_size: $row.file_size,
             mimetype: crate::store::db::functions::from_mime(&$row.mimetype)?,

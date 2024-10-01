@@ -1,19 +1,27 @@
 use std::collections::VecDeque;
 
+use chrono::{DateTime, Utc};
 use futures::join;
 use pixelbin_shared::Ignorable;
+use serde::Deserialize;
 use tracing::{debug, warn, Instrument};
 
 use crate::{
     metadata::{alternates_for_media_file, METADATA_FILE},
+    shared::json::FromDb,
     store::{
-        db::Isolation,
+        db::{functions::from_row, Isolation},
         file::{DiskStore, FileStore},
         models,
         path::{CatalogStore, MediaFileStore, ResourceList, ResourcePath},
     },
     Result, Store, Task,
 };
+
+pub(super) async fn clean_queues(store: Store) -> Result {
+    let mut conn = store.connect().await?;
+    models::SavedSearch::clean_subscriptions(&mut conn).await
+}
 
 pub(super) async fn server_startup(store: Store) -> Result {
     let mut conn = store.connect().await?;
@@ -41,6 +49,8 @@ pub(super) async fn server_startup(store: Store) -> Result {
             .await;
 
         store.queue_task(Task::PruneMediaFiles { catalog }).await;
+
+        store.queue_task(Task::CleanQueues).await;
     }
 
     Ok(())
@@ -377,6 +387,36 @@ pub(super) async fn trigger_media_tasks(store: Store, catalog: &str) -> Result {
             .queue_task(Task::ProcessMediaFile { media_file })
             .await;
     }
+
+    Ok(())
+}
+
+#[derive(Deserialize, Debug)]
+struct SearchSubscription {
+    email: String,
+    last_update: DateTime<Utc>,
+}
+
+pub(super) async fn process_subscriptions(store: Store, catalog: &str) -> Result {
+    let mut conn = store.connect().await?;
+
+    let list = sqlx::query!(
+        r#"
+        SELECT "saved_search".*, MIN("last_update") AS "oldest_update!", jsonb_agg("subscription") AS "subscription!"
+        FROM "saved_search"
+            JOIN (
+                SELECT "search", "last_update", jsonb_build_object('email', "email", 'last_update', "last_update") AS "subscription"
+                FROM "subscription"
+                ORDER BY "subscription"."last_update" ASC
+            ) AS "s" ON "s"."search"="saved_search"."id"
+        WHERE "saved_search"."catalog"=$1
+        GROUP BY "saved_search"."id"
+        "#,
+        catalog
+    )
+    .try_map(|row| Ok((from_row!(SavedSearch(row)), row.oldest_update, Vec::<SearchSubscription>::decode(row.subscription)?)))
+    .fetch_all(&mut conn)
+    .await?;
 
     Ok(())
 }

@@ -1,4 +1,6 @@
+use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
+use sqlx::{Error as SqlxError, Result as SqlxResult};
 
 const TYPE_NULL: &str = "null";
 const TYPE_BOOL: &str = "boolean";
@@ -6,6 +8,22 @@ const TYPE_NUMBER: &str = "number";
 const TYPE_STRING: &str = "string";
 const TYPE_ARRAY: &str = "array";
 const TYPE_OBJECT: &str = "object";
+
+pub(crate) trait FromDb
+where
+    Self: Sized,
+{
+    fn decode(value: Value) -> SqlxResult<Self>;
+}
+
+impl<T> FromDb for T
+where
+    T: DeserializeOwned + Sized,
+{
+    fn decode(value: Value) -> SqlxResult<Self> {
+        serde_json::from_value(value).map_err(|e| SqlxError::Decode(Box::new(e)))
+    }
+}
 
 pub(crate) type Object = Map<String, Value>;
 

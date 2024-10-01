@@ -21,8 +21,9 @@ use crate::{
     store::models,
     task_queue::{
         maintenance::{
-            delete_alternate_files, prune_media_files, prune_media_items, server_startup,
-            trigger_media_tasks, update_searches, verify_storage,
+            clean_queues, delete_alternate_files, process_subscriptions, prune_media_files,
+            prune_media_items, server_startup, trigger_media_tasks, update_searches,
+            verify_storage,
         },
         media::{process_media_file, prune_deleted_media},
     },
@@ -53,6 +54,10 @@ pub enum Task {
     ProcessMediaFile { media_file: String },
     /// Deletes the no longer required alternate files.
     DeleteAlternateFiles { alternate_files: Vec<String> },
+    /// Deletes old requests.
+    CleanQueues,
+    /// Sends out email subscriptions.
+    ProcessSubscriptions { catalog: String },
 }
 
 impl Task {
@@ -72,6 +77,8 @@ impl Task {
             Task::DeleteAlternateFiles { alternate_files } => {
                 delete_alternate_files(store, alternate_files).await
             }
+            Task::CleanQueues => clean_queues(store).await,
+            Task::ProcessSubscriptions { catalog } => process_subscriptions(store, catalog).await,
         }
     }
 }
@@ -228,6 +235,8 @@ impl TaskQueue {
             .collect();
 
         // Hourly
+        store.queue_task(Task::CleanQueues).await;
+
         for catalog in catalogs.iter() {
             store
                 .queue_task(Task::UpdateSearches {
@@ -257,6 +266,11 @@ impl TaskQueue {
                     .await;
                 store
                     .queue_task(Task::PruneMediaFiles {
+                        catalog: catalog.to_string(),
+                    })
+                    .await;
+                store
+                    .queue_task(Task::ProcessSubscriptions {
                         catalog: catalog.to_string(),
                     })
                     .await;

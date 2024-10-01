@@ -1211,6 +1211,20 @@ impl SavedSearch {
         sender.send_stream(stream).await
     }
 
+    pub(crate) async fn clean_subscriptions(conn: &mut DbConnection<'_>) -> Result {
+        sqlx::query!(
+            r#"
+            DELETE FROM "subscription_request"
+            WHERE
+                "request" < CURRENT_TIMESTAMP - INTERVAL '1 day'
+            "#,
+        )
+        .execute(conn)
+        .await?;
+
+        Ok(())
+    }
+
     pub(crate) async fn subscribe(self, mut conn: DbConnection<'_>, email: String) -> Result {
         let token = long_id("")[1..].to_string();
 
