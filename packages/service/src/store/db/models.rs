@@ -1161,7 +1161,6 @@ pub(crate) struct SavedSearch {
     pub(crate) shared: bool,
     pub(crate) query: SearchQuery,
     pub(crate) catalog: String,
-    pub(crate) last_update: DateTime<Utc>,
 }
 
 #[derive(Serialize)]
@@ -1174,19 +1173,40 @@ pub(crate) struct SavedSearchWithCount {
 
 impl SavedSearch {
     #[instrument(skip_all)]
-    pub(crate) async fn stream_media(self, mut conn: DbConnection<'_>, sender: MediaViewSender) {
-        let stream = sqlx::query!(
-            r#"
-            SELECT "media_view".*
-            FROM "media_view"
-                JOIN "media_search" ON "media_search"."media"="media_view"."id"
-            WHERE "media_search"."search"=$1
-            ORDER BY "datetime" DESC
-            "#,
-            self.id
-        )
-        .try_map(|row| Ok(from_row!(MediaView(row))))
-        .fetch(&mut conn);
+    pub(crate) async fn stream_media(
+        self,
+        mut conn: DbConnection<'_>,
+        since: Option<DateTime<Utc>>,
+        sender: MediaViewSender,
+    ) {
+        let stream = if let Some(since) = since {
+            sqlx::query!(
+                r#"
+                SELECT "media_view".*
+                FROM "media_view"
+                    JOIN "media_search" ON "media_search"."media"="media_view"."id"
+                WHERE "media_search"."search"=$1 AND "media_search"."added" > $2
+                ORDER BY "datetime" DESC
+                "#,
+                self.id,
+                since
+            )
+            .try_map(|row| Ok(from_row!(MediaView(row))))
+            .fetch(&mut conn)
+        } else {
+            sqlx::query!(
+                r#"
+                SELECT "media_view".*
+                FROM "media_view"
+                    JOIN "media_search" ON "media_search"."media"="media_view"."id"
+                WHERE "media_search"."search"=$1
+                ORDER BY "datetime" DESC
+                "#,
+                self.id
+            )
+            .try_map(|row| Ok(from_row!(MediaView(row))))
+            .fetch(&mut conn)
+        };
 
         sender.send_stream(stream).await
     }

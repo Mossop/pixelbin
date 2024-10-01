@@ -1,5 +1,4 @@
 use askama::Template;
-use chrono::Utc;
 use mail_send::{
     mail_builder::{headers::address::Address, mime::MimePart, MessageBuilder},
     SmtpClientBuilder,
@@ -174,7 +173,6 @@ pub async fn send_test_message(config: &Config, address: &str, message: TestMess
                 shared: true,
                 query: Default::default(),
                 catalog: "catalog".to_owned(),
-                last_update: Utc::now(),
             };
 
             send_messages(

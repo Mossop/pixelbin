@@ -347,8 +347,23 @@ export function listMedia(
     assertAuthenticated(context);
   }
 
+  let url = new URL(context.request.url);
+
+  let path = `/api/${source}/${id}/media`;
+  let params = new URLSearchParams();
+
+  if (url.searchParams.has("since")) {
+    params.set("since", url.searchParams.get("since")!);
+  }
+
+  if (params.size) {
+    path += `?${params}`;
+  }
+
+  console.log(path);
+
   return apiCall(
-    `/api/${source}/${id}/media`,
+    path,
     "listMedia",
     forwardedRequest(context),
     authenticated(context),

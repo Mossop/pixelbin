@@ -70,7 +70,6 @@ macro_rules! from_row {
             shared: $row.shared,
             query: SearchQuery::decode($row.query)?,
             catalog: $row.catalog,
-            last_update: $row.last_update,
         }
     };
     (Relations($row:ident)) => {

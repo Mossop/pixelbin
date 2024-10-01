@@ -7,6 +7,7 @@ use actix_web::{
     web::{self},
     HttpResponse, HttpResponseBuilder,
 };
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_with::{serde_as, OneOrMany};
 use tracing::instrument;
@@ -296,12 +297,18 @@ async fn get_album_media(
         .streaming(stream))
 }
 
+#[derive(Deserialize, Debug)]
+struct MediaOptions {
+    since: Option<DateTime<Utc>>,
+}
+
 #[get("/search/{search_id}/media")]
 #[instrument(err, skip(app_state, session))]
 async fn get_search_media(
     app_state: web::Data<AppState>,
     session: MaybeSession,
     search_id: web::Path<String>,
+    options: web::Query<MediaOptions>,
 ) -> ApiResult<HttpResponse> {
     let email = session.session().map(|s| s.user.email.as_str());
 
@@ -310,7 +317,7 @@ async fn get_search_media(
 
     let (stream, sender) = MediaViewStream::new();
 
-    tokio::spawn(search.stream_media(conn, sender));
+    tokio::spawn(search.stream_media(conn, options.since, sender));
 
     Ok(HttpResponseBuilder::new(StatusCode::OK)
         .append_header((header::CONTENT_TYPE, "application/x-ndjson"))

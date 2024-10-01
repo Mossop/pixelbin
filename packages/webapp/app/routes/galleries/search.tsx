@@ -1,5 +1,10 @@
 import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
-import { Outlet, useLoaderData, useNavigate } from "@remix-run/react";
+import {
+  Outlet,
+  useLoaderData,
+  useLocation,
+  useNavigate,
+} from "@remix-run/react";
 import { FormEvent, useCallback, useMemo, useState } from "react";
 
 import { HeaderButtons } from "@/components/AppBar";
@@ -152,11 +157,27 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 export default function SearchLayout() {
   let { search } = useLoaderData<typeof loader>();
   let navigate = useNavigate();
+  let location = useLocation();
+
+  let streamUrl = useMemo(() => {
+    let searchParams = new URLSearchParams(location.search);
+    let url = `/api/search/${search.id}/media`;
+    let params = new URLSearchParams();
+
+    if (searchParams.has("since")) {
+      params.set("since", searchParams.get("since")!);
+    }
+
+    if (params.size) {
+      return `${url}?${params}`;
+    }
+
+    return url;
+  }, [location.search, search]);
 
   let requestStream = useCallback(
-    (signal: AbortSignal) =>
-      fetch(`/api/search/${search.id}/media`, { signal }),
-    [search],
+    (signal: AbortSignal) => fetch(streamUrl, { signal }),
+    [streamUrl],
   );
 
   let setQuery = useCallback(
