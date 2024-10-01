@@ -5,18 +5,38 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>{% block title %}{{ Self::subject(self) }}{% endblock %}</title>
     <style media="all" type="text/css">
-      #logo {
-        width: 50px;
-        vertical-align: top;
+      #body {
+        margin-top: 12px;
+        margin-bottom: 12px;
+        width: 85%;
+        background-color: rgb(244, 244, 245);
+        margin: auto;
+      }
+
+      #header {
+        background-color: rgb(87, 100, 172);
+        padding: 1em;
+      }
+
+      #header img {
+        display: block;
+      }
+
+      #content {
+        padding: 0 1em 1em 1em;
+      }
+
+      #content p {
+        margin: 1em 0 0 0;
       }
     </style>
   </head>
   <body>
-    <table border="0" cellpadding="0" cellspacing="0">
-      <tr>
-        <td id="logo" align="left" valign="top"><img width="50" alt="PixelBin Logo" src="cid:logo_image" /></td>
-        <td>{% block body %}{% endblock %}</td>
-      </tr>
-    </table>
+    <div id="body">
+      <div id="header"><img height="40" alt="PixelBin" src="cid:logo_image" /></div>
+      <div id="content">
+      {% block body %}{% endblock %}
+      </div>
+    </div>
   </body>
 </html>

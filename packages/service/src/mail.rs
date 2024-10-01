@@ -10,7 +10,7 @@ use tracing::{error, trace, warn};
 
 use crate::store::models::SavedSearch;
 
-const LOGO_IMAGE: &[u8; 7140] = include_bytes!("../templates/logo.png");
+const LOGO_IMAGE: &[u8; 10913] = include_bytes!("../templates/logo.png");
 
 pub(crate) trait MessageTemplate: Template {
     fn address(&self) -> String;

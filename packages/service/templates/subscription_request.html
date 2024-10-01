@@ -1,7 +1,7 @@
 {% extends "includes/default.html" %}
 
 {% block body %}
-<p>Someone has attempted to subscribe to updates to the <a href="{{ base_url }}search/{{ search.id }}">{{ search.name }}</a> album.</p>
+<p>Someone has attempted to subscribe this email address to updates to the <a href="{{ base_url }}search/{{ search.id }}">{{ search.name }}</a> album.</p>
 <p>If this was you then <a href="{{ base_url }}search/subscribe?token={{ token }}">click here to subscribe</a> and you will receive an email every day with any
   new content added to the album.
 </p>
