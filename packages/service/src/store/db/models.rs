@@ -1755,7 +1755,6 @@ pub(crate) struct MediaItem {
     pub id: String,
     pub deleted: bool,
     pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
     pub metadata: MediaMetadata,
     pub taken_zone: Option<String>,
     pub catalog: String,
@@ -1772,7 +1771,6 @@ impl MediaItem {
             id: long_id("M"),
             deleted: false,
             created: now,
-            updated: now,
             metadata: MediaMetadata::default(),
             taken_zone: None,
             catalog: catalog.to_owned(),
@@ -2028,7 +2026,6 @@ impl MediaItem {
             let mut id = Vec::<String>::new();
             let mut deleted = Vec::<bool>::new();
             let mut created = Vec::<DateTime<Utc>>::new();
-            let mut updated = Vec::<DateTime<Utc>>::new();
             let mut taken_zone = Vec::<Option<String>>::new();
             let mut catalog = Vec::<String>::new();
             let mut media_file = Vec::<Option<String>>::new();
@@ -2062,7 +2059,6 @@ impl MediaItem {
                 id.push(media_item.id.clone());
                 deleted.push(media_item.deleted);
                 created.push(media_item.created);
-                updated.push(media_item.updated);
                 taken_zone.push(media_item.taken_zone.clone());
                 catalog.push(media_item.catalog.clone());
                 media_file.push(media_item.media_file.clone());
@@ -2099,7 +2095,6 @@ impl MediaItem {
                     "id",
                     "deleted",
                     "created",
-                    "updated",
                     "taken_zone",
                     "catalog",
                     "media_file",
@@ -2134,13 +2129,13 @@ impl MediaItem {
                     $1::text[],
                     $2::bool[],
                     $3::timestamptz[],
-                    $4::timestamptz[],
+                    $4::text[],
                     $5::text[],
                     $6::text[],
-                    $7::text[],
-                    $8::timestamptz[],
-                    $9::bool[],
+                    $7::timestamptz[],
+                    $8::bool[],
 
+                    $9::text[],
                     $10::text[],
                     $11::text[],
                     $12::text[],
@@ -2153,22 +2148,20 @@ impl MediaItem {
                     $19::text[],
                     $20::text[],
                     $21::text[],
-                    $22::text[],
-                    $23::real[],
+                    $22::real[],
+                    $23::integer[],
                     $24::integer[],
                     $25::integer[],
-                    $26::integer[],
+                    $26::real[],
                     $27::real[],
                     $28::real[],
                     $29::real[],
                     $30::real[],
-                    $31::real[],
-                    $32::timestamp[]
+                    $31::timestamp[]
                 )
                 ON CONFLICT (id) DO UPDATE SET
                     "deleted"="excluded"."deleted",
                     "created"="excluded"."created",
-                    "updated"="excluded"."updated",
                     "taken_zone"="excluded"."taken_zone",
                     "catalog"="excluded"."catalog",
                     "media_file"="excluded"."media_file",
@@ -2202,7 +2195,6 @@ impl MediaItem {
                 &id,
                 &deleted,
                 &created,
-                &updated,
                 &taken_zone as &[Option<String>],
                 &catalog,
                 &media_file as &[Option<String>],
@@ -3484,7 +3476,6 @@ pub(crate) struct MediaView {
     pub(crate) id: String,
     pub(crate) catalog: String,
     pub(crate) created: DateTime<Utc>,
-    pub(crate) updated: DateTime<Utc>,
     pub(crate) datetime: DateTime<Utc>,
     pub(crate) public: bool,
     #[serde(flatten)]
@@ -3510,7 +3501,6 @@ impl<'r> FromRow<'r, PgRow> for MediaView {
             id: row.try_get("id")?,
             catalog: row.try_get("catalog")?,
             created: row.try_get("created")?,
-            updated: row.try_get("updated")?,
             datetime: row.try_get("datetime")?,
             public: row.try_get("public")?,
             taken_zone: row.try_get("taken_zone")?,

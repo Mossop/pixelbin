@@ -61,7 +61,6 @@ export function deserializeMediaView(media: ApiMediaView): MediaView {
   return {
     ...media,
     created: DateTime.fromISO(media.created),
-    updated: DateTime.fromISO(media.updated),
     datetime,
     taken,
     file: mediaFile,
@@ -82,7 +81,6 @@ export function serializeMediaView(media: MediaView): ApiMediaView {
   return {
     ...media,
     created: media.created.toISO()!,
-    updated: media.updated.toISO()!,
     datetime: media.datetime.toISO()!,
     taken: media.taken?.toISO() ?? null,
     file: mediaFile,
