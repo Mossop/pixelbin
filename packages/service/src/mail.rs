@@ -142,6 +142,10 @@ async fn build_and_send(
     config: &Config,
     messages: Vec<MessageBuilder<'_>>,
 ) -> Result<(), Box<dyn Error>> {
+    if config.testing {
+        return Ok(());
+    }
+
     let (address, port, tls) = match &config.mail_server {
         MailServer::None => {
             warn!("No mailserver configured");
