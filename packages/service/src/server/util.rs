@@ -1,4 +1,4 @@
-use std::{cmp::max, fmt, io};
+use std::{fmt, io};
 
 use actix_web::{
     body::BoxBody,
@@ -6,10 +6,7 @@ use actix_web::{
     HttpResponse, ResponseError,
 };
 
-use crate::{
-    store::{models, path::FilePath},
-    Error,
-};
+use crate::Error;
 
 #[derive(Debug)]
 pub(crate) struct InternalError {
@@ -48,27 +45,4 @@ impl ResponseError for InternalError {
 
         res.set_body(BoxBody::new(message))
     }
-}
-
-fn alt_size(alt: &(models::AlternateFile, FilePath)) -> i32 {
-    max(alt.0.width, alt.0.height)
-}
-
-pub(crate) fn choose_alternate(
-    mut alternates: Vec<(models::AlternateFile, FilePath)>,
-    size: i32,
-) -> Option<(models::AlternateFile, FilePath)> {
-    if alternates.is_empty() {
-        return None;
-    }
-
-    let mut chosen = alternates.swap_remove(0);
-
-    for alternate in alternates {
-        if (size - alt_size(&chosen)).abs() > (size - alt_size(&alternate)).abs() {
-            chosen = alternate;
-        }
-    }
-
-    Some(chosen)
 }

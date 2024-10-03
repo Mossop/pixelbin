@@ -3,6 +3,7 @@ use mail_send::{
     mail_builder::{headers::address::Address, mime::MimePart, MessageBuilder},
     SmtpClientBuilder,
 };
+use mime::Mime;
 use pixelbin_shared::{Config, MailServer};
 use std::{error::Error, str::FromStr};
 use tracing::{error, trace, warn};
@@ -11,13 +12,23 @@ use crate::store::models::SavedSearch;
 
 const LOGO_IMAGE: &[u8; 10913] = include_bytes!("../templates/logo.png");
 
+pub(crate) struct Media {
+    pub(crate) id: String,
+    pub(crate) mime_type: Mime,
+    pub(crate) data: Vec<u8>,
+}
+
 pub(crate) trait MessageTemplate: Template {
     fn address(&self) -> String;
 
     fn subject(&self) -> String;
 
+    fn attachments(&self) -> Option<Vec<&Media>> {
+        None
+    }
+
     fn build_message(&self) -> MessageBuilder {
-        let mimeparts = MimePart::new(
+        let mut mimeparts = MimePart::new(
             "multipart/related",
             vec![
                 MimePart::new("text/html", self.render().unwrap()),
@@ -26,6 +37,16 @@ pub(crate) trait MessageTemplate: Template {
                     .cid("logo_image"),
             ],
         );
+
+        if let Some(attachments) = self.attachments() {
+            for part in attachments {
+                mimeparts.add_part(
+                    MimePart::new(part.mime_type.to_string(), part.data.clone())
+                        .inline()
+                        .cid(&part.id),
+                );
+            }
+        }
 
         MessageBuilder::new()
             .subject(self.subject())
@@ -49,7 +70,10 @@ impl<'a> MessageTemplate for SubscriptionRequest<'a> {
     }
 
     fn subject(&self) -> String {
-        format!("Request to subscribe to \"{}\"", self.search.name)
+        format!(
+            "📷 PixelBin: Request to subscribe to \"{}\"",
+            self.search.name
+        )
     }
 }
 
@@ -67,7 +91,33 @@ impl<'a> MessageTemplate for Subscribed<'a> {
     }
 
     fn subject(&self) -> String {
-        format!("You are subscribed to \"{}\"", self.search.name)
+        format!(
+            "📷 PixelBin: You are subscribed to \"{}\"",
+            self.search.name
+        )
+    }
+}
+
+#[derive(Template)]
+#[template(path = "search_update.html")]
+pub(crate) struct SavedSearchUpdate<'a> {
+    pub(crate) base_url: String,
+    pub(crate) search: &'a SavedSearch,
+    pub(crate) email: &'a str,
+    pub(crate) media: Vec<&'a Media>,
+}
+
+impl<'a> MessageTemplate for SavedSearchUpdate<'a> {
+    fn address(&self) -> String {
+        self.email.to_owned()
+    }
+
+    fn subject(&self) -> String {
+        format!("📷 PixelBin: New content in \"{}\"", self.search.name)
+    }
+
+    fn attachments(&self) -> Option<Vec<&Media>> {
+        Some(self.media.clone())
     }
 }
 

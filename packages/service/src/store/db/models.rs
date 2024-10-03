@@ -1,5 +1,5 @@
 use std::{
-    cmp::min,
+    cmp::{max, min},
     collections::{HashMap, HashSet},
     result,
     str::FromStr,
@@ -3035,6 +3035,29 @@ impl AlternateFile {
         }
     }
 
+    pub(crate) fn choose_alternate(
+        mut alternates: Vec<(models::AlternateFile, FilePath)>,
+        size: i32,
+    ) -> Option<(models::AlternateFile, FilePath)> {
+        fn alt_size(alt: &(models::AlternateFile, FilePath)) -> i32 {
+            max(alt.0.width, alt.0.height)
+        }
+
+        if alternates.is_empty() {
+            return None;
+        }
+
+        let mut chosen = alternates.swap_remove(0);
+
+        for alternate in alternates {
+            if (size - alt_size(&chosen)).abs() > (size - alt_size(&alternate)).abs() {
+                chosen = alternate;
+            }
+        }
+
+        Some(chosen)
+    }
+
     pub(crate) async fn get_social<'c, D: AsDb<'c>>(
         mut conn: D,
         media_item: &str,
@@ -3208,26 +3231,20 @@ impl AlternateFile {
             &alternate_type.to_string(),
             email
         )
-        .try_map(|row| Ok((from_row!(AlternateFile(row)), row.media_item, row.catalog)))
+        .try_map(|row| {
+            let file_path = FilePath {
+                catalog: row.catalog,
+                item: row.media_item.clone(),
+                file: row.media_file.clone(),
+                file_name: row.file_name.clone(),
+            };
+
+            Ok((from_row!(AlternateFile(row)), file_path))
+        })
         .fetch_all(conn)
         .await?;
 
-        if !files.is_empty() {
-            return Ok(files
-                .into_iter()
-                .map(|(alternate, media_item, catalog)| {
-                    let file_path = FilePath {
-                        catalog,
-                        item: media_item,
-                        file: alternate.media_file.clone(),
-                        file_name: alternate.file_name.clone(),
-                    };
-                    (alternate, file_path)
-                })
-                .collect::<Vec<(AlternateFile, FilePath)>>());
-        }
-
-        Ok(vec![])
+        Ok(files)
     }
 
     pub(crate) async fn mark_stored(&mut self, conn: &mut DbConnection<'_>) -> Result {
@@ -3416,7 +3433,7 @@ pub(crate) struct MediaViewFile {
 
 impl MediaViewFile {
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn from_maybe(
+    pub(crate) fn from_maybe(
         id: Option<String>,
         file_size: Option<i64>,
         mimetype: Option<String>,

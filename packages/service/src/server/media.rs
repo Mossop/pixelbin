@@ -18,7 +18,6 @@ use crate::{
     metadata::{alternates_for_media_file, ISO_FORMAT},
     server::{
         auth::{MaybeSession, Session},
-        util::choose_alternate,
         ApiResponse, ApiResult, AppState,
     },
     store::{
@@ -132,7 +131,7 @@ async fn thumbnail_handler(
     )
     .await?;
 
-    match choose_alternate(alternates, target_size) {
+    match models::AlternateFile::choose_alternate(alternates, target_size) {
         Some((alternate, file_path)) => {
             let path = DiskStore::local_store(app_state.store.config()).local_path(&file_path);
             let file = File::open(&path).await?;

@@ -4,16 +4,18 @@ use chrono::{DateTime, Utc};
 use futures::join;
 use pixelbin_shared::Ignorable;
 use serde::Deserialize;
-use tracing::{debug, warn, Instrument};
+use tokio::fs;
+use tracing::{debug, error, warn, Instrument};
 
 use crate::{
+    mail::{send_messages, Media, SavedSearchUpdate},
     metadata::{alternates_for_media_file, METADATA_FILE},
     shared::json::FromDb,
     store::{
         db::{functions::from_row, Isolation},
         file::{DiskStore, FileStore},
         models,
-        path::{CatalogStore, MediaFileStore, ResourceList, ResourcePath},
+        path::{CatalogStore, FilePath, MediaFileStore, ResourceList, ResourcePath},
     },
     Result, Store, Task,
 };
@@ -417,6 +419,105 @@ pub(super) async fn process_subscriptions(store: Store, catalog: &str) -> Result
     .try_map(|row| Ok((from_row!(SavedSearch(row)), row.oldest_update, Vec::<SearchSubscription>::decode(row.subscription)?)))
     .fetch_all(&mut conn)
     .await?;
+
+    for (search, oldest_update, subscriptions) in list {
+        let media = sqlx::query!(
+            r#"
+            SELECT "media_view".*, "media_search"."added"
+            FROM "media_view"
+                JOIN "media_search" ON "media_search"."media"="media_view"."id"
+            WHERE
+                "media_view"."media_file" IS NOT NULL AND
+                "media_search"."added" > $2 AND
+                "media_search"."search" = $1
+            ORDER BY "media_view"."datetime" DESC
+            "#,
+            search.id,
+            oldest_update
+        )
+        .try_map(|row| Ok((from_row!(MediaView(row)), row.added)))
+        .fetch_all(&mut conn)
+        .await?;
+
+        let mut images: Vec<(Media, DateTime<Utc>)> = Vec::new();
+        let local_store = DiskStore::local_store(conn.config());
+
+        for (media, added) in media {
+            let file = media.file.as_ref().unwrap();
+
+            let thumbnails = sqlx::query!(
+                r#"
+                SELECT *
+                FROM "alternate_file"
+                WHERE "media_file"=$1
+                    AND "type"='thumbnail'
+                    AND "mimetype"='image/jpeg'
+                "#,
+                file.id
+            )
+            .try_map(|row| {
+                let file_path = FilePath {
+                    catalog: media.catalog.clone(),
+                    item: media.id.clone(),
+                    file: file.id.clone(),
+                    file_name: row.file_name.clone(),
+                };
+
+                Ok((from_row!(AlternateFile(row)), file_path))
+            })
+            .fetch_all(&mut conn)
+            .await?;
+
+            if let Some((thumbnail, file_path)) =
+                models::AlternateFile::choose_alternate(thumbnails, 150)
+            {
+                let data = match fs::read(local_store.local_path(&file_path)).await {
+                    Ok(d) => d,
+                    Err(e) => {
+                        error!(error=%e, "Failed reading thumbnail");
+                        continue;
+                    }
+                };
+
+                images.push((
+                    Media {
+                        id: media.id[2..].to_string(),
+                        mime_type: thumbnail.mimetype.clone(),
+                        data,
+                    },
+                    added,
+                ));
+            }
+        }
+
+        let mut updates: Vec<SavedSearchUpdate<'_>> = Vec::new();
+
+        for subscription in &subscriptions {
+            let sub_media: Vec<&Media> = images
+                .iter()
+                .filter_map(|(media, added)| {
+                    if *added > subscription.last_update {
+                        Some(media)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if !sub_media.is_empty() {
+                updates.push(SavedSearchUpdate {
+                    base_url: conn.config().base_url.to_string(),
+                    email: &subscription.email,
+                    search: &search,
+                    media: sub_media,
+                });
+            }
+        }
+
+        if !updates.is_empty() {
+            send_messages(conn.config(), &updates).await;
+        }
+    }
 
     Ok(())
 }

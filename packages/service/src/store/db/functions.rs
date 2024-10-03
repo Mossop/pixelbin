@@ -120,7 +120,9 @@ macro_rules! from_row {
             lens: $row.lens,
             photographer: $row.photographer,
             shutter_speed: $row.shutter_speed,
-            orientation: $row.orientation.and_then(Orientation::from_repr),
+            orientation: $row
+                .orientation
+                .and_then(crate::store::db::models::Orientation::from_repr),
             iso: $row.iso,
             rating: $row.rating,
             longitude: $row.longitude,
