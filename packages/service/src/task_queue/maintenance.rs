@@ -174,6 +174,7 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
             }
 
             let mut is_complete = !media_file.needs_metadata && media_file.stored.is_some();
+            let mut is_usable = is_complete;
 
             let known_alternates =
                 models::AlternateFile::list_for_media_file(&mut conn, &media_file_store.file)
@@ -219,7 +220,11 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
                             "Alternate file was lost."
                         );
 
+                        if alternate.required {
+                            is_usable = false;
+                        }
                         is_complete = false;
+
                         alternate.stored = None;
                         alternates_to_update.push(alternate);
                     } else {
@@ -227,6 +232,9 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
                     }
                 } else {
                     is_complete = false;
+                    if alternate.required {
+                        is_usable = false;
+                    }
                 }
             }
 
@@ -235,6 +243,10 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
             }
 
             for alternate in wanted_alternates {
+                if alternate.required {
+                    is_usable = false
+                }
+
                 let new_alternate = models::AlternateFile::new(&media_file.id, alternate);
 
                 warn!(
@@ -247,9 +259,11 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
                 alternates_to_update.push(new_alternate);
             }
 
-            if is_complete {
+            if is_usable {
                 valid_media_file = Some(media_file.clone());
-            } else {
+            }
+
+            if !is_complete {
                 // The temp file is still needed.
                 temp_files.remove(&media_file_path);
             }

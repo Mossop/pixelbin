@@ -141,6 +141,8 @@ pub struct Config {
 
     pub rate_limits: Vec<RateLimit>,
 
+    pub max_workers: usize,
+
     /// Disables writing to remote stores for testing purposes.
     pub testing: bool,
 }
@@ -186,6 +188,7 @@ struct ParsedConfig {
     api_url: Option<Uri>,
     thumbnails: Option<ThumbnailConfig>,
     rate_limits: Option<Vec<RateLimit>>,
+    max_workers: Option<usize>,
     #[serde(default)]
     testing: bool,
 }
@@ -310,6 +313,7 @@ impl Config {
                     },
                 ]
             }),
+            max_workers: parsed.max_workers.unwrap_or(1),
             testing: parsed.testing,
         })
     }

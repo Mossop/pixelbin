@@ -1,7 +1,7 @@
 use std::{
     cmp::{max, min},
     collections::{HashMap, HashSet},
-    result,
+    fmt, result,
     str::FromStr,
     task::Poll,
 };
@@ -3014,6 +3014,19 @@ pub(crate) struct AlternateFile {
     pub(crate) media_file: String,
     pub(crate) local: bool,
     pub(crate) stored: Option<DateTime<Utc>>,
+    pub(crate) required: bool,
+}
+
+impl fmt::Display for AlternateFile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let typ = match self.file_type {
+            AlternateFileType::Reencode => "re-encode".to_string(),
+            AlternateFileType::Social => "social".to_string(),
+            AlternateFileType::Thumbnail => format!("thumbnail-{}", max(self.height, self.width)),
+        };
+
+        write!(f, "{} ({} {})", &self.id, typ, self.mimetype)
+    }
 }
 
 impl AlternateFile {
@@ -3032,6 +3045,7 @@ impl AlternateFile {
             media_file: media_file.to_owned(),
             local: alternate.alt_type.is_local(),
             stored: None,
+            required: alternate.required,
         }
     }
 
@@ -3147,13 +3161,6 @@ impl AlternateFile {
                         to_delete.push(af.id.clone());
                     }
                 }
-            }
-
-            if !wanted_alternates.is_empty() {
-                conn.queue_task(Task::ProcessMediaFile {
-                    media_file: media_file.id.clone(),
-                })
-                .await;
             }
 
             to_create.extend(
@@ -3320,6 +3327,7 @@ impl AlternateFile {
             let mut media_file = Vec::<String>::new();
             let mut local = Vec::<bool>::new();
             let mut stored = Vec::<Option<DateTime<Utc>>>::new();
+            let mut required = Vec::<bool>::new();
 
             records.iter().for_each(|alternate_file| {
                 id.push(alternate_file.id.clone());
@@ -3335,11 +3343,12 @@ impl AlternateFile {
                 media_file.push(alternate_file.media_file.clone());
                 local.push(alternate_file.local);
                 stored.push(alternate_file.stored);
+                required.push(alternate_file.required);
             });
 
             sqlx::query!(
                 r#"
-                INSERT INTO alternate_file (
+                INSERT INTO "alternate_file" (
                     "id",
                     "type",
                     "file_name",
@@ -3352,7 +3361,8 @@ impl AlternateFile {
                     "bit_rate",
                     "media_file",
                     "local",
-                    "stored"
+                    "stored",
+                    "required"
                 )
                 SELECT * FROM UNNEST(
                     $1::text[],
@@ -3367,7 +3377,8 @@ impl AlternateFile {
                     $10::real[],
                     $11::text[],
                     $12::bool[],
-                    $13::timestamptz[]
+                    $13::timestamptz[],
+                    $14::bool[]
                 )
                 ON CONFLICT (id) DO UPDATE SET
                     "type"="excluded"."type",
@@ -3380,7 +3391,8 @@ impl AlternateFile {
                     "frame_rate"="excluded"."frame_rate",
                     "bit_rate"="excluded"."bit_rate",
                     "local"="excluded"."local",
-                    "stored"="excluded"."stored"
+                    "stored"="excluded"."stored",
+                    "required"="excluded"."required"
                 "#,
                 &id,
                 &file_type,
@@ -3395,6 +3407,7 @@ impl AlternateFile {
                 &media_file,
                 &local,
                 &stored as &[Option<DateTime<Utc>>],
+                &required
             )
             .execute(&mut *conn)
             .await?;

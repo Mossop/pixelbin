@@ -1,3 +1,5 @@
+use std::{error::Error, str::FromStr};
+
 use askama::Template;
 use mail_send::{
     mail_builder::{headers::address::Address, mime::MimePart, MessageBuilder},
@@ -5,7 +7,6 @@ use mail_send::{
 };
 use mime::Mime;
 use pixelbin_shared::{Config, MailServer};
-use std::{error::Error, str::FromStr};
 use tracing::{error, trace, warn};
 
 use crate::store::models::SavedSearch;

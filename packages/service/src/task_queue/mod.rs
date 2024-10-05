@@ -13,7 +13,7 @@ use opentelemetry::{global, trace::TraceContextExt};
 use pixelbin_shared::Ignorable;
 use strum_macros::IntoStaticStr;
 use tokio::{sync::Notify, time::sleep};
-use tracing::{field, span, span::Id, Instrument, Level, Span};
+use tracing::{field, span, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
@@ -25,7 +25,7 @@ use crate::{
             prune_media_items, server_startup, trigger_media_tasks, update_searches,
             verify_storage,
         },
-        media::{process_media_file, prune_deleted_media},
+        media::{process_media_file, prune_deleted_media, upload_media_file},
     },
     Result, Store,
 };
@@ -52,6 +52,8 @@ pub enum Task {
     ProcessMedia { catalog: String },
     /// Triggers any tasks required to complete a media file.
     ProcessMediaFile { media_file: String },
+    /// Uploads the media file.
+    UploadMediaFile { media_file: String },
     /// Deletes the no longer required alternate files.
     DeleteAlternateFiles { alternate_files: Vec<String> },
     /// Deletes old requests.
@@ -74,6 +76,7 @@ impl Task {
             Task::PruneMediaItems { catalog } => prune_media_items(store, catalog).await,
             Task::ProcessMedia { catalog } => trigger_media_tasks(store, catalog).await,
             Task::ProcessMediaFile { media_file } => process_media_file(store, media_file).await,
+            Task::UploadMediaFile { media_file } => upload_media_file(store, media_file).await,
             Task::DeleteAlternateFiles { alternate_files } => {
                 delete_alternate_files(store, alternate_files).await
             }
@@ -126,6 +129,7 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
 
 #[derive(Clone)]
 pub(crate) struct TaskQueue {
+    workers: usize,
     notify: Arc<Notify>,
     pending: Arc<AtomicUsize>,
     sender: Sender<TaskMessage>,
@@ -140,7 +144,7 @@ pub(crate) struct TaskLoop {
 }
 
 impl TaskLoop {
-    fn spawn(queue: &TaskQueue, store: &Store, parent_span: Option<Id>) {
+    fn spawn(queue: &TaskQueue, store: &Store) {
         let this = TaskLoop {
             store: store.clone(),
             notify: queue.notify.clone(),
@@ -148,7 +152,7 @@ impl TaskLoop {
             receiver: queue.receiver.clone(),
         };
 
-        tokio::spawn(this.task_loop(parent_span.clone()));
+        tokio::spawn(this.task_loop());
     }
 
     async fn run_task(&self, task: &Task) -> Result {
@@ -162,14 +166,20 @@ impl TaskLoop {
         result
     }
 
-    async fn task_loop(self, parent_span: Option<Id>) {
+    async fn task_loop(self) {
         while let Ok((task, context_data)) = self.receiver.recv().await {
             let linked_context =
                 global::get_text_map_propagator(|propagator| propagator.extract(&context_data));
             let linked_span = linked_context.span().span_context().clone();
 
             let task_name: &'static str = (&task).into();
-            let span = span!(parent: parent_span.clone(), Level::TRACE, "task", "otel.name" = task_name, "otel.status_code" = DEFAULT_STATUS, "otel.status_description" = field::Empty);
+            let span = span!(
+                Level::TRACE,
+                "task",
+                "otel.name" = task_name,
+                "otel.status_code" = DEFAULT_STATUS,
+                "otel.status_description" = field::Empty
+            );
             span.add_link(linked_span);
 
             let result = self.run_task(&task).instrument(span.clone()).await;
@@ -183,6 +193,7 @@ impl TaskQueue {
         let (sender, receiver) = unbounded();
 
         Self {
+            workers: 0,
             notify: Arc::new(Notify::new()),
             pending: Arc::new(AtomicUsize::new(0)),
             sender,
@@ -190,19 +201,21 @@ impl TaskQueue {
         }
     }
 
-    pub(crate) fn spawn(&self, store: &Store, parent_span: Option<Id>) {
-        let workers = 3;
-
-        for _ in 0..workers {
-            TaskLoop::spawn(self, store, parent_span.clone());
+    pub(crate) fn spawn(&mut self, store: Store, worker_count: usize) {
+        for _ in 0..worker_count {
+            TaskLoop::spawn(self, &store);
         }
 
-        tokio::spawn(TaskQueue::cron_loop(store.clone()));
+        self.workers += worker_count;
     }
 
-    pub(crate) async fn finish_tasks(&self) {
+    pub(crate) async fn finish_tasks(&self, store: &Store) {
         let count = self.pending.load(Ordering::Acquire);
         if count > 0 {
+            if self.workers == 0 {
+                TaskLoop::spawn(self, store);
+            }
+
             self.notify.notified().await;
         }
     }
@@ -218,7 +231,9 @@ impl TaskQueue {
 
         self.sender.send((task, context_data)).await.unwrap();
     }
+}
 
+pub(crate) fn spawn_cron(store: Store) {
     async fn cron_inner(store: &Store) -> Result {
         let now = Local::now();
         let hours = if now.minute() >= 30 {
@@ -304,10 +319,10 @@ impl TaskQueue {
         Ok(())
     }
 
-    async fn cron_loop(store: Store) {
+    tokio::spawn(async move {
         loop {
             sleep(next_tick()).await;
-            Self::cron_inner(&store).await.warn();
+            cron_inner(&store).await.warn();
         }
-    }
+    });
 }

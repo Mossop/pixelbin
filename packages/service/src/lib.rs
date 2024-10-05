@@ -8,6 +8,8 @@ pub mod server;
 mod shared;
 mod store;
 mod task_queue;
+#[cfg(feature = "worker")]
+pub mod worker;
 
 pub use mail::{send_test_message, TestMessage};
 pub use store::{

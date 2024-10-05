@@ -52,6 +52,7 @@ pub(crate) struct Alternate {
     pub(crate) alt_type: AlternateFileType,
     pub(crate) mimetype: Mime,
     pub(crate) size: Option<i32>,
+    pub(crate) required: bool,
 }
 
 impl Alternate {
@@ -139,6 +140,7 @@ pub(crate) fn alternates_for_media_file(
             alt_type: AlternateFileType::Thumbnail,
             mimetype: mime::IMAGE_JPEG,
             size: Some(*size as i32),
+            required: true,
         });
 
         for alternate_mime in config.thumbnails.alternate_types.iter() {
@@ -147,6 +149,7 @@ pub(crate) fn alternates_for_media_file(
                 alt_type: AlternateFileType::Thumbnail,
                 mimetype: alternate_mime.clone(),
                 size: Some(*size as i32),
+                required: false,
             });
         }
     }
@@ -157,6 +160,7 @@ pub(crate) fn alternates_for_media_file(
             alt_type: AlternateFileType::Social,
             mimetype: mime::IMAGE_JPEG,
             size: None,
+            required: false,
         });
     }
 
@@ -165,6 +169,7 @@ pub(crate) fn alternates_for_media_file(
         alt_type: AlternateFileType::Reencode,
         mimetype: mime::IMAGE_JPEG,
         size: None,
+        required: media_file.mimetype.type_() != "video",
     });
 
     for alternate_mime in config.thumbnails.alternate_types.iter() {
@@ -174,6 +179,7 @@ pub(crate) fn alternates_for_media_file(
             alt_type: AlternateFileType::Reencode,
             mimetype: alternate_mime.clone(),
             size: None,
+            required: false,
         });
     }
 
@@ -185,6 +191,7 @@ pub(crate) fn alternates_for_media_file(
             alt_type: AlternateFileType::Reencode,
             mimetype,
             size: None,
+            required: true,
         })
     }
 

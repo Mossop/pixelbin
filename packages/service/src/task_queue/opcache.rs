@@ -1,18 +1,11 @@
-use std::{
-    collections::HashMap,
-    future::{Future, IntoFuture},
-    hash::Hash,
-    path::PathBuf,
-    pin::Pin,
-    sync::Arc,
-    task::{Context, Poll},
-};
+use std::{collections::HashMap, future::Future, hash::Hash, path::PathBuf, sync::Arc};
 
-use async_once_cell::OnceCell;
-use futures::{future::BoxFuture, FutureExt};
 use image::DynamicImage;
 use pixelbin_shared::Ignorable;
-use tokio::{fs, sync::Mutex};
+use tokio::{
+    fs,
+    sync::{Mutex, OnceCell},
+};
 
 use crate::{
     metadata::{crop_image, load_source_image, resize_image},
@@ -28,83 +21,6 @@ use crate::{
 
 const SOCIAL_WIDTH: u32 = 1200;
 const SOCIAL_HEIGHT: u32 = 630;
-
-const MAX_TASKS: usize = 5;
-
-enum TaskState<'a> {
-    Pending(BoxFuture<'a, ()>),
-    Complete,
-}
-
-#[derive(Default)]
-pub(crate) struct TaskDriver<'a> {
-    tasks: Vec<TaskState<'a>>,
-}
-
-impl<'a> TaskDriver<'a> {
-    pub(crate) fn new() -> Self {
-        Default::default()
-    }
-
-    pub(crate) fn push<F>(&mut self, task: F)
-    where
-        F: Future<Output = ()> + 'a + Send,
-    {
-        self.tasks.push(TaskState::Pending(task.boxed()));
-    }
-}
-
-pub(crate) struct TaskDriverFuture<'a> {
-    tasks: Vec<TaskState<'a>>,
-}
-
-impl<'a> Future for TaskDriverFuture<'a> {
-    type Output = ();
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut complete = true;
-        let mut polled_count = 0;
-
-        for task in self.tasks.iter_mut() {
-            if polled_count > MAX_TASKS {
-                return Poll::Pending;
-            }
-
-            match task {
-                TaskState::Pending(fut) => {
-                    polled_count += 1;
-
-                    match fut.poll_unpin(cx) {
-                        Poll::Pending => {
-                            complete = false;
-                            continue;
-                        }
-                        Poll::Ready(_) => {}
-                    }
-                }
-                TaskState::Complete => continue,
-            };
-
-            *task = TaskState::Complete;
-        }
-
-        if complete {
-            Poll::Ready(())
-        } else {
-            Poll::Pending
-        }
-    }
-}
-
-impl<'a> IntoFuture for TaskDriver<'a> {
-    type Output = ();
-
-    type IntoFuture = TaskDriverFuture<'a>;
-
-    fn into_future(self) -> Self::IntoFuture {
-        TaskDriverFuture { tasks: self.tasks }
-    }
-}
 
 #[derive(Clone)]
 struct Task<R> {
@@ -128,10 +44,9 @@ where
         Fut: Future<Output = Result<R>>,
         Fn: FnOnce() -> Fut,
     {
-        self.cell
-            .get_or_try_init(async { cb().await })
-            .await
-            .cloned()
+        let result = self.cell.get_or_try_init(cb).await;
+
+        result.cloned()
     }
 }
 

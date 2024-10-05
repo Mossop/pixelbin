@@ -17,7 +17,8 @@ use opentelemetry_sdk::{
     Resource,
 };
 use pixelbin::{
-    send_test_message, server::serve, Config, Result, Store, StoreStats, Task, TestMessage,
+    send_test_message, server::serve, worker::worker, Config, Result, Store, StoreStats, Task,
+    TestMessage,
 };
 use tokio::runtime::Builder;
 use tracing::{span, Instrument, Level, Span};
@@ -26,9 +27,9 @@ use tracing_subscriber::{
 };
 
 #[cfg(not(debug_assertions))]
-const STACK_SIZE: usize = 10 * 1024 * 1024;
+const STACK_SIZE: usize = 2 * 1024 * 1024;
 #[cfg(debug_assertions)]
-const STACK_SIZE: usize = 20 * 1024 * 1024;
+const STACK_SIZE: usize = 2 * 1024 * 1024;
 
 async fn list_catalogs(store: &Store) -> Result<Vec<String>> {
     store.pooled().list_catalogs().await
@@ -123,7 +124,7 @@ impl Runnable for Verify {
                 .await;
         }
 
-        store.finish_tasks().await;
+        store.shutdown().await;
 
         for catalog in catalogs.iter() {
             store
@@ -141,7 +142,7 @@ impl Runnable for Verify {
                 .await;
         }
 
-        store.finish_tasks().await;
+        store.shutdown().await;
 
         for catalog in catalogs.iter() {
             store
@@ -164,13 +165,13 @@ impl Runnable for Serve {
     }
 
     async fn run(&self, store: &Store) -> Result {
-        serve(store).await
+        serve(store.clone()).await
     }
 
     async fn exec(&self, config: Config) -> Result {
         let span = self.span();
         let store = async move {
-            let store = Store::new(config, None).await?;
+            let store = Store::new(config).await?;
             store.queue_task(Task::ServerStartup).await;
 
             Result::<Store>::Ok(store)
@@ -179,7 +180,34 @@ impl Runnable for Serve {
         .await?;
 
         let result = self.run(&store).await;
-        store.finish_tasks().await;
+        store.shutdown().await;
+        result
+    }
+}
+
+#[derive(Args)]
+struct Worker;
+
+impl Runnable for Worker {
+    fn span(&self) -> Span {
+        span!(Level::INFO, "worker startup")
+    }
+
+    async fn run(&self, store: &Store) -> Result {
+        worker(store.clone()).await
+    }
+
+    async fn exec(&self, config: Config) -> Result {
+        let span = self.span();
+        let store = async move {
+            let store = Store::new(config).await?;
+            Result::<Store>::Ok(store)
+        }
+        .instrument(span)
+        .await?;
+
+        let result = self.run(&store).await;
+        store.shutdown().await;
         result
     }
 }
@@ -189,6 +217,8 @@ impl Runnable for Serve {
 enum Command {
     /// Runs the server.
     Serve,
+    /// Runs a worker process.
+    Worker,
     /// List some basic stats about objects in the database.
     Stats,
     /// Reprocesses media where necessary.
@@ -208,11 +238,10 @@ trait Runnable {
     async fn exec(&self, config: Config) -> Result {
         let span = self.span();
 
-        let span_id = span.id();
         async move {
-            let store = Store::new(config, span_id).await?;
+            let store = Store::new(config).await?;
             let result = self.run(&store).await;
-            store.finish_tasks().await;
+            store.shutdown().await;
             result
         }
         .instrument(span)

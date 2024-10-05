@@ -66,8 +66,10 @@ const ThumbnailImage = memo(function ThumbnailImage({
     let extension = mime.extension(mimetype);
     let urlMimetype = mimetype.replace("/", "-");
 
-    return thumbnails
-      .filter((t) => t.mimetype == mimetype)
+    let sources = thumbnails.filter((t) => t.mimetype == mimetype);
+    sources.sort((a, b) => a.width - b.width);
+
+    return sources
       .map(
         (t) =>
           `${url([

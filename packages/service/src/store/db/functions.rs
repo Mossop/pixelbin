@@ -161,6 +161,7 @@ macro_rules! from_row {
             media_file: $row.media_file,
             local: $row.local,
             stored: $row.stored,
+            required: $row.required,
         }
     };
     (MediaFile($row:ident)) => {

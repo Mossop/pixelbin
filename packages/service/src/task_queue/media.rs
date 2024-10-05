@@ -2,7 +2,7 @@ use std::{cmp, collections::HashMap};
 
 use pixelbin_shared::IgnorableFuture;
 use tokio::fs;
-use tracing::{instrument, Instrument};
+use tracing::{instrument, trace};
 
 use crate::{
     metadata::{
@@ -14,13 +14,17 @@ use crate::{
         db::{models, Isolation},
         file::{DiskStore, FileStore},
         models::AlternateFileType,
+        StoreType,
     },
-    task_queue::opcache::{MediaFileOpCache, TaskDriver},
-    Error, Result, Store,
+    task_queue::opcache::MediaFileOpCache,
+    worker::Command,
+    Error, Result, Store, Task,
 };
 
 #[instrument(skip(store, op_cache), err)]
-async fn extract_metadata(store: Store, op_cache: MediaFileOpCache) -> Result {
+async fn extract_metadata(store: &Store, op_cache: MediaFileOpCache) -> Result {
+    trace!("Extracting file metadata");
+
     let local_store = DiskStore::local_store(store.config());
 
     let metadata_path = local_store.local_path(&op_cache.media_file_store.file(METADATA_FILE));
@@ -47,21 +51,26 @@ async fn extract_metadata(store: Store, op_cache: MediaFileOpCache) -> Result {
     let (mut media_file, _) = models::MediaFile::get(&mut conn, &op_cache.media_file.id).await?;
     metadata.apply_to_media_file(&mut media_file);
     models::MediaFile::upsert(&mut conn, &[media_file]).await?;
-
-    models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog).await?;
-
     conn.commit().await
 }
 
-#[instrument(skip(store, op_cache), err)]
-async fn upload_media_file(store: Store, mut op_cache: MediaFileOpCache) -> Result {
-    if op_cache.media_file.stored.is_some() {
-        let mut conn = store.isolated(Isolation::Committed).await?;
-        models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog)
-            .await?;
-        op_cache.release().await?;
-        return conn.commit().await;
+#[instrument(skip(store), err)]
+pub(super) async fn upload_media_file(mut store: Store, media_file_id: &str) -> Result {
+    trace!("Uploading media file");
+
+    let (media_file, media_file_store) = models::MediaFile::get(&mut store, media_file_id).await?;
+
+    if media_file.stored.is_some() {
+        return Ok(());
     }
+
+    let guard = store
+        .locks()
+        .media_item(&store, &media_file_store.media_item_store())
+        .for_update()
+        .await;
+
+    let mut op_cache = guard.file_ops(&media_file).await;
 
     let temp_store = DiskStore::temp_store(store.config());
     let file_path = op_cache
@@ -82,18 +91,28 @@ async fn upload_media_file(store: Store, mut op_cache: MediaFileOpCache) -> Resu
         .push(&temp_file, &file_path, &op_cache.media_file.mimetype)
         .await?;
 
-    let mut conn = store.isolated(Isolation::Committed).await?;
-    op_cache.media_file.mark_stored(&mut conn).await?;
-    models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog).await?;
-    conn.commit().await
+    op_cache.media_file.mark_stored(&mut store).await
 }
 
 #[instrument(skip(store, op_cache), err)]
 async fn build_alternate(
-    store: Store,
+    store: &mut Store,
     op_cache: MediaFileOpCache,
-    mut alternate_file: models::AlternateFile,
+    alternate_file: &mut models::AlternateFile,
 ) -> Result {
+    if alternate_file.stored.is_some() {
+        return Ok(());
+    }
+
+    let always_build = alternate_file.file_type == AlternateFileType::Social
+        || (alternate_file.required && alternate_file.mimetype.type_() != mime::VIDEO);
+
+    if !always_build && store.store_type() == StoreType::Server {
+        return Ok(());
+    }
+
+    trace!(alternate_file=%alternate_file, "Building alternate file");
+
     let _guard = if alternate_file.mimetype.type_() == mime::VIDEO {
         Some(store.locks().enter_expensive_task().await)
     } else {
@@ -111,10 +130,10 @@ async fn build_alternate(
             AlternateFileType::Social => op_cache.resize_social().await?,
         };
 
-        encode_alternate_image(&mut alternate_file, &source_image).await?
+        encode_alternate_image(alternate_file, &source_image).await?
     } else {
         let temp_file = op_cache.ensure_local().await?;
-        encode_alternate_video(&temp_file, &mut alternate_file).await?
+        encode_alternate_video(&temp_file, alternate_file).await?
     };
 
     let storage = op_cache.storage().await?;
@@ -131,14 +150,12 @@ async fn build_alternate(
             .await?;
     }
 
-    let mut conn = store.isolated(Isolation::Committed).await?;
-    alternate_file.mark_stored(&mut conn).await?;
-    models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog).await?;
-    conn.commit().await
+    alternate_file.mark_stored(store).await
 }
 
 #[instrument(skip(store), err)]
 pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) -> Result {
+    trace!(media_file_id, "Processing media file");
     let (media_file, media_file_store) = models::MediaFile::get(&mut store, media_file_id).await?;
 
     let guard = store
@@ -149,37 +166,56 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
 
     let op_cache = guard.file_ops(&media_file).await;
 
-    let mut tasks = TaskDriver::new();
-
     if media_file.stored.is_none() {
-        tasks.push(
-            upload_media_file(store.clone(), op_cache.clone())
-                .warn()
-                .in_current_span(),
-        );
+        store
+            .queue_task(Task::UploadMediaFile {
+                media_file: media_file_id.to_owned(),
+            })
+            .await;
     }
 
     if media_file.needs_metadata {
-        tasks.push(
-            extract_metadata(store.clone(), op_cache.clone())
-                .warn()
-                .in_current_span(),
-        );
+        extract_metadata(&store, op_cache.clone()).warn().await;
     }
 
-    for alternate_file in
+    for mut alternate_file in
         models::AlternateFile::list_for_media_file(&mut store, &media_file_store.file).await?
     {
+        build_alternate(&mut store, op_cache.clone(), &mut alternate_file)
+            .warn()
+            .await;
+    }
+
+    let mut conn = store.isolated(Isolation::Committed).await?;
+    models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog).await?;
+    conn.commit().await?;
+
+    // Now see if there is social media required.
+    let mut worker_needed = false;
+
+    for mut alternate_file in
+        models::AlternateFile::list_for_media_file(&mut store, &media_file_store.file).await?
+    {
+        build_alternate(&mut store, op_cache.clone(), &mut alternate_file)
+            .warn()
+            .await;
+
         if alternate_file.stored.is_none() {
-            tasks.push(
-                build_alternate(store.clone(), op_cache.clone(), alternate_file)
-                    .warn()
-                    .in_current_span(),
-            );
+            worker_needed = true;
         }
     }
 
-    tasks.await;
+    if worker_needed {
+        store
+            .send_worker_command(Command::ProcessMediaFile {
+                media_file: media_file_id.to_owned(),
+            })
+            .await;
+    } else {
+        op_cache.release().warn().await;
+    }
+
+    trace!(media_file_id, "Processing complete");
 
     Ok(())
 }

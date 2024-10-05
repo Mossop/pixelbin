@@ -13,18 +13,28 @@ pub(crate) mod path;
 
 pub(crate) use db::models;
 use db::{connect, DbConnection};
-use tracing::span::Id;
 
 use crate::{
     store::{db::SqlxPool, locks::Locks},
+    worker::{Command, WorkerHost},
     Config, Isolation, Result, Task, TaskQueue,
 };
 
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum StoreType {
+    #[default]
+    Cli,
+    Server,
+    Worker,
+}
+
 #[derive(Clone)]
 struct StoreInner {
+    store_type: StoreType,
     config: Config,
     pool: SqlxPool,
     task_queue: TaskQueue,
+    workers: WorkerHost,
     locks: Locks,
 }
 
@@ -55,18 +65,42 @@ impl Clone for Store {
 }
 
 impl Store {
+    pub(crate) fn store_type(&self) -> StoreType {
+        self.inner.store_type
+    }
+
+    pub(crate) fn into_type(mut self, new_type: StoreType) -> Self {
+        assert_eq!(self.inner.store_type, StoreType::Cli);
+
+        self.inner.store_type = new_type;
+
+        match new_type {
+            StoreType::Server => {
+                self.inner.task_queue.spawn(self.clone(), 4);
+            }
+            StoreType::Worker => {
+                self.inner.task_queue.spawn(self.clone(), 2);
+            }
+            StoreType::Cli => {}
+        }
+
+        self
+    }
+
     pub(crate) fn with_pool(&self, pool: SqlxPool) -> Self {
         StoreInner {
+            store_type: self.inner.store_type,
             pool,
             task_queue: self.inner.task_queue.clone(),
             config: self.inner.config.clone(),
+            workers: self.inner.workers.clone(),
             locks: self.inner.locks.clone(),
         }
         .into()
     }
 
-    pub async fn new(config: Config, task_span: Option<Id>) -> Result<Self> {
-        connect(&config, task_span).await
+    pub async fn new(config: Config) -> Result<Self> {
+        connect(&config).await
     }
 
     pub fn pooled(&self) -> DbConnection<'static> {
@@ -85,12 +119,17 @@ impl Store {
         self.inner.task_queue.queue_task(task).await;
     }
 
-    pub async fn finish_tasks(&self) {
-        self.inner.task_queue.finish_tasks().await;
+    pub async fn shutdown(&self) {
+        self.inner.task_queue.finish_tasks(self).await;
+        self.inner.workers.shutdown().await;
     }
 
     pub(crate) fn config(&self) -> &Config {
         &self.inner.config
+    }
+
+    pub(crate) async fn send_worker_command(&self, command: Command) {
+        self.inner.workers.send_command(self, command).await;
     }
 
     pub async fn isolated<'a, 'c>(&'c self, level: Isolation) -> Result<DbConnection<'a>>

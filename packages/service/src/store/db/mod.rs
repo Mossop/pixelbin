@@ -8,10 +8,11 @@ use std::{fmt, mem, time::Duration};
 use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
 use sqlx::{postgres::PgPoolOptions, Transaction};
-use tracing::{error, info, instrument, span::Id, warn};
+use tracing::{error, info, instrument, warn};
 
 use crate::{
     store::{db::internal::Connection, locks::Locks, StoreInner},
+    worker::WorkerHost,
     Config, Result, Store, Task, TaskQueue,
 };
 
@@ -36,7 +37,7 @@ pub enum Isolation {
 }
 
 #[instrument(err, skip_all)]
-pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<Store> {
+pub(crate) async fn connect(config: &Config) -> Result<Store> {
     // Set up the async pool.
     let pool = PgPoolOptions::new()
         .min_connections(1)
@@ -59,16 +60,15 @@ pub(crate) async fn connect(config: &Config, task_span: Option<Id>) -> Result<St
         }).await?;
     }
 
-    let task_queue = TaskQueue::new();
     let mut store: Store = StoreInner {
+        store_type: Default::default(),
         pool,
         config: config.clone(),
-        task_queue: task_queue.clone(),
+        task_queue: TaskQueue::new(),
+        workers: WorkerHost::default(),
         locks: Locks::new(),
     }
     .into();
-
-    task_queue.spawn(&store, task_span);
 
     // Verify that we can connect and update cached views.
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "user_catalog";"#)
