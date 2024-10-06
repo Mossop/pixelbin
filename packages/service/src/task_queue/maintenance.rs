@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use chrono::{DateTime, Utc};
 use futures::join;
-use pixelbin_shared::Ignorable;
+use pixelbin_shared::{Ignorable, IgnorableFuture};
 use serde::Deserialize;
 use tokio::fs;
 use tracing::{debug, error, warn, Instrument};
@@ -453,10 +453,20 @@ pub(super) async fn process_subscriptions(store: Store, catalog: &str) -> Result
         .fetch_all(&mut conn)
         .await?;
 
+        if media.is_empty() {
+            continue;
+        }
+
         let mut images: Vec<(Media, DateTime<Utc>)> = Vec::new();
         let local_store = DiskStore::local_store(conn.config());
 
+        let mut newest = media.first().unwrap().1;
+
         for (media, added) in media {
+            if added > newest {
+                newest = added;
+            }
+
             let file = media.file.as_ref().unwrap();
 
             let thumbnails = sqlx::query!(
@@ -495,7 +505,8 @@ pub(super) async fn process_subscriptions(store: Store, catalog: &str) -> Result
 
                 images.push((
                     Media {
-                        id: media.id[2..].to_string(),
+                        id: media.id.clone(),
+                        cid: thumbnail.id[2..].to_string(),
                         mime_type: thumbnail.mimetype.clone(),
                         data,
                     },
@@ -530,6 +541,19 @@ pub(super) async fn process_subscriptions(store: Store, catalog: &str) -> Result
 
         if !updates.is_empty() {
             send_messages(conn.config(), &updates).await;
+
+            sqlx::query!(
+                r#"
+                UPDATE "subscription"
+                SET "last_update"=$1
+                WHERE "search"=$2
+                "#,
+                newest,
+                &search.id
+            )
+            .execute(&mut conn)
+            .warn()
+            .await;
         }
     }
 

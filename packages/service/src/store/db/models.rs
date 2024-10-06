@@ -47,10 +47,20 @@ use crate::{
 
 const TOKEN_EXPIRY_DAYS: i64 = 90;
 
-struct Batch<'a, T> {
+pub(crate) struct Batch<'a, T> {
     slice: &'a [T],
     pos: usize,
     count: usize,
+}
+
+impl<'a, T> Batch<'a, T> {
+    pub(crate) fn new(slice: &'a [T], count: usize) -> Self {
+        Batch {
+            slice,
+            pos: 0,
+            count,
+        }
+    }
 }
 
 impl<'a, T> Iterator for Batch<'a, T> {
@@ -68,12 +78,8 @@ impl<'a, T> Iterator for Batch<'a, T> {
     }
 }
 
-fn batch<T>(slice: &[T], count: usize) -> Batch<T> {
-    Batch {
-        slice,
-        pos: 0,
-        count,
-    }
+pub(crate) fn batch<T>(slice: &[T], count: usize) -> Batch<T> {
+    Batch::new(slice, count)
 }
 
 #[pin_project]

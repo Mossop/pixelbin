@@ -2,9 +2,17 @@
 
 {% block body %}
 <p>New content has been added to the <a href="{{ base_url }}search/{{ search.id }}">{{ search.name }}</a> album:</p>
-<div id="gallery">
-  {% for media in media %}
-    <div class="media"><img src="cid:{{ media.id }}" /></div>
+<table id="gallery" borders="0">
+  {% for batch in media|batch(5) %}
+    <tr>
+      {% for media in batch %}
+      <td class="media" align="center" valign="middle">
+        <a href="{{ base_url }}search/{{ search.id }}/media/{{ media.id }}">
+          <img src="cid:{{ media.cid }}" />
+        </a>
+      </td>
+      {% endfor %}
+    </tr>
   {% endfor %}
-</div>
+</table>
 {% endblock %}

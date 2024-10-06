@@ -91,7 +91,9 @@ pub(super) async fn upload_media_file(mut store: Store, media_file_id: &str) -> 
         .push(&temp_file, &file_path, &op_cache.media_file.mimetype)
         .await?;
 
-    op_cache.media_file.mark_stored(&mut store).await
+    op_cache.media_file.mark_stored(&mut store).await?;
+
+    op_cache.release().await
 }
 
 #[instrument(skip(store, op_cache), err)]

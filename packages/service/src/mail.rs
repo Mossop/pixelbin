@@ -13,8 +13,17 @@ use crate::store::models::SavedSearch;
 
 const LOGO_IMAGE: &[u8; 10913] = include_bytes!("../templates/logo.png");
 
+mod filters {
+    use crate::store::models::Batch;
+
+    pub(super) fn batch<T>(slice: &[T], count: usize) -> ::askama::Result<Batch<T>> {
+        Ok(Batch::new(slice, count))
+    }
+}
+
 pub(crate) struct Media {
     pub(crate) id: String,
+    pub(crate) cid: String,
     pub(crate) mime_type: Mime,
     pub(crate) data: Vec<u8>,
 }
@@ -44,7 +53,7 @@ pub(crate) trait MessageTemplate: Template {
                 mimeparts.add_part(
                     MimePart::new(part.mime_type.to_string(), part.data.clone())
                         .inline()
-                        .cid(&part.id),
+                        .cid(&part.cid),
                 );
             }
         }

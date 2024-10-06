@@ -15,7 +15,7 @@ pub trait Ignorable {
     fn warn(self);
 }
 
-impl<E> Ignorable for result::Result<(), E>
+impl<T, E> Ignorable for result::Result<T, E>
 where
     E: Debug,
 {
@@ -33,10 +33,10 @@ pub trait IgnorableFuture {
     fn warn(self) -> impl Future<Output = ()>;
 }
 
-impl<F, E> IgnorableFuture for F
+impl<F> IgnorableFuture for F
 where
-    F: Future<Output = result::Result<(), E>>,
-    E: Debug,
+    F: Future,
+    F::Output: Ignorable,
 {
     async fn ignore(self) {
         self.await.ignore();

@@ -117,8 +117,7 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
                 _ => return None,
             } as u32;
 
-            // Imperfect but good enough
-            if (value % size) == offset {
+            if ((size * value) as f64 / 61.0).round() as u32 == offset {
                 Some(s.as_str())
             } else {
                 None

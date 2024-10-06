@@ -360,8 +360,6 @@ export function listMedia(
     path += `?${params}`;
   }
 
-  console.log(path);
-
   return apiCall(
     path,
     "listMedia",

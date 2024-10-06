@@ -83,6 +83,27 @@ impl Runnable for SendMail {
 }
 
 #[derive(Args)]
+struct ProcessSubscriptions {}
+
+impl Runnable for ProcessSubscriptions {
+    fn span(&self) -> Span {
+        span!(Level::INFO, "process-subscriptions")
+    }
+
+    async fn run(&self, store: &Store) -> Result {
+        let catalogs = list_catalogs(store).await?;
+
+        for catalog in catalogs {
+            store
+                .queue_task(Task::ProcessSubscriptions { catalog })
+                .await;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Args)]
 struct Reprocess;
 
 impl Runnable for Reprocess {
@@ -225,6 +246,8 @@ enum Command {
     Reprocess,
     /// Verifies database and storage consistency.
     Verify,
+    /// Sends subscription updates.
+    ProcessSubscriptions,
     /// Sends test emails.
     SendMail,
 }
