@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT \"media_view\".*\n                FROM \"media_view\"\n                    JOIN \"media_album\" ON \"media_album\".\"media\"=\"media_view\".\"id\"\n                WHERE \"media_album\".\"album\"=$1\n                ORDER BY \"datetime\" DESC\n                ",
+  "query": "\n            SELECT \"media_view\".*, \"media_search\".\"added\"\n            FROM \"media_view\"\n                JOIN \"media_search\" ON \"media_search\".\"media\"=\"media_view\".\"id\"\n            WHERE\n                \"media_view\".\"media_file\" IS NOT NULL AND\n                \"media_search\".\"added\" > $2 AND\n                \"media_search\".\"search\" = $1\n            ORDER BY \"media_view\".\"datetime\" DESC\n            ",
   "describe": {
     "columns": [
       {
@@ -202,11 +202,17 @@
         "ordinal": 39,
         "name": "alternates",
         "type_info": "Json"
+      },
+      {
+        "ordinal": 40,
+        "name": "added",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Text",
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -249,8 +255,9 @@
       true,
       true,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "a5ec9de670957393fb12d862c359c577fa20cb038090df8cdaec3dee65741ad3"
+  "hash": "54f605f8caa48fb8614f75d07103c2ecdc7671c7ae7d6e23855e423a12df7e8e"
 }

@@ -70,6 +70,11 @@
       },
       {
         "ordinal": 13,
+        "name": "required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
         "name": "catalog",
         "type_info": "Varchar"
       }
@@ -93,6 +98,7 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },

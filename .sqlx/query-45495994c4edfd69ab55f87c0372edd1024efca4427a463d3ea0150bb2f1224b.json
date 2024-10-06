@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO \"subscription\" (\"email\", \"search\")\n            VALUES ($1,$2)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "45495994c4edfd69ab55f87c0372edd1024efca4427a463d3ea0150bb2f1224b"
+}

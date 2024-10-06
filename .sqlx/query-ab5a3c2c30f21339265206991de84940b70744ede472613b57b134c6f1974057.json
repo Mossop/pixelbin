@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"email\"\n            FROM \"subscription\"\n            WHERE \"email\"=$1 AND \"search\"=$2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ab5a3c2c30f21339265206991de84940b70744ede472613b57b134c6f1974057"
+}

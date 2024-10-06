@@ -20,221 +20,216 @@
       },
       {
         "ordinal": 3,
-        "name": "updated",
-        "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 4,
         "name": "datetime",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "public",
         "type_info": "Bool"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "taken_zone",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "filename",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "title",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "description",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "label",
         "type_info": "Text"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "category",
         "type_info": "Text"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "location",
         "type_info": "Text"
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "city",
         "type_info": "Text"
       },
       {
-        "ordinal": 14,
+        "ordinal": 13,
         "name": "state",
         "type_info": "Text"
       },
       {
-        "ordinal": 15,
+        "ordinal": 14,
         "name": "country",
         "type_info": "Text"
       },
       {
-        "ordinal": 16,
+        "ordinal": 15,
         "name": "make",
         "type_info": "Text"
       },
       {
-        "ordinal": 17,
+        "ordinal": 16,
         "name": "model",
         "type_info": "Text"
       },
       {
-        "ordinal": 18,
+        "ordinal": 17,
         "name": "lens",
         "type_info": "Text"
       },
       {
-        "ordinal": 19,
+        "ordinal": 18,
         "name": "photographer",
         "type_info": "Text"
       },
       {
-        "ordinal": 20,
+        "ordinal": 19,
         "name": "shutter_speed",
         "type_info": "Float4"
       },
       {
-        "ordinal": 21,
+        "ordinal": 20,
         "name": "orientation",
         "type_info": "Int4"
       },
       {
-        "ordinal": 22,
+        "ordinal": 21,
         "name": "iso",
         "type_info": "Int4"
       },
       {
-        "ordinal": 23,
+        "ordinal": 22,
         "name": "rating",
         "type_info": "Int4"
       },
       {
-        "ordinal": 24,
+        "ordinal": 23,
         "name": "longitude",
         "type_info": "Float4"
       },
       {
-        "ordinal": 25,
+        "ordinal": 24,
         "name": "latitude",
         "type_info": "Float4"
       },
       {
-        "ordinal": 26,
+        "ordinal": 25,
         "name": "altitude",
         "type_info": "Float4"
       },
       {
-        "ordinal": 27,
+        "ordinal": 26,
         "name": "aperture",
         "type_info": "Float4"
       },
       {
-        "ordinal": 28,
+        "ordinal": 27,
         "name": "focal_length",
         "type_info": "Float4"
       },
       {
-        "ordinal": 29,
+        "ordinal": 28,
         "name": "taken",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 30,
+        "ordinal": 29,
         "name": "media_file",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 31,
+        "ordinal": 30,
         "name": "file_size",
         "type_info": "Int8"
       },
       {
-        "ordinal": 32,
+        "ordinal": 31,
         "name": "mimetype",
         "type_info": "Text"
       },
       {
-        "ordinal": 33,
+        "ordinal": 32,
         "name": "width",
         "type_info": "Int4"
       },
       {
-        "ordinal": 34,
+        "ordinal": 33,
         "name": "height",
         "type_info": "Int4"
       },
       {
-        "ordinal": 35,
+        "ordinal": 34,
         "name": "duration",
         "type_info": "Float4"
       },
       {
-        "ordinal": 36,
+        "ordinal": 35,
         "name": "frame_rate",
         "type_info": "Float4"
       },
       {
-        "ordinal": 37,
+        "ordinal": 36,
         "name": "bit_rate",
         "type_info": "Float4"
       },
       {
-        "ordinal": 38,
+        "ordinal": 37,
         "name": "uploaded",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 39,
+        "ordinal": 38,
         "name": "file_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 40,
+        "ordinal": 39,
         "name": "alternates",
         "type_info": "Json"
       },
       {
-        "ordinal": 41,
+        "ordinal": 40,
         "name": "writable",
         "type_info": "Bool"
       },
       {
-        "ordinal": 42,
+        "ordinal": 41,
         "name": "albums",
         "type_info": "Json"
       },
       {
-        "ordinal": 43,
+        "ordinal": 42,
         "name": "tags",
         "type_info": "Json"
       },
       {
-        "ordinal": 44,
+        "ordinal": 43,
         "name": "people",
         "type_info": "Json"
       },
       {
-        "ordinal": 45,
+        "ordinal": 44,
         "name": "searches",
         "type_info": "Json"
       },
       {
-        "ordinal": 46,
+        "ordinal": 45,
         "name": "in_public_search",
         "type_info": "Bool"
       }
@@ -247,7 +242,6 @@
       ]
     },
     "nullable": [
-      true,
       true,
       true,
       true,

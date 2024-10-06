@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM subscription\n                WHERE email=$1\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0677e5e5dfaf7783359eb8115cf3e92922818ea59a57090d7607df18e1649a6e"
+}

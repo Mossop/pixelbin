@@ -67,6 +67,11 @@
         "ordinal": 12,
         "name": "stored",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "required",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -95,7 +100,8 @@
       true,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
   "hash": "b59f7c2aca3336a3920b3832d4890204ec1576d8d8e9a3e83525062ec155847a"

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE \"subscription\"\n                SET \"last_update\"=$1\n                WHERE \"search\"=$2\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ebcbca4bf263066e43f18baaa0550dbb06603c2df7c070d98a5c9400c1780b90"
+}

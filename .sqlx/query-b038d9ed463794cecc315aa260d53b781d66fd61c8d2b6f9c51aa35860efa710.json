@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM \"subscription_request\"\n            WHERE\n                \"request\" < CURRENT_TIMESTAMP - INTERVAL '1 day'\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "b038d9ed463794cecc315aa260d53b781d66fd61c8d2b6f9c51aa35860efa710"
+}
