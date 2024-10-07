@@ -70,6 +70,10 @@ impl WorkerProcess {
     }
 
     async fn kill(mut self) {
+        if let Ok(Some(_)) = self.process.try_wait() {
+            // Worker quit already.
+            return;
+        }
         self.process.kill().warn().await;
     }
 }
@@ -211,8 +215,6 @@ impl Worker {
 }
 
 pub async fn worker(store: Store) -> Result {
-    let store = store.into_type(StoreType::Worker);
-
     setpriority_process(None, 10).unwrap();
 
     let worker = Worker::new(store);

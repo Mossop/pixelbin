@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum StoreType {
+pub enum StoreType {
     #[default]
     Cli,
     Server,
@@ -69,24 +69,6 @@ impl Store {
         self.inner.store_type
     }
 
-    pub(crate) fn into_type(mut self, new_type: StoreType) -> Self {
-        assert_eq!(self.inner.store_type, StoreType::Cli);
-
-        self.inner.store_type = new_type;
-
-        match new_type {
-            StoreType::Server => {
-                self.inner.task_queue.spawn(self.clone(), 4);
-            }
-            StoreType::Worker => {
-                self.inner.task_queue.spawn(self.clone(), 2);
-            }
-            StoreType::Cli => {}
-        }
-
-        self
-    }
-
     pub(crate) fn with_pool(&self, pool: SqlxPool) -> Self {
         StoreInner {
             store_type: self.inner.store_type,
@@ -99,8 +81,8 @@ impl Store {
         .into()
     }
 
-    pub async fn new(config: Config) -> Result<Self> {
-        connect(&config).await
+    pub async fn new(config: Config, store_type: StoreType) -> Result<Self> {
+        connect(&config, store_type).await
     }
 
     pub fn pooled(&self) -> DbConnection<'static> {

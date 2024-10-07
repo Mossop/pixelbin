@@ -20,11 +20,7 @@ use serde::Serialize;
 use sqlx::postgres::PgPoolOptions;
 use tracing::{instrument, trace};
 
-use crate::{
-    store::{Store, StoreType},
-    task_queue::spawn_cron,
-    Error, Result,
-};
+use crate::{store::Store, task_queue::spawn_cron, Error, Result};
 
 mod auth;
 mod media;
@@ -217,13 +213,11 @@ async fn preflight(req: HttpRequest, app_state: web::Data<AppState>) -> HttpResp
 }
 
 pub async fn serve(store: Store) -> Result {
-    let store = store.into_type(StoreType::Server);
-
     // Use a dedicated pool for the web server so nothing else can starve it of
     // connections.
     let pool = PgPoolOptions::new()
-        .min_connections(10)
-        .max_connections(30)
+        .min_connections(0)
+        .max_connections(5)
         .acquire_timeout(Duration::from_secs(10))
         .connect(&store.config().database_url)
         .await?;

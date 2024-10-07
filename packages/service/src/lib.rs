@@ -15,7 +15,7 @@ pub use mail::{send_test_message, TestMessage};
 pub use store::{
     db::{Isolation, StoreStats},
     file::FileStore,
-    Store,
+    Store, StoreType,
 };
 pub use task_queue::Task;
 pub(crate) use task_queue::TaskQueue;

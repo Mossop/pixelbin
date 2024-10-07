@@ -13,7 +13,7 @@ use tracing::{error, info, instrument, warn};
 use crate::{
     store::{db::internal::Connection, locks::Locks, StoreInner},
     worker::WorkerHost,
-    Config, Result, Store, Task, TaskQueue,
+    Config, Result, Store, StoreType, Task, TaskQueue,
 };
 
 pub(crate) type SqlxDatabase = sqlx::Postgres;
@@ -37,11 +37,17 @@ pub enum Isolation {
 }
 
 #[instrument(err, skip_all)]
-pub(crate) async fn connect(config: &Config) -> Result<Store> {
+pub(crate) async fn connect(config: &Config, store_type: StoreType) -> Result<Store> {
+    let (min_connections, max_connections) = match store_type {
+        StoreType::Cli => (0, 10),
+        StoreType::Server => (0, 2),
+        StoreType::Worker => (0, 2),
+    };
+
     // Set up the async pool.
     let pool = PgPoolOptions::new()
-        .min_connections(1)
-        .max_connections(10)
+        .min_connections(min_connections)
+        .max_connections(max_connections)
         .acquire_timeout(Duration::from_secs(60 * 5))
         .connect(&config.database_url)
         .await?;
@@ -60,15 +66,23 @@ pub(crate) async fn connect(config: &Config) -> Result<Store> {
         }).await?;
     }
 
+    let mut task_queue = TaskQueue::new();
+
     let mut store: Store = StoreInner {
-        store_type: Default::default(),
+        store_type,
         pool,
         config: config.clone(),
-        task_queue: TaskQueue::new(),
+        task_queue: task_queue.clone(),
         workers: WorkerHost::default(),
         locks: Locks::new(),
     }
     .into();
+
+    match store_type {
+        StoreType::Server => task_queue.spawn(store.clone(), 2),
+        StoreType::Worker => task_queue.spawn(store.clone(), 1),
+        _ => {}
+    }
 
     // Verify that we can connect and update cached views.
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "user_catalog";"#)

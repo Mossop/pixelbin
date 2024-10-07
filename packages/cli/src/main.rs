@@ -17,8 +17,8 @@ use opentelemetry_sdk::{
     Resource,
 };
 use pixelbin::{
-    send_test_message, server::serve, worker::worker, Config, Result, Store, StoreStats, Task,
-    TestMessage,
+    send_test_message, server::serve, worker::worker, Config, Result, Store, StoreStats, StoreType,
+    Task, TestMessage,
 };
 use tokio::runtime::Builder;
 use tracing::{span, Instrument, Level, Span};
@@ -192,7 +192,7 @@ impl Runnable for Serve {
     async fn exec(&self, config: Config) -> Result {
         let span = self.span();
         let store = async move {
-            let store = Store::new(config).await?;
+            let store = Store::new(config, StoreType::Server).await?;
             store.queue_task(Task::ServerStartup).await;
 
             Result::<Store>::Ok(store)
@@ -221,7 +221,7 @@ impl Runnable for Worker {
     async fn exec(&self, config: Config) -> Result {
         let span = self.span();
         let store = async move {
-            let store = Store::new(config).await?;
+            let store = Store::new(config, StoreType::Worker).await?;
             Result::<Store>::Ok(store)
         }
         .instrument(span)
@@ -262,7 +262,7 @@ trait Runnable {
         let span = self.span();
 
         async move {
-            let store = Store::new(config).await?;
+            let store = Store::new(config, StoreType::Cli).await?;
             let result = self.run(&store).await;
             store.shutdown().await;
             result
