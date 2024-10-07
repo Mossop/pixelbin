@@ -4,13 +4,14 @@ WORKDIR /build
 ENV SQLX_OFFLINE=true
 ENV CARGO_HOME=/cargo
 
-RUN apk add musl-dev && mkdir /build/packages /cargo
-RUN --mount=type=cache,target=/cargo/.crates.toml \
-    --mount=type=cache,target=/cargo/.crates2.json \
-    --mount=type=cache,target=/cargo/bin \
-    --mount=type=cache,target=/cargo/registry/index \
-    --mount=type=cache,target=/cargo/registry/cache \
-    --mount=type=cache,target=/cargo/git/db \
+RUN apk add musl-dev && \
+    mkdir /build/packages /cargo
+
+RUN --mount=type=cache,target=/cargo \
+    --mount=type=cache,target=/build/target \
+    du -sh $CARGO_HOME /build/target
+
+RUN --mount=type=cache,target=/cargo \
     --mount=type=cache,target=/build/target \
     --mount=type=bind,source=Cargo.toml,target=/build/Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=/build/Cargo.lock \
@@ -19,9 +20,12 @@ RUN --mount=type=cache,target=/cargo/.crates.toml \
     --mount=type=bind,source=packages/migrations,target=/build/packages/migrations \
     --mount=type=bind,source=packages/service,target=/build/packages/service \
     --mount=type=bind,source=packages/cli,target=/build/packages/cli \
-    du -sh $CARGO_HOME && \
     cargo build -p pixelbin_cli --locked --release && \
     cp /build/target/release/pixelbin /build/pixelbin
+
+RUN --mount=type=cache,target=/cargo \
+    --mount=type=cache,target=/build/target \
+    du -sh $CARGO_HOME /build/target
 
 FROM alpine:3.19
 

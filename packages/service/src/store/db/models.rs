@@ -3260,39 +3260,8 @@ impl AlternateFile {
         Ok(files)
     }
 
-    pub(crate) async fn mark_stored(&mut self, conn: &mut DbConnection<'_>) -> Result {
+    pub(crate) fn mark_stored(&mut self) {
         self.stored = Some(Utc::now());
-
-        *self = sqlx::query!(
-            r#"
-            UPDATE "alternate_file"
-            SET
-                "stored"=$1,
-                "file_size"=$2,
-                "width"=$3,
-                "height"=$4,
-                "mimetype"=$5,
-                "duration"=$6,
-                "frame_rate"=$7,
-                "bit_rate"=$8
-            WHERE "id"=$9
-            RETURNING *
-            "#,
-            self.stored,
-            self.file_size,
-            self.width,
-            self.height,
-            self.mimetype.to_string(),
-            self.duration,
-            self.frame_rate,
-            self.bit_rate,
-            self.id,
-        )
-        .try_map(|row| Ok(from_row!(AlternateFile(row))))
-        .fetch_one(conn)
-        .await?;
-
-        Ok(())
     }
 
     #[instrument(skip_all)]

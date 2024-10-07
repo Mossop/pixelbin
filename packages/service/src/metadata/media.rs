@@ -49,11 +49,10 @@ pub(crate) async fn resize_image(
         span!(
             Level::TRACE,
             "image resize",
-            "otel.name" = format!(
-                "image resize ({}x{} -> {width}x{height})",
-                source_image.width(),
-                source_image.height()
-            ),
+            "source_width" = source_image.width(),
+            "source_height" = source_image.height(),
+            "target_width" = width,
+            "target_height" = height,
         ),
         move || source_image.resize(width as u32, height as u32, FilterType::Lanczos3),
     )
@@ -71,11 +70,10 @@ pub(crate) async fn crop_image(
         span!(
             Level::TRACE,
             "image crop",
-            "otel.name" = format!(
-                "image crop ({}x{} -> {width}x{height})",
-                source_image.width(),
-                source_image.height()
-            ),
+            "source_width" = source_image.width(),
+            "source_height" = source_image.height(),
+            "target_width" = width,
+            "target_height" = height,
         ),
         move || source_image.crop_imm(x, y, width, height),
     )
@@ -173,10 +171,9 @@ pub(super) async fn encode_alternate_image(
         span!(
             Level::TRACE,
             "encode image",
-            "otel.name" = format!("encode image {mime} ({width}x{height})"),
             "mimetype" = mime.as_ref(),
-            "width" = width,
-            "height" = height,
+            "source_width" = width,
+            "source_height" = height,
         ),
         move || encode_image(&source_image, &image_mime, file_type, &image_path),
     )
@@ -194,7 +191,6 @@ pub(super) async fn encode_alternate_video(
         .instrument(span!(
             Level::TRACE,
             "encode video",
-            "otel.name" = format!("encode video {mime}"),
             "mimetype" = mime.as_ref(),
         ))
         .await
@@ -215,12 +211,7 @@ async fn load_video(file_path: &Path) -> Result<DynamicImage> {
     let mime = Mime::from_str(format.media_type())?;
 
     spawn_blocking(
-        span!(
-            Level::TRACE,
-            "load image",
-            "otel.name" = format!("load image {mime}"),
-            "mimetype" = mime.as_ref(),
-        ),
+        span!(Level::TRACE, "load image", "mimetype" = mime.as_ref(),),
         move || load_image(&temp_path),
     )
     .await
@@ -234,12 +225,7 @@ pub(crate) async fn load_source_image(file_path: &Path) -> Result<DynamicImage> 
         mime::IMAGE => {
             let image_path = file_path.to_owned();
             spawn_blocking(
-                span!(
-                    Level::TRACE,
-                    "load image",
-                    "otel.name" = format!("load image {mime}"),
-                    "mimetype" = mime.as_ref(),
-                ),
+                span!(Level::TRACE, "load image", "mimetype" = mime.as_ref(),),
                 move || load_image(&image_path),
             )
             .await
@@ -249,7 +235,6 @@ pub(crate) async fn load_source_image(file_path: &Path) -> Result<DynamicImage> 
                 .instrument(span!(
                     Level::TRACE,
                     "load video",
-                    "otel.name" = format!("load video {mime}"),
                     "mimetype" = mime.as_ref(),
                 ))
                 .await
@@ -287,12 +272,7 @@ pub(super) async fn load_data(
         mime::IMAGE => {
             let image_path = file_path.to_owned();
             let (width, height) = spawn_blocking(
-                span!(
-                    Level::TRACE,
-                    "image decode",
-                    "otel.name" = format!("image decode {mime}"),
-                    "mimetype" = mime.as_ref(),
-                ),
+                span!(Level::TRACE, "image decode", "mimetype" = mime.as_ref(),),
                 move || load_image_data(&image_path),
             )
             .await?;
@@ -303,7 +283,6 @@ pub(super) async fn load_data(
                 .instrument(span!(
                     Level::TRACE,
                     "video decode",
-                    "otel.name" = format!("video decode {mime}"),
                     "mimetype" = mime.as_ref(),
                 ))
                 .await?;

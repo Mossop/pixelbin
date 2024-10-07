@@ -98,7 +98,7 @@ pub(super) async fn upload_media_file(mut store: Store, media_file_id: &str) -> 
 
 #[instrument(skip(store, op_cache), err)]
 async fn build_alternate(
-    store: &mut Store,
+    store: &Store,
     op_cache: MediaFileOpCache,
     alternate_file: &mut models::AlternateFile,
 ) -> Result {
@@ -152,7 +152,9 @@ async fn build_alternate(
             .await?;
     }
 
-    alternate_file.mark_stored(store).await
+    alternate_file.mark_stored();
+
+    Ok(())
 }
 
 #[instrument(skip(store), err)]
@@ -180,31 +182,51 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
         extract_metadata(&store, op_cache.clone()).warn().await;
     }
 
+    let mut modified = Vec::<models::AlternateFile>::new();
+
     for mut alternate_file in
         models::AlternateFile::list_for_media_file(&mut store, &media_file_store.file).await?
     {
-        build_alternate(&mut store, op_cache.clone(), &mut alternate_file)
-            .warn()
-            .await;
+        if alternate_file.stored.is_none() {
+            build_alternate(&store, op_cache.clone(), &mut alternate_file)
+                .warn()
+                .await;
+            if alternate_file.stored.is_some() {
+                modified.push(alternate_file);
+            }
+        }
     }
 
     let mut conn = store.isolated(Isolation::Committed).await?;
+    if !modified.is_empty() {
+        models::AlternateFile::upsert(&mut conn, &modified).await?;
+    }
     models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog).await?;
     conn.commit().await?;
 
     // Now see if there is social media required.
     let mut worker_needed = false;
 
+    modified.clear();
+
     for mut alternate_file in
         models::AlternateFile::list_for_media_file(&mut store, &media_file_store.file).await?
     {
-        build_alternate(&mut store, op_cache.clone(), &mut alternate_file)
-            .warn()
-            .await;
-
         if alternate_file.stored.is_none() {
-            worker_needed = true;
+            build_alternate(&store, op_cache.clone(), &mut alternate_file)
+                .warn()
+                .await;
+
+            if alternate_file.stored.is_none() {
+                worker_needed = true;
+            } else {
+                modified.push(alternate_file);
+            }
         }
+    }
+
+    if !modified.is_empty() {
+        models::AlternateFile::upsert(&mut store, &modified).await?;
     }
 
     if worker_needed {
