@@ -199,6 +199,7 @@ impl RequestTracker {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn prune_blocks(self) -> Result {
         let mut conn: DbConnection<'_> = self.store.connect().await?;
 

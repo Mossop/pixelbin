@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, fmt::Display, result, time::Duration};
+use std::{collections::HashMap, env, fmt::Display, result};
 
 use actix_web::{
     body::BoxBody,
@@ -20,7 +20,11 @@ use serde::Serialize;
 use sqlx::postgres::PgPoolOptions;
 use tracing::{instrument, trace};
 
-use crate::{store::Store, task_queue::spawn_cron, Error, Result};
+use crate::{
+    store::{db::DbPool, Store},
+    task_queue::spawn_cron,
+    Error, Result,
+};
 
 mod auth;
 mod media;
@@ -212,24 +216,28 @@ async fn preflight(req: HttpRequest, app_state: web::Data<AppState>) -> HttpResp
     }
 }
 
-pub async fn serve(store: Store) -> Result {
+#[instrument(skip_all)]
+async fn init_server(store: &Store) -> Result<web::Data<AppState>> {
     // Use a dedicated pool for the web server so nothing else can starve it of
     // connections.
-    let pool = PgPoolOptions::new()
-        .min_connections(0)
-        .max_connections(5)
-        .acquire_timeout(Duration::from_secs(10))
-        .connect(&store.config().database_url)
-        .await?;
+    let pool = DbPool::from_options(
+        store.config(),
+        PgPoolOptions::new().min_connections(0).max_connections(5),
+    )
+    .await?;
 
     let state = AppState {
         store: store.with_pool(pool),
         request_tracker: middleware::RequestTracker::new(store.clone()).await,
     };
 
-    let app_data = web::Data::new(state);
-
     spawn_cron(store.clone());
+
+    Ok(web::Data::new(state))
+}
+
+pub async fn serve(store: Store) -> Result {
+    let app_data = init_server(&store).await?;
 
     trace!("Web service listening on port {}", store.config().api_port);
 

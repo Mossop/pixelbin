@@ -7,8 +7,11 @@ use std::{fmt, mem, time::Duration};
 
 use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
-use sqlx::{postgres::PgPoolOptions, Transaction};
-use tracing::{error, info, instrument, warn};
+use sqlx::{
+    pool::{PoolConnection, PoolConnectionMetadata, PoolOptions},
+    Result as SqlxResult, Transaction,
+};
+use tracing::{error, info, instrument, trace, warn, Span};
 
 use crate::{
     store::{db::internal::Connection, locks::Locks, StoreInner},
@@ -17,7 +20,6 @@ use crate::{
 };
 
 pub(crate) type SqlxDatabase = sqlx::Postgres;
-pub(crate) type SqlxPool = sqlx::Pool<SqlxDatabase>;
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -36,21 +38,91 @@ pub enum Isolation {
     ReadOnly,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct DbPool {
+    pool: sqlx::Pool<SqlxDatabase>,
+}
+
+impl DbPool {
+    pub(crate) async fn connect(config: &Config, store_type: StoreType) -> SqlxResult<Self> {
+        let (min_connections, max_connections) = match store_type {
+            StoreType::Cli => (0, 10),
+            StoreType::Server => (0, 2),
+            StoreType::Worker => (0, 2),
+        };
+
+        Self::from_options(
+            config,
+            PoolOptions::<SqlxDatabase>::new()
+                .min_connections(min_connections)
+                .max_connections(max_connections),
+        )
+        .await
+    }
+
+    async fn after_connect(meta: PoolConnectionMetadata) -> SqlxResult<()> {
+        let span = Span::current();
+        if span.has_field("connection") {
+            span.record("connection", "new");
+            span.record("connection_idle_ms", meta.idle_for.as_millis());
+            span.record("connection_age_ms", meta.age.as_millis());
+        } else {
+            trace!(
+                connection_idle_ms = meta.idle_for.as_millis(),
+                connection_age_ms = meta.age.as_millis(),
+                "Established new connection"
+            );
+        }
+
+        Ok(())
+    }
+
+    async fn before_acquire(meta: PoolConnectionMetadata) -> SqlxResult<bool> {
+        let span = Span::current();
+        if span.has_field("connection") {
+            span.record("connection", "idle");
+            span.record("connection_idle_ms", meta.idle_for.as_millis());
+            span.record("connection_age_ms", meta.age.as_millis());
+        } else {
+            trace!(
+                connection_idle_ms = meta.idle_for.as_millis(),
+                connection_age_ms = meta.age.as_millis(),
+                "Re-using idle connection"
+            );
+        }
+
+        Ok(true)
+    }
+
+    pub(crate) async fn from_options(
+        config: &Config,
+        options: PoolOptions<SqlxDatabase>,
+    ) -> SqlxResult<Self> {
+        let pool = options
+            .acquire_timeout(Duration::from_secs(60 * 5))
+            .after_connect(|_conn, meta| Box::pin(Self::after_connect(meta)))
+            .before_acquire(|_conn, meta| Box::pin(Self::before_acquire(meta)))
+            .connect(&config.database_url)
+            .await?;
+
+        Ok(Self { pool })
+    }
+
+    #[instrument(skip_all, fields(connection, connection_idle_ms, connection_age_ms))]
+    pub(crate) async fn acquire(&self) -> SqlxResult<PoolConnection<SqlxDatabase>> {
+        self.pool.acquire().await
+    }
+
+    #[instrument(skip_all, fields(connection, connection_idle_ms, connection_age_ms))]
+    pub(crate) async fn begin(&self) -> SqlxResult<Transaction<'static, SqlxDatabase>> {
+        self.pool.begin().await
+    }
+}
+
 #[instrument(err, skip_all)]
 pub(crate) async fn connect(config: &Config, store_type: StoreType) -> Result<Store> {
-    let (min_connections, max_connections) = match store_type {
-        StoreType::Cli => (0, 10),
-        StoreType::Server => (0, 2),
-        StoreType::Worker => (0, 2),
-    };
-
     // Set up the async pool.
-    let pool = PgPoolOptions::new()
-        .min_connections(min_connections)
-        .max_connections(max_connections)
-        .acquire_timeout(Duration::from_secs(60 * 5))
-        .connect(&config.database_url)
-        .await?;
+    let pool = DbPool::connect(config, store_type).await?;
 
     {
         // Connect to perform migrations.

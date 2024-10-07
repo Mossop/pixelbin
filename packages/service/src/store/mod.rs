@@ -15,7 +15,7 @@ pub(crate) use db::models;
 use db::{connect, DbConnection};
 
 use crate::{
-    store::{db::SqlxPool, locks::Locks},
+    store::{db::DbPool, locks::Locks},
     worker::{Command, WorkerHost},
     Config, Isolation, Result, Task, TaskQueue,
 };
@@ -32,7 +32,7 @@ pub enum StoreType {
 struct StoreInner {
     store_type: StoreType,
     config: Config,
-    pool: SqlxPool,
+    pool: DbPool,
     task_queue: TaskQueue,
     workers: WorkerHost,
     locks: Locks,
@@ -69,7 +69,7 @@ impl Store {
         self.inner.store_type
     }
 
-    pub(crate) fn with_pool(&self, pool: SqlxPool) -> Self {
+    pub(crate) fn with_pool(&self, pool: DbPool) -> Self {
         StoreInner {
             store_type: self.inner.store_type,
             pool,

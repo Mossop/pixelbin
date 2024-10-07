@@ -20,7 +20,7 @@ use tracing::{field, span, Instrument, Level, Span};
 use super::{DbConnection, SqlxDatabase};
 use crate::{
     shared::{record_error, DEFAULT_STATUS},
-    store::db::SqlxPool,
+    store::db::DbPool,
     Isolation, Store,
 };
 
@@ -30,9 +30,20 @@ type SqlxResult<T> = sqlx::Result<T>;
 pub(super) enum Connection<'c> {
     #[default]
     None,
-    Pool(SqlxPool),
+    Pool(DbPool),
     Connected(PoolConnection<SqlxDatabase>),
     Transaction((Isolation, Transaction<'c, SqlxDatabase>)),
+}
+
+impl<'c> Connection<'c> {
+    fn connection_type(&self) -> String {
+        match self {
+            Connection::None => "none".to_owned(),
+            Connection::Pool(_) => "pool".to_owned(),
+            Connection::Connected(_) => "owned".to_owned(),
+            Connection::Transaction(_) => "isolated".to_owned(),
+        }
+    }
 }
 
 struct TryAsyncStream<'a, T> {
@@ -296,6 +307,7 @@ where
             "operation" = "fetch_many",
             "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,
+            "connection" = self.connection_type(),
         );
 
         let _entered = span.clone().entered();
@@ -346,6 +358,7 @@ where
             "operation" = "fetch_optional",
             "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,
+            "connection" = self.connection_type(),
         );
 
         let _entered = span.clone().entered();
@@ -386,6 +399,7 @@ where
             "operation" = "prepare_with",
             "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,
+            "connection" = self.connection_type(),
         );
 
         let _entered = span.clone().entered();
@@ -425,6 +439,7 @@ where
             "operation" = "describe",
             "otel.status_code" = DEFAULT_STATUS,
             "otel.status_description" = field::Empty,
+            "connection" = self.connection_type(),
         );
 
         let _entered = span.clone().entered();
