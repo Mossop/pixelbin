@@ -47,8 +47,8 @@ impl DbPool {
     pub(crate) async fn connect(config: &Config, store_type: StoreType) -> SqlxResult<Self> {
         let (min_connections, max_connections) = match store_type {
             StoreType::Cli => (0, 10),
-            StoreType::Server => (0, 2),
-            StoreType::Worker => (0, 2),
+            StoreType::Server => (0, 5),
+            StoreType::Worker => (0, 5),
         };
 
         Self::from_options(
@@ -151,8 +151,8 @@ pub(crate) async fn connect(config: &Config, store_type: StoreType) -> Result<St
     .into();
 
     match store_type {
-        StoreType::Server => task_queue.spawn(store.clone(), 2),
-        StoreType::Worker => task_queue.spawn(store.clone(), 1),
+        StoreType::Server => task_queue.spawn(store.clone(), 4),
+        StoreType::Worker => task_queue.spawn(store.clone(), 2),
         _ => {}
     }
 
