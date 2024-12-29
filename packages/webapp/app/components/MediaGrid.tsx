@@ -176,26 +176,6 @@ const MediaItem = memo(function MediaItem({ media }: { media: MediaView }) {
 
 const MediaGroup = memo(function MediaGroup({ group }: { group: Group }) {
   let element = useRef(null);
-  let [visible, setVisible] = useState(false);
-  let observer = useContext(VisibilityContext);
-
-  useEffect(() => {
-    let el = element.current;
-
-    if (el) {
-      observer?.observe(el, (isVisible) => {
-        if (isVisible) {
-          setVisible(true);
-        }
-      });
-    }
-
-    return () => {
-      if (el) {
-        observer?.unobserve(el);
-      }
-    };
-  }, [observer]);
 
   return (
     <section className="c-mediagroup" ref={element}>
@@ -203,7 +183,9 @@ const MediaGroup = memo(function MediaGroup({ group }: { group: Group }) {
         <h2>{group.title}</h2>
       </div>
       <div className="grid">
-        {visible && group.media.map((m) => <MediaItem key={m.id} media={m} />)}
+        {group.media.map((m) => (
+          <MediaItem key={m.id} media={m} />
+        ))}
       </div>
     </section>
   );

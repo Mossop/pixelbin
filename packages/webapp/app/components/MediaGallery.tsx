@@ -153,14 +153,14 @@ function fetchMedia(
   setContext: Dispatch<GroupContext>,
 ): () => void {
   let aborter = new AbortController();
+  let grouper = new TakenGrouper();
+  setContext(grouper.context);
 
   requestStream(aborter.signal)
     .then(async (response) => {
       if (!response.ok || !response.body) {
         return;
       }
-
-      let grouper = new TakenGrouper();
 
       let jsonStream = new NdjsonStream<
         { media: ApiMediaView[] } | { error: string }
@@ -199,19 +199,21 @@ function fetchMedia(
   };
 }
 
-export default function MediaGallery({
-  children,
-  type,
-  requestStream,
-  url,
-  getMediaUrl,
-}: {
+interface MediaGalleryProps {
   children: React.ReactNode;
   type: GalleryType;
   requestStream: (signal: AbortSignal) => Promise<Response>;
   url: string;
   getMediaUrl?: (id: string) => string;
-}) {
+}
+
+function InnerMediaGallery({
+  children,
+  type,
+  requestStream,
+  url,
+  getMediaUrl,
+}: MediaGalleryProps) {
   let [context, setContext] = useState<GroupContext>({
     media: [],
     groups: [],
@@ -228,4 +230,8 @@ export default function MediaGallery({
       {children}
     </GalleryContext.Provider>
   );
+}
+
+export default function MediaGallery({ url, ...props }: MediaGalleryProps) {
+  return <InnerMediaGallery key={url} url={url} {...props} />;
 }
