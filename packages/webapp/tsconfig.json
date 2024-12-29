@@ -8,7 +8,8 @@
       "modules/*": ["./modules/*"],
       "styles/*": ["./styles/*"]
     },
+    "rootDirs": [".", "./.react-router/types"],
   },
 
-  "include": ["**/*", ".*"],
+  "include": ["**/*", ".*", ".react-router/types/**/*"],
 }

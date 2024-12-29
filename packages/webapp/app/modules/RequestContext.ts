@@ -1,8 +1,8 @@
 import {
   AppLoadContext,
   createCookieSessionStorage,
-  Session as RemixSession,
-} from "@remix-run/node";
+  Session as RouterSession,
+} from "react-router";
 import { Request as ExpressRequest } from "express";
 
 interface SessionData {
@@ -32,7 +32,7 @@ export class RequestContext {
   private constructor(
     public readonly request: Request,
     private readonly appContext: AppLoadContext,
-    private readonly inner: RemixSession<SessionData>,
+    private readonly inner: RouterSession<SessionData>,
   ) {}
 
   public get expressRequest(): ExpressRequest {

@@ -1,4 +1,4 @@
-import { useFetcher, useNavigate } from "@remix-run/react";
+import { useFetcher, useNavigate } from "react-router";
 import { useCallback, useMemo, useState } from "react";
 import { SlTooltip } from "shoelace-react";
 

@@ -1,10 +1,3 @@
-import {
-  ActionFunction,
-  ActionFunctionArgs,
-  LoaderFunction,
-  LoaderFunctionArgs,
-} from "@remix-run/node";
-
 import { ResponseError } from "./api";
 
 function fixError(e: unknown): unknown {
@@ -22,8 +15,10 @@ function fixError(e: unknown): unknown {
   });
 }
 
-export function safeAction(action: ActionFunction): ActionFunction {
-  return async (args: ActionFunctionArgs) => {
+export function safeAction<R, A>(
+  action: (args: A) => Promise<R>,
+): (args: A) => Promise<R> {
+  return async (args: A) => {
     try {
       return await action(args);
     } catch (e) {
@@ -32,8 +27,10 @@ export function safeAction(action: ActionFunction): ActionFunction {
   };
 }
 
-export function safeLoader(loader: LoaderFunction): LoaderFunction {
-  return async (args: LoaderFunctionArgs) => {
+export function safeLoader<R, A>(
+  loader: (args: A) => Promise<R>,
+): (args: A) => Promise<R> {
+  return async (args: A) => {
     try {
       return await loader(args);
     } catch (e) {

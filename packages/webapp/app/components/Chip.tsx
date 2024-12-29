@@ -1,4 +1,4 @@
-import { Link } from "@remix-run/react";
+import { Link } from "react-router";
 import { SlTag, SlTagProps } from "shoelace-react";
 
 import Icon, { IconName } from "./Icon";

@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
+import { LoaderFunctionArgs } from "react-router";
 
 import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";

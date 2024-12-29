@@ -1,6 +1,10 @@
 import base from "@mossop/config/remix/eslint";
 
 export default [
+  {
+    ignores: [".react-router/*"],
+  },
+
   ...base,
   {
     languageOptions: {

@@ -18,7 +18,7 @@ import {
   ATTR_OTEL_STATUS_CODE,
   ATTR_CLIENT_ADDRESS,
 } from "@opentelemetry/semantic-conventions";
-import { createRequestHandler } from "@remix-run/express";
+import { createRequestHandler } from "@react-router/express";
 import dotenv from "dotenv";
 import express from "express";
 
@@ -46,7 +46,7 @@ function initTelemetry() {
 
 /**
  * @param {express.Request} request
- * @returns {import("@remix-run/node").AppLoadContext}
+ * @returns {import("react-router").AppLoadContext}
  */
 function getLoadContext(expressRequest) {
   return { expressRequest };
@@ -86,7 +86,8 @@ async function initServer() {
     app.use(viteDevServer.middlewares);
 
     requestHandler = createRequestHandler({
-      build: () => viteDevServer.ssrLoadModule("virtual:remix/server-build"),
+      build: () =>
+        viteDevServer.ssrLoadModule("virtual:react-router/server-build"),
 
       getLoadContext,
     });

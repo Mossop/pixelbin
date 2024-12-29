@@ -1,4 +1,4 @@
-import { Location, useLocation } from "@remix-run/react";
+import { Location, useLocation } from "react-router";
 import { inSpan } from "modules/telemetry.mjs";
 
 import { IconList, IconListItem } from "./IconList";

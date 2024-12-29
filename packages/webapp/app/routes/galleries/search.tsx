@@ -1,10 +1,4 @@
-import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
-import {
-  Outlet,
-  useLoaderData,
-  useLocation,
-  useNavigate,
-} from "@remix-run/react";
+import { Outlet, useLoaderData, useLocation, useNavigate } from "react-router";
 import { FormEvent, useCallback, useMemo, useState } from "react";
 
 import { HeaderButtons } from "@/components/AppBar";
@@ -21,6 +15,8 @@ import TextField from "@/components/TextField";
 import Button from "@/components/Button";
 import { showToast } from "@/modules/toast";
 import { useServerConfig, useServerState } from "@/modules/hooks";
+
+import type { Route } from "./+types/search";
 
 function SubscribeButton({ search }: { search: SavedSearch }) {
   let [dialogShown, setDialogShown] = useState(false);
@@ -140,19 +136,16 @@ export async function loader({
   request,
   context,
   params: { id },
-}: LoaderFunctionArgs) {
+}: Route.LoaderArgs) {
   let session = await getRequestContext(request, context);
-  let search = await getSearch(session, id!);
+  let search = await getSearch(session, id);
 
-  return json({ title: search.name, search });
+  return { title: search.name, search };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  if (data) {
-    return [{ title: data.title }];
-  }
-  return [];
-};
+export function meta({ data }: Route.MetaArgs) {
+  return [{ title: data.title }];
+}
 
 export default function SearchLayout() {
   let { search } = useLoaderData<typeof loader>();

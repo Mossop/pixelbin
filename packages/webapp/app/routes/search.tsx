@@ -1,5 +1,4 @@
-import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
-import { Outlet, useLoaderData, useSearchParams } from "@remix-run/react";
+import { Outlet, useLoaderData, useSearchParams } from "react-router";
 import { useCallback, useMemo } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
@@ -11,23 +10,22 @@ import { SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 import { useHistoryState } from "@/modules/hooks";
 
+import type { Route } from "./+types/search";
+
 export async function loader({
   request,
   context,
   params: { id },
-}: LoaderFunctionArgs) {
+}: Route.LoaderArgs) {
   let session = await getRequestContext(request, context);
-  let catalog = await getCatalog(session, id!);
+  let catalog = await getCatalog(session, id);
 
-  return json({ title: catalog.name, catalog });
+  return { title: catalog.name, catalog };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  if (data) {
-    return [{ title: `Search in ${data.title}` }];
-  }
-  return [];
-};
+export function meta({ data }: Route.MetaArgs) {
+  return [{ title: `Search in ${data.title}` }];
+}
 
 export default function Search() {
   let { catalog } = useLoaderData<typeof loader>();

@@ -1,5 +1,4 @@
-import { LoaderFunctionArgs, MetaFunction, json } from "@remix-run/node";
-import { Outlet, useLoaderData } from "@remix-run/react";
+import { Outlet, useLoaderData } from "react-router";
 import { useCallback, useMemo } from "react";
 
 import { HeaderButtons } from "@/components/AppBar";
@@ -11,23 +10,25 @@ import { getAlbum } from "@/modules/api";
 import { AlbumField, SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 
+import { Route } from "./+types/album";
+
 export async function loader({
   request,
   context,
   params: { id },
-}: LoaderFunctionArgs) {
+}: Route.LoaderArgs) {
   let session = await getRequestContext(request, context);
-  let album = await getAlbum(session, id!);
+  let album = await getAlbum(session, id);
 
-  return json({ title: album.name, album });
+  return { title: album.name, album };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
+export function meta({ data }: Route.MetaArgs) {
   if (data) {
     return [{ title: data.title }];
   }
   return [];
-};
+}
 
 export default function AlbumLayout() {
   let { album } = useLoaderData<typeof loader>();

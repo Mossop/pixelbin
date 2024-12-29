@@ -1,5 +1,5 @@
 import { HistoryState } from "@/modules/types";
-import { useNavigate } from "@remix-run/react";
+import { useNavigate } from "react-router";
 import clsx from "clsx";
 import { useCallback } from "react";
 import { SlIcon, SlIconButton, SlIconButtonProps } from "shoelace-react";

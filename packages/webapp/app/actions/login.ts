@@ -1,11 +1,11 @@
-import { ActionFunctionArgs, json } from "@remix-run/node";
-
 import { getRequestContext } from "@/modules/RequestContext";
 import { safeAction } from "@/modules/actions";
 import { login } from "@/modules/api";
 
+import type { Route } from "./+types/login";
+
 export const action = safeAction(
-  async ({ request, context }: ActionFunctionArgs) => {
+  async ({ request, context }: Route.ActionArgs) => {
     let requestContext = await getRequestContext(request, context);
     let formData = await request.formData();
     let email = String(formData.get("email"));
@@ -13,7 +13,7 @@ export const action = safeAction(
 
     await login(requestContext, email, password);
 
-    return json(
+    return Response.json(
       {},
       {
         headers: {

@@ -1,9 +1,8 @@
-import { useLocation, useRouteLoaderData } from "@remix-run/react";
+import { useLocation, useRouteLoaderData } from "react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiConfig } from "./api";
 import { Catalog, HistoryState, State } from "./types";
-import { SerializeFrom } from "@remix-run/node";
 
 export interface RootData {
   serverConfig: ApiConfig;
@@ -244,7 +243,7 @@ export function useFullscreen(): FullscreenProps {
   );
 }
 
-function useRootLoaderData(): SerializeFrom<RootData> {
+function useRootLoaderData(): RootData {
   return useRouteLoaderData("root")!;
 }
 

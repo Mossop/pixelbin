@@ -1,4 +1,4 @@
-import { ActionFunctionArgs, redirect } from "@remix-run/node";
+import { ActionFunctionArgs, redirect } from "react-router";
 
 import { safeLoader } from "@/modules/actions";
 import { verifySubscription } from "@/modules/api";

@@ -1,9 +1,4 @@
-import {
-  LinksFunction,
-  LoaderFunctionArgs,
-  TypedResponse,
-  json,
-} from "@remix-run/node";
+import { LinksFunction } from "react-router";
 import {
   Links,
   Meta,
@@ -12,7 +7,7 @@ import {
   ScrollRestoration,
   isRouteErrorResponse,
   useRouteError,
-} from "@remix-run/react";
+} from "react-router";
 
 import AppBar from "./components/AppBar";
 import CastManager from "./components/CastManager";
@@ -25,6 +20,8 @@ import "styles/main.scss";
 import { PortalContext } from "./components/Portal";
 import { RootData } from "./modules/hooks";
 
+import type { Route } from "./+types/root";
+
 export const links: LinksFunction = () => [
   {
     rel: "shortcut icon",
@@ -36,12 +33,12 @@ export const links: LinksFunction = () => [
 export async function loader({
   request,
   context,
-}: LoaderFunctionArgs): Promise<TypedResponse<RootData>> {
+}: Route.LoaderArgs): Promise<RootData> {
   let session = await getRequestContext(request, context);
   let serverConfig = await config(session);
   let serverState = await state(session);
 
-  return json({ serverState, serverConfig });
+  return { serverState, serverConfig };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {

@@ -1,11 +1,11 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
-
 import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";
 import { ApiConfig, apiResponse, forwardedRequest } from "@/modules/api";
 
+import type { Route } from "./+types/config";
+
 export const loader = safeLoader(
-  async ({ request, context }: LoaderFunctionArgs) => {
+  async ({ request, context }: Route.LoaderArgs) => {
     let requestContext = await getRequestContext(request, context);
     let response = await apiResponse(
       "/api/config",
