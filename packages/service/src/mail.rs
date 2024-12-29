@@ -74,7 +74,7 @@ pub(crate) struct SubscriptionRequest<'a> {
     pub(crate) token: &'a str,
 }
 
-impl<'a> MessageTemplate for SubscriptionRequest<'a> {
+impl MessageTemplate for SubscriptionRequest<'_> {
     fn address(&self) -> String {
         self.email.to_owned()
     }
@@ -95,7 +95,7 @@ pub(crate) struct Subscribed<'a> {
     pub(crate) email: &'a str,
 }
 
-impl<'a> MessageTemplate for Subscribed<'a> {
+impl MessageTemplate for Subscribed<'_> {
     fn address(&self) -> String {
         self.email.to_owned()
     }
@@ -117,7 +117,7 @@ pub(crate) struct SavedSearchUpdate<'a> {
     pub(crate) media: Vec<&'a Media>,
 }
 
-impl<'a> MessageTemplate for SavedSearchUpdate<'a> {
+impl MessageTemplate for SavedSearchUpdate<'_> {
     fn address(&self) -> String {
         self.email.to_owned()
     }

@@ -35,7 +35,7 @@ pub(super) enum Connection<'c> {
     Transaction((Isolation, Transaction<'c, SqlxDatabase>)),
 }
 
-impl<'c> Connection<'c> {
+impl Connection<'_> {
     fn connection_type(&self) -> String {
         match self {
             Connection::None => "none".to_owned(),
@@ -125,7 +125,7 @@ impl<T> Yielder<T> {
     }
 }
 
-impl<'a, T> Stream for TryAsyncStream<'a, T> {
+impl<T> Stream for TryAsyncStream<'_, T> {
     type Item = Result<T, SqlxError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -218,7 +218,7 @@ trait InstrumentationRecorder {
 
 impl InstrumentationRecorder for SqlxResult<sqlx::Describe<SqlxDatabase>> {}
 
-impl<'q> InstrumentationRecorder for SqlxResult<PgStatement<'q>> {}
+impl InstrumentationRecorder for SqlxResult<PgStatement<'_>> {}
 
 impl InstrumentationRecorder for SqlxResult<Option<PgRow>> {
     fn record(&self, span: &Span) {
@@ -465,7 +465,7 @@ where
     }
 }
 
-impl<'c, 'conn> Executor<'c> for &'c mut DbConnection<'conn> {
+impl<'c> Executor<'c> for &'c mut DbConnection<'_> {
     type Database = SqlxDatabase;
 
     fn fetch_many<'e, 'q, E>(

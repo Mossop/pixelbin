@@ -245,7 +245,7 @@ pub struct DbConnection<'conn> {
     connection: Connection<'conn>,
 }
 
-impl<'conn> fmt::Debug for DbConnection<'conn> {
+impl fmt::Debug for DbConnection<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DbConnection")
             .field("config", &self.config())
@@ -271,7 +271,7 @@ impl DbConnection<'static> {
     }
 }
 
-impl<'conn> Drop for DbConnection<'conn> {
+impl Drop for DbConnection<'_> {
     fn drop(&mut self) {
         if matches!(self.connection, Connection::Transaction(_)) {
             warn!("Dropping connection in the middle of a transaction. Transation will rollback");

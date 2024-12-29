@@ -364,7 +364,7 @@ struct TextMapExtractor<'a> {
     headers: &'a HeaderMap,
 }
 
-impl<'a> Extractor for TextMapExtractor<'a> {
+impl Extractor for TextMapExtractor<'_> {
     fn get(&self, key: &str) -> Option<&str> {
         self.headers.get(key).and_then(|v| v.to_str().ok())
     }
