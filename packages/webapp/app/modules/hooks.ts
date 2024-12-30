@@ -21,7 +21,7 @@ export function useTimeout(
   let [target, setTarget] = useState(() =>
     initialTrigger ? Date.now() + timeout : null,
   );
-  let timerRef = useRef<NodeJS.Timeout>();
+  let timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     if (target) {
