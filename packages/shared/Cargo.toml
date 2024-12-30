@@ -12,5 +12,5 @@ mime = { version = "0.3.17", default-features = false }
 serde = { version = "1.0.210", default-features = false }
 serde_json = { version = "1.0.128", default-features = false }
 sqlx = { version = "0.8.2", default-features = false }
-thiserror = { version = "1.0.63", default-features = false }
+thiserror = { version = "2.0.9", default-features = false }
 tracing = { version = "0.1.40", default-features = false }

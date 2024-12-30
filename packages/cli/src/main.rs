@@ -10,11 +10,9 @@ use clap::{Args, Parser, Subcommand};
 use dotenvy::dotenv;
 use enum_dispatch::enum_dispatch;
 use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
-use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_otlp::{Protocol, SpanExporter, WithExportConfig};
 use opentelemetry_sdk::{
-    propagation::TraceContextPropagator,
-    trace::{self, TracerProvider},
-    Resource,
+    propagation::TraceContextPropagator, runtime, trace::TracerProvider, Resource,
 };
 use pixelbin::{
     send_test_message, server::serve, worker::worker, Config, Result, Store, StoreStats, StoreType,
@@ -307,19 +305,21 @@ fn init_logging(telemetry: Option<&str>) -> result::Result<Option<TracerProvider
     if let Some(telemetry_host) = telemetry {
         global::set_text_map_propagator(TraceContextPropagator::new());
 
-        let tracer_provider = opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_exporter(
-                opentelemetry_otlp::new_exporter()
-                    .http()
-                    .with_protocol(opentelemetry_otlp::Protocol::HttpBinary)
+        let tracer_provider = TracerProvider::builder()
+            .with_batch_exporter(
+                SpanExporter::builder()
+                    .with_http()
+                    .with_protocol(Protocol::HttpBinary)
                     .with_endpoint(telemetry_host)
-                    .with_timeout(Duration::from_secs(3)),
+                    .with_timeout(Duration::from_secs(3))
+                    .build()?,
+                runtime::Tokio,
             )
-            .with_trace_config(trace::Config::default().with_resource(Resource::new(vec![
-                KeyValue::new("service.name", "pixelbin-api"),
-            ])))
-            .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+            .with_resource(Resource::new(vec![KeyValue::new(
+                "service.name",
+                "pixelbin-api",
+            )]))
+            .build();
 
         let tracer = tracer_provider.tracer("pixelbin-api");
 
