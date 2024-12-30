@@ -1,11 +1,13 @@
-import { LoaderFunctionArgs, redirect } from "react-router";
+import { redirect } from "react-router";
 
 import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";
 import { ApiRequest, apiResponse, forwardedRequest, GET } from "@/modules/api";
 
+import { Route } from "./+types/media";
+
 export const loader = safeLoader(
-  async ({ request, context, params }: LoaderFunctionArgs) => {
+  async ({ request, context, params }: Route.LoaderArgs) => {
     let requestContext = await getRequestContext(request, context);
     let init: ApiRequest = GET();
     init.redirect = "manual";

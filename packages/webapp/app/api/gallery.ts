@@ -1,16 +1,16 @@
-import { LoaderFunctionArgs } from "react-router";
-
 import { getRequestContext } from "@/modules/RequestContext";
 import { safeLoader } from "@/modules/actions";
 import { isMediaSource, listMedia, searchMedia } from "@/modules/api";
 import { SearchQuery } from "@/modules/types";
+
+import { Route } from "./+types/gallery";
 
 export const loader = safeLoader(
   async ({
     request,
     context,
     params: { container, id, type },
-  }: LoaderFunctionArgs) => {
+  }: Route.LoaderArgs) => {
     if (!isMediaSource(container)) {
       throw new Error(`Unknown container: ${container}`);
     }
@@ -18,7 +18,7 @@ export const loader = safeLoader(
     let requestContext = await getRequestContext(request, context);
 
     if (type == "media") {
-      return listMedia(requestContext, container, id!);
+      return listMedia(requestContext, container, id);
     }
 
     if (type == "search") {
@@ -29,7 +29,7 @@ export const loader = safeLoader(
       }
 
       let query = JSON.parse(param) as unknown as SearchQuery;
-      return searchMedia(requestContext, id!, query);
+      return searchMedia(requestContext, id, query);
     }
 
     throw new Error(`Unknown lookup type: ${type}`);

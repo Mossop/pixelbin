@@ -150,9 +150,9 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
       event.preventDefault();
 
       if (fromGallery) {
-        navigate(-1);
+        void navigate(-1);
       } else {
-        navigate(gallery, { replace: true });
+        void navigate(gallery, { replace: true });
       }
     },
     [navigate, gallery, fromGallery],
@@ -173,7 +173,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
       !displayingMedia.public &&
       displayingMedia.access == "writableCatalog"
     ) {
-      fetcher.submit(
+      void fetcher.submit(
         { id: displayingMedia.id },
         {
           action: "/markPublic",

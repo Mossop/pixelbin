@@ -176,7 +176,7 @@ export default function SearchLayout() {
   let setQuery = useCallback(
     (query: SearchQuery) => {
       let params = new URLSearchParams({ q: JSON.stringify(query) });
-      navigate(`${url(["catalog", search.catalog, "search"])}?${params}`, {
+      void navigate(`${url(["catalog", search.catalog, "search"])}?${params}`, {
         state: { expandSearchBar: true },
       });
     },

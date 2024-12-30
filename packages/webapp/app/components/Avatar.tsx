@@ -29,7 +29,7 @@ function Login() {
       return;
     }
 
-    fetcher.submit(
+    void fetcher.submit(
       { email, password },
       {
         action: "/login",
@@ -105,7 +105,7 @@ function Menu({ email }: { email: string }) {
   let fetcher = useFetcher();
 
   let performLogout = useCallback(() => {
-    fetcher.submit(null, {
+    void fetcher.submit(null, {
       action: "/logout",
       method: "POST",
     });

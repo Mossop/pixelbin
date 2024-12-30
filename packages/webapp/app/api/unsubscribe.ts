@@ -1,11 +1,13 @@
-import { ActionFunctionArgs, redirect } from "react-router";
+import { redirect } from "react-router";
 
 import { safeLoader } from "@/modules/actions";
 import { cancelSubscription } from "@/modules/api";
 import { getRequestContext } from "@/modules/RequestContext";
 
+import { Route } from "./+types/unsubscribe";
+
 export const loader = safeLoader(
-  async ({ request, context }: ActionFunctionArgs) => {
+  async ({ request, context }: Route.LoaderArgs) => {
     let requestContext = await getRequestContext(request, context);
 
     let url = new URL(request.url);

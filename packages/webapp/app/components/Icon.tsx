@@ -93,7 +93,7 @@ export function IconLink({
       if (state || replace) {
         event.preventDefault();
 
-        navigate(to, {
+        void navigate(to, {
           replace,
           state,
         });

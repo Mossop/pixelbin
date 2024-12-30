@@ -15,6 +15,21 @@ function fixError(e: unknown): unknown {
   });
 }
 
+export function getFormString(formData: FormData, key: string): string {
+  let value = formData.get(key);
+
+  if (typeof value == "string") {
+    return value;
+  }
+
+  throw new ResponseError(
+    new Response(`Missing expected parameter: ${key}`, {
+      status: 400,
+      statusText: "Bad Request",
+    }),
+  );
+}
+
 export function safeAction<R, A>(
   action: (args: A) => Promise<R>,
 ): (args: A) => Promise<R> {
