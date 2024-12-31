@@ -50,11 +50,11 @@ class MediaContext extends BaseContext {
   }
 
   updateVideoState(
-    media: MediaRelations,
+    media: MediaView,
     state: VideoState,
     element: HTMLVideoElement,
   ) {
-    if (media !== this.currentMedia) {
+    if (media?.id !== this.currentMedia?.id) {
       return;
     }
 

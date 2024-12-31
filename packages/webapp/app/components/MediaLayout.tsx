@@ -20,7 +20,6 @@ import {
 import MediaInfo from "./MediaInfo";
 import Overlay from "./Overlay";
 import SlidePanel from "./SlidePanel";
-import Throbber from "./Throbber";
 import { useFullscreen, useHistoryState } from "@/modules/hooks";
 import { AlternateFileType, MediaRelations, MediaView } from "@/modules/types";
 import { formatTime, mediaDate, mediaTitle, url } from "@/modules/util";
@@ -72,35 +71,16 @@ export function mediaMeta(
 }
 
 function GalleryNavigation({
-  media,
+  previousMedia,
+  nextMedia,
   children,
 }: {
-  media: MediaView;
+  previousMedia: MediaView | null;
+  nextMedia: MediaView | null;
   children: React.ReactNode;
 }) {
-  let gallery = useGalleryMedia();
   let fromGallery = !!useHistoryState()?.fromGallery;
   let getMediaUrl = useGetMediaUrl();
-
-  let mediaUrl = useCallback(
-    (newMedia: MediaView | undefined) =>
-      newMedia ? getMediaUrl(newMedia.id) : undefined,
-    [getMediaUrl],
-  );
-
-  let [previousMedia, nextMedia] = useMemo((): [
-    string | undefined,
-    string | undefined,
-  ] => {
-    if (gallery) {
-      let index = gallery.findIndex((m) => m.id == media.id) ?? -1;
-      if (index >= 0) {
-        return [mediaUrl(gallery[index - 1]), mediaUrl(gallery[index + 1])];
-      }
-    }
-
-    return [undefined, undefined];
-  }, [media.id, mediaUrl, gallery]);
 
   return (
     <div className="navbar">
@@ -109,7 +89,7 @@ function GalleryNavigation({
           {previousMedia && (
             <IconLink
               icon="previous"
-              to={previousMedia}
+              to={getMediaUrl(previousMedia.id)}
               replace
               state={{ fromGallery }}
             />
@@ -120,7 +100,7 @@ function GalleryNavigation({
           {nextMedia && (
             <IconLink
               icon="next"
-              to={nextMedia}
+              to={getMediaUrl(nextMedia.id)}
               replace
               state={{ fromGallery }}
             />
@@ -169,6 +149,23 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
   let galleryType = useGalleryType();
   let displayingMedia = currentMedia ?? media;
   let fetcher = useFetcher();
+  let galleryMedia = useGalleryMedia();
+
+  let { previousMedia, nextMedia } = useMemo(() => {
+    if (!galleryMedia) {
+      return { previousMedia: null, nextMedia: null };
+    }
+
+    let mediaIndex = galleryMedia.findIndex((m) => m.id === displayingMedia.id);
+    if (mediaIndex < 0) {
+      return { previousMedia: null, nextMedia: null };
+    }
+
+    return {
+      previousMedia: galleryMedia[mediaIndex - 1] ?? null,
+      nextMedia: galleryMedia[mediaIndex + 1] ?? null,
+    };
+  }, [displayingMedia, galleryMedia]);
 
   let { fullscreenElement, enterFullscreen, exitFullscreen, isFullscreen } =
     useFullscreen();
@@ -241,17 +238,24 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
       .catch((e) => console.error(e));
   }, [fetcher, displayingMedia]);
 
+  let preload = useMemo(() => {
+    let list = [];
+    if (previousMedia) {
+      list.push(previousMedia);
+    }
+    if (nextMedia) {
+      list.push(nextMedia);
+    }
+
+    return list;
+  }, [previousMedia, nextMedia]);
+
   return (
     <div
       className="c-medialayout sl-theme-dark apply-theme"
       ref={fullscreenElement}
     >
-      <Media media={media} />
-      {currentMedia?.id !== media.id && (
-        <div className="loading-throbber">
-          <Throbber />
-        </div>
-      )}
+      <Media media={media} preload={preload} />
       <Overlay onClick={togglePlayback}>
         <div className="infobars">
           <div className="infobar">
@@ -293,7 +297,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
             </div>
           </div>
         </div>
-        <GalleryNavigation media={currentMedia ?? media}>
+        <GalleryNavigation previousMedia={previousMedia} nextMedia={nextMedia}>
           {videoState && videoState.playState != PlayState.Playing && (
             <IconButton onClick={togglePlayback} icon="play" />
           )}

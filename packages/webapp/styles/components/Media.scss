@@ -6,11 +6,6 @@
   .media {
     position: absolute;
     inset: 0;
-    transition: opacity var(--slow-transition);
-
-    &.loading {
-      opacity: 0;
-    }
 
     .missing {
       height: 100%;
@@ -31,6 +26,15 @@
     height: 100%;
     width: 100%;
     object-fit: contain;
-    position: relative;
+    transition: opacity var(--slow-transition);
+
+    &.hidden {
+      opacity: 0;
+    }
+  }
+
+  .c-throbber {
+    position: absolute;
+    inset: 0;
   }
 }

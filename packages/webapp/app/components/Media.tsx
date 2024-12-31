@@ -11,24 +11,30 @@ import {
 import { SlSpinner } from "shoelace-react";
 
 import { useCastManager } from "./CastManager";
-import { PlayState, useCurrentMedia, useMediaContext } from "./MediaContext";
+import { PlayState, useMediaContext } from "./MediaContext";
 import {
   AlternateFileType,
   MediaRelations,
+  MediaView,
   MediaViewFile,
 } from "@/modules/types";
 import { url } from "@/modules/util";
 
 import "styles/components/Media.scss";
+import Throbber from "./Throbber";
 
 function Photo({
   media,
   file,
   onLoaded,
+  onDisplayChange,
+  visible,
 }: {
-  media: MediaRelations;
+  media: MediaView;
   file: MediaViewFile;
   onLoaded: () => void;
+  onDisplayChange: () => void;
+  visible: boolean;
 }) {
   let imageElement = useRef<HTMLImageElement>(null);
 
@@ -76,6 +82,10 @@ function Photo({
     }
   }, [onLoaded]);
 
+  let onImageLoad = useCallback(() => {
+    onLoaded();
+  }, [onLoaded]);
+
   return (
     <picture>
       {Array.from(alternateTypes, (type) => (
@@ -83,9 +93,10 @@ function Photo({
       ))}
       <img
         ref={imageElement}
-        onLoad={onLoaded}
+        onLoad={onImageLoad}
+        onTransitionEnd={onDisplayChange}
         srcSet={source("image/jpeg")}
-        className="photo"
+        className={clsx("media", "photo", !visible && "hidden")}
       />
     </picture>
   );
@@ -95,10 +106,14 @@ function Video({
   media,
   file,
   onLoaded,
+  onDisplayChange,
+  visible,
 }: {
-  media: MediaRelations;
+  media: MediaView;
   file: MediaViewFile;
   onLoaded: () => void;
+  onDisplayChange: () => void;
+  visible: boolean;
 }) {
   let mediaContext = useMediaContext();
   let videoElement = useRef<HTMLVideoElement>(null);
@@ -199,12 +214,13 @@ function Video({
       poster={source("image/jpeg")}
       controls={false}
       onLoadedData={onLoad}
+      onTransitionEnd={onDisplayChange}
       onPlay={updateState}
       onPause={updateState}
       onProgress={updateState}
       onTimeUpdate={updateState}
       onCanPlayThrough={startPlaying}
-      className="video"
+      className={clsx("media", "video", !visible && "hidden")}
     >
       {Array.from(videoTypes, (type) => (
         <source key={type} src={source(type)} type={type} />
@@ -213,26 +229,30 @@ function Video({
   );
 }
 
-export function RenderMedia({
+function RenderMedia({
   media,
-  isCurrent,
+  onLoaded,
+  onDisplayChange,
+  visible,
 }: {
-  media: MediaRelations;
-  isCurrent: boolean;
+  media: MediaView;
+  onLoaded: (media: MediaView) => void;
+  onDisplayChange: (media: MediaView) => void;
+  visible: boolean;
 }) {
-  let mediaContext = useMediaContext();
-
-  let onLoaded = useCallback(() => {
-    if (isCurrent) {
-      mediaContext.setMedia(media);
-    }
-  }, [isCurrent, mediaContext, media]);
-
   useEffect(() => {
     if (!media.file) {
-      onLoaded();
+      onLoaded(media);
     }
   }, [media, onLoaded]);
+
+  let onMediaLoaded = useCallback(() => {
+    onLoaded(media);
+  }, [onLoaded, media]);
+
+  let onMediaDisplayChange = useCallback(() => {
+    onDisplayChange(media);
+  }, [onDisplayChange, media]);
 
   let { file } = media;
   if (!file) {
@@ -244,49 +264,142 @@ export function RenderMedia({
   }
 
   if (file.mimetype.startsWith("video/")) {
-    return <Video media={media} file={file} onLoaded={onLoaded} />;
+    return (
+      <Video
+        media={media}
+        file={file}
+        onLoaded={onMediaLoaded}
+        onDisplayChange={onMediaDisplayChange}
+        visible={visible}
+      />
+    );
   }
 
-  return <Photo media={media} file={file} onLoaded={onLoaded} />;
+  return (
+    <Photo
+      media={media}
+      file={file}
+      onLoaded={onMediaLoaded}
+      onDisplayChange={onMediaDisplayChange}
+      visible={visible}
+    />
+  );
 }
 
-export default function Media({ media }: { media: MediaRelations }) {
+enum MediaState {
+  Loading,
+  Loaded,
+}
+
+export default function Media({
+  media: mediaToDisplay,
+  preload = [],
+}: {
+  media: MediaRelations;
+  preload?: MediaView[];
+}) {
   let [loadedMedia, setLoadedMedia] = useState<MediaRelations | null>(null);
-  let currentMedia = useCurrentMedia();
   let mediaContext = useMediaContext();
 
-  let onLoadComplete = useCallback(() => {
-    setLoadedMedia(media);
-  }, [media]);
+  let [mediaStates, setMediaStates] = useState<Record<string, MediaState>>({});
 
-  let loadingMedia = media.id !== loadedMedia?.id ? media : null;
-
+  // Clear the current media when unmounting
   useEffect(() => () => mediaContext.setMedia(null), [mediaContext]);
+
+  useEffect(() => {
+    let oldIds = new Set<string>(Object.keys(mediaStates));
+
+    oldIds.delete(mediaToDisplay.id);
+
+    if (loadedMedia) {
+      oldIds.delete(loadedMedia.id);
+    }
+
+    for (let p of preload) {
+      oldIds.delete(p.id);
+    }
+
+    if (oldIds.size) {
+      let newStates = { ...mediaStates };
+
+      for (let id of oldIds) {
+        delete newStates[id];
+      }
+
+      setMediaStates(newStates);
+    }
+  }, [mediaStates, loadedMedia, mediaToDisplay, preload]);
+
+  useEffect(() => {
+    if (mediaStates[mediaToDisplay.id] == MediaState.Loaded) {
+      mediaContext.setMedia(mediaToDisplay);
+    }
+  }, [mediaContext, mediaStates, mediaToDisplay]);
+
+  let [mediaList, wantsThrobber] = useMemo((): [
+    [media: MediaView, visible: boolean][],
+    boolean,
+  ] => {
+    let list: [media: MediaView, visible: boolean][] = [];
+    let seenIds = new Set<string>();
+
+    let toDisplayState = mediaStates[mediaToDisplay.id] ?? MediaState.Loading;
+
+    if (loadedMedia && loadedMedia.id != mediaToDisplay.id) {
+      seenIds.add(loadedMedia.id);
+
+      list.unshift([loadedMedia, toDisplayState != MediaState.Loaded]);
+    }
+
+    seenIds.add(mediaToDisplay.id);
+    list.unshift([mediaToDisplay, toDisplayState == MediaState.Loaded]);
+
+    let missing = preload.filter((p) => !seenIds.has(p.id));
+    // Keep the ordering stable
+    missing.sort((a, b) => a.id.localeCompare(b.id));
+
+    list.unshift(...missing.map((m): [MediaView, boolean] => [m, false]));
+
+    return [list, toDisplayState != MediaState.Loaded];
+  }, [mediaStates, loadedMedia, mediaToDisplay, preload]);
 
   let castManager = useCastManager();
   useEffect(() => {
-    castManager.castMedia(media);
-  }, [media, castManager]);
+    castManager.castMedia(mediaToDisplay);
+  }, [mediaToDisplay, castManager]);
+
+  let onMediaLoaded = useCallback((media: MediaView) => {
+    setMediaStates((mediaStates) => {
+      return {
+        ...mediaStates,
+        [media.id]: MediaState.Loaded,
+      };
+    });
+  }, []);
+
+  let onMediaDisplayChange = useCallback(
+    (media: MediaView) => {
+      if (media.id === mediaToDisplay.id || media.id === loadedMedia?.id) {
+        setLoadedMedia(mediaToDisplay);
+      }
+    },
+
+    [loadedMedia, mediaToDisplay],
+  );
 
   return (
     <div className="c-media">
-      {loadedMedia && (
-        <div key={loadedMedia.id} className="media">
-          <RenderMedia media={loadedMedia} isCurrent={!loadingMedia} />
-        </div>
-      )}
-      {loadingMedia && (
-        <div
-          key={loadingMedia.id}
-          className={clsx(
-            "media",
-            currentMedia?.id !== loadingMedia.id && "loading",
-          )}
-          onTransitionEnd={onLoadComplete}
-        >
-          <RenderMedia media={loadingMedia} isCurrent />
-        </div>
-      )}
+      {mediaList.map(([media, visible]) => (
+        <RenderMedia
+          key={media.id}
+          media={media}
+          onLoaded={onMediaLoaded}
+          onDisplayChange={onMediaDisplayChange}
+          visible={visible}
+        />
+      ))}
+
+      {wantsThrobber && <Throbber />}
     </div>
   );
 }
