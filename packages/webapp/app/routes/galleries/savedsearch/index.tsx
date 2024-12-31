@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData, useLocation, useNavigate } from "react-router";
+import { Outlet, useLocation, useNavigate } from "react-router";
 import { FormEvent, useCallback, useMemo, useState } from "react";
 
 import { HeaderButtons } from "@/components/AppBar";
@@ -16,7 +16,7 @@ import Button from "@/components/Button";
 import { showToast } from "@/modules/toast";
 import { useServerConfig, useServerState } from "@/modules/hooks";
 
-import type { Route } from "./+types/search";
+import type { Route } from "./+types/index";
 
 function SubscribeButton({ search }: { search: SavedSearch }) {
   let [dialogShown, setDialogShown] = useState(false);
@@ -147,8 +147,9 @@ export function meta({ data }: Route.MetaArgs) {
   return [{ title: data.title }];
 }
 
-export default function SearchLayout() {
-  let { search } = useLoaderData<typeof loader>();
+export default function SearchLayout({
+  loaderData: { search },
+}: Route.ComponentProps) {
   let navigate = useNavigate();
   let location = useLocation();
 

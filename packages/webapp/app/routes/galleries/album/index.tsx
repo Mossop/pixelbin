@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData } from "react-router";
+import { Outlet } from "react-router";
 import { useCallback, useMemo } from "react";
 
 import { HeaderButtons } from "@/components/AppBar";
@@ -10,7 +10,7 @@ import { getAlbum } from "@/modules/api";
 import { AlbumField, SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 
-import { Route } from "./+types/album";
+import { Route } from "./+types/index";
 
 export async function loader({
   request,
@@ -30,9 +30,9 @@ export function meta({ data }: Route.MetaArgs) {
   return [];
 }
 
-export default function AlbumLayout() {
-  let { album } = useLoaderData<typeof loader>();
-
+export default function AlbumLayout({
+  loaderData: { album },
+}: Route.ComponentProps) {
   let requestStream = useCallback(
     (signal: AbortSignal) => fetch(`/api/album/${album.id}/media`, { signal }),
     [album],

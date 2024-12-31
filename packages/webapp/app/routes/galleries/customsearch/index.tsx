@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData, useSearchParams } from "react-router";
+import { Outlet, useSearchParams } from "react-router";
 import { useCallback, useMemo } from "react";
 
 import MediaGallery from "@/components/MediaGallery";
@@ -10,7 +10,7 @@ import { SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 import { useHistoryState } from "@/modules/hooks";
 
-import type { Route } from "./+types/search";
+import type { Route } from "./+types/index";
 
 export async function loader({
   request,
@@ -27,8 +27,9 @@ export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Search in ${data.title}` }];
 }
 
-export default function Search() {
-  let { catalog } = useLoaderData<typeof loader>();
+export default function Search({
+  loaderData: { catalog },
+}: Route.ComponentProps) {
   let [searchParams, setSearchParams] = useSearchParams();
   let state = useHistoryState();
 

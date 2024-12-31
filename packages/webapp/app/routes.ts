@@ -1,32 +1,20 @@
-import {
-  type RouteConfig,
-  route,
-  index,
-  RouteConfigEntry,
-} from "@react-router/dev/routes";
-
-function galleryRoutes(type: string): RouteConfigEntry {
-  return route(`/${type}/:id`, `routes/galleries/${type}.tsx`, [
-    route("media/:media", "routes/media.tsx", {
-      index: true,
-      id: `routes/${type}/media`,
-    }),
-  ]);
-}
+import { type RouteConfig, route, index } from "@react-router/dev/routes";
 
 export default [
   index("routes/index.tsx"),
 
-  route("/catalog/:id/search", "routes/search.tsx", [
-    route("media/:media", "routes/media.tsx", {
-      index: true,
-      id: `routes/customsearch/media`,
-    }),
+  route("/catalog/:id", "routes/galleries/catalog/index.tsx", [
+    route("media/:media", "routes/galleries/catalog/media.tsx"),
   ]),
-
-  galleryRoutes("catalog"),
-  galleryRoutes("album"),
-  galleryRoutes("search"),
+  route("/album/:id", "routes/galleries/album/index.tsx", [
+    route("media/:media", "routes/galleries/album/media.tsx"),
+  ]),
+  route("/search/:id", "routes/galleries/savedsearch/index.tsx", [
+    route("media/:media", "routes/galleries/savedsearch/media.tsx"),
+  ]),
+  route("/catalog/:id/search", "routes/galleries/customsearch/index.tsx", [
+    route("media/:media", "routes/galleries/customsearch/media.tsx"),
+  ]),
 
   route("/api/:container/:id/:type", "api/gallery.ts"),
   route("/api/config", "api/config.ts"),

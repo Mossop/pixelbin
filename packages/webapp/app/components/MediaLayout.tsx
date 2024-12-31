@@ -1,4 +1,4 @@
-import { useFetcher, useNavigate } from "react-router";
+import { MetaDescriptor, useFetcher, useNavigate } from "react-router";
 import { useCallback, useMemo, useState } from "react";
 import { SlTooltip } from "shoelace-react";
 
@@ -22,10 +22,54 @@ import Overlay from "./Overlay";
 import SlidePanel from "./SlidePanel";
 import Throbber from "./Throbber";
 import { useFullscreen, useHistoryState } from "@/modules/hooks";
-import { MediaRelations, MediaView } from "@/modules/types";
-import { formatTime, mediaDate, url } from "@/modules/util";
+import { AlternateFileType, MediaRelations, MediaView } from "@/modules/types";
+import { formatTime, mediaDate, mediaTitle, url } from "@/modules/util";
+import { ApiConfig } from "@/modules/api";
 
 import "styles/components/MediaLayout.scss";
+
+export function mediaMeta(
+  media: MediaRelations,
+  parentTitle: string,
+  serverConfig: ApiConfig,
+): MetaDescriptor[] {
+  let title: string | null | undefined = mediaTitle(media);
+
+  if (title && parentTitle) {
+    title = `${title} - ${parentTitle}`;
+  } else if (!title) {
+    title = parentTitle;
+  }
+
+  let metas: MetaDescriptor[] = [];
+
+  if (title) {
+    metas.push(
+      { title },
+      {
+        property: "og:title",
+        content: title,
+      },
+    );
+  }
+
+  if (media.description) {
+    metas.push({ property: "og:description", content: media.description });
+  }
+
+  if (media.file?.alternates.some((a) => a.type == AlternateFileType.Social)) {
+    metas.push({
+      property: "og:image",
+      content: `${serverConfig.apiUrl.slice(0, -1)}${url([
+        "media",
+        media.id,
+        "social",
+      ])}`,
+    });
+  }
+
+  return metas;
+}
 
 function GalleryNavigation({
   media,
