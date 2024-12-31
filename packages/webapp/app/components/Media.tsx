@@ -354,11 +354,14 @@ export default function Media({
     seenIds.add(mediaToDisplay.id);
     list.unshift([mediaToDisplay, toDisplayState == MediaState.Loaded]);
 
-    let missing = preload.filter((p) => !seenIds.has(p.id));
-    // Keep the ordering stable
-    missing.sort((a, b) => a.id.localeCompare(b.id));
+    // Only preload if we have already loaded something.
+    if (loadedMedia) {
+      let missing = preload.filter((p) => !seenIds.has(p.id));
+      // Keep the ordering stable
+      missing.sort((a, b) => a.id.localeCompare(b.id));
 
-    list.unshift(...missing.map((m): [MediaView, boolean] => [m, false]));
+      list.unshift(...missing.map((m): [MediaView, boolean] => [m, false]));
+    }
 
     return [list, toDisplayState != MediaState.Loaded];
   }, [mediaStates, loadedMedia, mediaToDisplay, preload]);
