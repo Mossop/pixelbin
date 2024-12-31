@@ -117,6 +117,7 @@ function Video({
 }) {
   let mediaContext = useMediaContext();
   let videoElement = useRef<HTMLVideoElement>(null);
+  let [readyToPlay, setReadyToPlay] = useState(false);
 
   let updateVideoState = useCallback(
     (video: HTMLVideoElement) => {
@@ -162,9 +163,23 @@ function Video({
   );
 
   useEffect(() => {
-    console.log(videoElement.current!.readyState);
     updateVideoState(videoElement.current!);
   }, [updateVideoState]);
+
+  useEffect(() => {
+    let video = videoElement.current;
+    if (!video) {
+      return;
+    }
+
+    if (!visible) {
+      video.pause();
+      video.currentTime = 0;
+    } else if (readyToPlay && video.paused) {
+      void video.play();
+      setReadyToPlay(false);
+    }
+  }, [readyToPlay, visible]);
 
   let { filename } = media;
   if (filename) {
@@ -204,8 +219,8 @@ function Video({
     ]);
   };
 
-  let startPlaying = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    void event.currentTarget.play();
+  let onCanPlayThrough = useCallback(() => {
+    setReadyToPlay(true);
   }, []);
 
   return (
@@ -219,7 +234,7 @@ function Video({
       onPause={updateState}
       onProgress={updateState}
       onTimeUpdate={updateState}
-      onCanPlayThrough={startPlaying}
+      onCanPlayThrough={onCanPlayThrough}
       className={clsx("media", "video", !visible && "hidden")}
     >
       {Array.from(videoTypes, (type) => (
