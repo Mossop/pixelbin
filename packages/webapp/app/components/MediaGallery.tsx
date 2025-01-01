@@ -207,7 +207,7 @@ interface MediaGalleryProps {
   getMediaUrl?: (id: string) => string;
 }
 
-function InnerMediaGallery({
+export default function MediaGallery({
   children,
   type,
   requestStream,
@@ -230,8 +230,4 @@ function InnerMediaGallery({
       {children}
     </GalleryContext.Provider>
   );
-}
-
-export default function MediaGallery({ url, ...props }: MediaGalleryProps) {
-  return <InnerMediaGallery key={url} url={url} {...props} />;
 }

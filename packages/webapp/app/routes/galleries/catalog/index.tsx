@@ -60,6 +60,7 @@ export default function CatalogLayout({ loaderData }: Route.ComponentProps) {
   if (catalog) {
     return (
       <MediaGallery
+        key={`catalog/${catalog.id}`}
         type="catalog"
         url={url(["catalog", catalog.id])}
         requestStream={requestStream}

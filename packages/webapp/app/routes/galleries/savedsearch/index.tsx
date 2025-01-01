@@ -196,6 +196,7 @@ export default function SearchLayout({
         <IconLink icon="search" to={searchUrl} />
       </HeaderButtons>
       <MediaGallery
+        key={`search/${search.id}`}
         type="savedSearch"
         url={url(["search", search.id])}
         requestStream={requestStream}

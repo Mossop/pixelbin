@@ -2,7 +2,7 @@ use actix_web::{dev::Payload, get, http::header, post, web, FromRequest, HttpReq
 use futures::{future::LocalBoxFuture, join};
 use pixelbin_shared::Ignorable;
 use serde::{Deserialize, Serialize};
-use tracing::{instrument, warn, Instrument};
+use tracing::{instrument, trace, warn, Instrument};
 
 use crate::{
     server::{ApiErrorCode, ApiResult, AppState},
@@ -30,6 +30,7 @@ impl FromRequest for Session {
             if let Some(session) = maybe.0 {
                 Ok(session)
             } else {
+                trace!("Missing session data in headers");
                 Err(ApiErrorCode::NotLoggedIn)
             }
         })

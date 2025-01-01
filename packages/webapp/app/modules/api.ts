@@ -25,8 +25,16 @@ import {
   State,
 } from "./types";
 
-export const GET = (): ApiRequest => ({ method: "GET", headers: {} });
-export const POST = (): ApiRequest => ({ method: "POST", headers: {} });
+export const BASE_REQUEST = (): ApiRequest => ({ method: "GET", headers: {} });
+
+export const GET = (init: ApiRequest): ApiRequest => ({
+  ...init,
+  method: "GET",
+});
+export const POST = (init: ApiRequest): ApiRequest => ({
+  ...init,
+  method: "POST",
+});
 
 async function toJson<T>(response: Response): Promise<T> {
   let result = await response.json();
@@ -118,13 +126,13 @@ export function apiResponse(
   label: string,
   ...builders: RequestBuilder[]
 ): Promise<Response> {
-  let init = GET();
+  let init = BASE_REQUEST();
 
   for (let builder of builders) {
     init = builder(init);
   }
 
-  let method = init.method ?? "GET";
+  let { method } = init;
 
   return inSpan(
     {

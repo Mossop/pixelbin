@@ -70,6 +70,7 @@ export default function Search({
 
   return (
     <MediaGallery
+      key={`catalog/${catalog.id}/search`}
       type="search"
       url={galleryUrl}
       requestStream={requestStream}

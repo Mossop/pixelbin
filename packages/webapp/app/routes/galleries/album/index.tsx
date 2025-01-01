@@ -65,6 +65,7 @@ export default function AlbumLayout({
         <IconLink icon="search" to={searchUrl} />
       </HeaderButtons>
       <MediaGallery
+        key={`album/${album.id}`}
         type="album"
         url={url(["album", album.id])}
         requestStream={requestStream}
