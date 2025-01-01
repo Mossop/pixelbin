@@ -7,8 +7,9 @@ WORKDIR /build
 COPY package.json package-lock.json /build/
 
 # Install node modules. Should be cached unless the packages change.
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/build/node_modules \
+RUN \
+    --mount=type=cache,target=/root/.npm \
+    # --mount=type=cache,target=/build/node_modules \
     --mount=type=bind,source=packages/webapp/package.json,target=/build/packages/webapp/package.json \
     npm ci && \
     npm install --no-save @rollup/rollup-linux-`node -p "process.arch"`-musl
@@ -16,8 +17,9 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY packages/webapp /build/packages/webapp
 
 # Does the actual build using the cached node modules.
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/build/node_modules \
+RUN \
+    --mount=type=cache,target=/root/.npm \
+    # --mount=type=cache,target=/build/node_modules \
     npm run build && \
     mkdir -p /app/packages/webapp && \
     cp -R node_modules package.json package-lock.json /app && \
