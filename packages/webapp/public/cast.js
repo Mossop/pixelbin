@@ -1,13 +1,8 @@
-/* global cast, chrome */
+/* global cast */
 window.__onGCastApiAvailable = function (isAvailable) {
   if (isAvailable) {
-    let receiverApplicationId =
-      document.location.hostname == "localhost"
-        ? chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID
-        : "C0F164FC";
-
     cast.framework.CastContext.getInstance().setOptions({
-      receiverApplicationId,
+      receiverApplicationId: "C0F164FC",
     });
 
     castState = true;
