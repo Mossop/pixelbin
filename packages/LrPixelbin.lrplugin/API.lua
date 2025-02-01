@@ -371,7 +371,15 @@ function API:createAlbum(catalog, album)
   local result = self:POST("album/create", body)
   if Utils.isSuccess(result) then
     self.albums[result.id] = result
-    self.children[result.parent][result.id] = true
+
+    local childList = self.children[result.parent]
+
+    if not childList then
+      childList = {}
+      self.children[result.parent] = childList
+    end
+
+    childList[result.id] = true
   end
 
   return result
