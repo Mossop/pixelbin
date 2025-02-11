@@ -174,7 +174,7 @@ function Provider.processRenderedPhotos(context, exportContext)
       and LOC("$$$/LrPixelBin/Render/Progress=Publishing ^1 photos to PixelBin", photoCount)
       or LOC "$$$/LrPixelBin/Render/Progress=Publishing one photo to PixelBin"
 
-  ProgressScope.forExportContext(title, 5, exportContext, function(scope)
+  ProgressScope.forExportContext(title, 6, exportContext, function(scope)
     ---@type PublishSettings
     local publishSettings = exportContext.propertyTable
 
@@ -208,6 +208,32 @@ function Provider.processRenderedPhotos(context, exportContext)
     scope:ipairs(defaultCollection:getPublishedPhotos(), function(_, _, published)
       local photo = published:getPhoto()
       byLocalId[photo.localIdentifier] = published
+    end)
+
+    -- A map of other unedited published photos for a local identifier.
+    ---@type { [number]: LrPublishedPhoto[] }
+    local otherPublishedPhotosByLocalId = {}
+    scope:ipairs(Utils.listNonDefaultCollections(exportContext.publishService), function(collectionScope, _, collection)
+      if collection == exportContext.publishedCollection then
+        return
+      end
+
+      collectionScope:ipairs(collection:getPublishedPhotos(), function(_, _, publishedPhoto)
+        if publishedPhoto:getEditedFlag() then
+          return
+        end
+
+        local localId = publishedPhoto:getPhoto().localIdentifier
+        if byLocalId[localId] then
+          local list = otherPublishedPhotosByLocalId[localId]
+          if not list then
+            list = { publishedPhoto }
+            otherPublishedPhotosByLocalId[localId] = list
+          else
+            table.insert(list, publishedPhoto)
+          end
+        end
+      end)
     end)
 
     -- First we scan through and find any known ID for each rendition.
@@ -296,6 +322,13 @@ function Provider.processRenderedPhotos(context, exportContext)
 
               Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
                 defaultCollection:addPhotoByRemoteId(rendition.photo, remoteId, catalogUrl .. remoteId, false)
+
+                local otherPublishedPhotos = otherPublishedPhotosByLocalId[rendition.photo.localIdentifier]
+                if otherPublishedPhotos then
+                  for _, publishedPhoto in ipairs(otherPublishedPhotos) do
+                    publishedPhoto:setEditedFlag(true)
+                  end
+                end
               end)
             else
               rendition:uploadFailed(Utils.errorString(result))

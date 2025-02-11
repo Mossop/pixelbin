@@ -63,6 +63,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
                   edited = publishedPhoto:getEditedFlag(),
                   mediaItem = nil
                 }
+
                 toAdd[publishedPhoto:getPhoto().localIdentifier] = itemToAdd
               elseif publishedPhoto:getEditedFlag() then
                 itemToAdd.edited = true
@@ -74,7 +75,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
               elseif not publishedPhoto:getEditedFlag() then
                 -- Unexpected remote Id. Republish.
                 table.insert(needsEdit, publishedPhoto)
-                logger:error("Media appears to be published but has and invalid ID")
+                logger:error("Media appears to be published but has an invalid ID")
               end
             end
           end)
@@ -146,7 +147,7 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
               scope:ipairs(collection:getPublishedPhotos(), function(_, _, publishedPhoto)
                 if not publishedPhoto:getEditedFlag() then
                   local remoteId = byLocalId[publishedPhoto:getPhoto().localIdentifier]:getRemoteId()
-                  if media[remoteId] and media[remoteId].file then
+                  if media[remoteId] then
                     local target = api:targetAlbumForPhoto(collectionInfo, albumId, publishedPhoto:getPhoto())
                     local expectedId = api:isInCorrectAlbums(catalog, media[remoteId], target)
                     if expectedId == nil then
@@ -156,6 +157,10 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
                       table.insert(needsEdit, publishedPhoto)
                       logger:error("Media " .. remoteId .. " has an incorrect remote ID")
                     end
+                  else
+                    -- Media is entirely missing remotely and so will need a new ID and re-adding to
+                    -- the collection.
+                    table.insert(needsEdit, publishedPhoto)
                   end
                 end
               end)
