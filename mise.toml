@@ -2,6 +2,11 @@
 node = "22"
 watchexec = "latest"
 
+[tasks.syncdata]
+description = "Sync local and temp storage"
+run = "./sync"
+dir = "testing"
+
 [tasks.apiserver]
 description = "Run the API server"
 run = "cargo run -p pixelbin_cli -- serve"

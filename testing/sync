@@ -1,0 +1,4 @@
+#! /bin/bash
+
+rsync -rlptmz --delete --delete-excluded --filter "- .*" --info=flist2,name,progress2 bhuna:/srv/servers/bhuna/data/pixelbin/ data/pixelbin
+scp bhuna:pixelbin data/pgadmin/storage/pgadmin_pixelbin.org
