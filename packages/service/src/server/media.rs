@@ -390,6 +390,7 @@ struct MediaData {
     tags: Option<Vec<Vec<String>>>,
     people: Option<Vec<PersonInfo>>,
     public: Option<bool>,
+    source: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -428,6 +429,10 @@ async fn update_media_item(
     };
 
     media_item.sync_with_file(media_file.as_ref());
+
+    if let (Some(source), true) = (&data.source, media_item.source.is_none()) {
+        media_item.source = Some(source.clone());
+    }
 
     if let Some(public) = data.public {
         if media_item.public != public {

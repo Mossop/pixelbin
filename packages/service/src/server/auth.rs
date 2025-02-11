@@ -6,9 +6,10 @@ use tracing::{instrument, trace, warn, Instrument};
 
 use crate::{
     server::{ApiErrorCode, ApiResult, AppState},
+    shared::short_id,
     store::{
         db::Isolation,
-        models::{self, AlbumWithCount, SavedSearchWithCount, UserCatalogWithCount},
+        models::{self, AlbumWithCount, SavedSearchWithCount, SourceType, UserCatalogWithCount},
     },
     Error,
 };
@@ -192,4 +193,31 @@ async fn state(
         albums: albums?,
         searches: searches?,
     }))
+}
+
+#[derive(Deserialize)]
+struct SourceRequest {
+    id: Option<String>,
+    name: String,
+    #[serde(rename = "type")]
+    source_type: SourceType,
+}
+
+#[post("/source")]
+#[instrument(err, skip(app_state, request, _session))]
+async fn source(
+    app_state: web::Data<AppState>,
+    request: web::Json<SourceRequest>,
+    _session: Session,
+) -> ApiResult<web::Json<models::Source>> {
+    let source = models::Source {
+        id: request.id.clone().unwrap_or_else(|| short_id("U")),
+        name: request.name.clone(),
+        source_type: request.source_type,
+    };
+
+    match source.create_or_update(&mut app_state.store.pooled()).await {
+        Ok(_) => Ok(web::Json(source)),
+        Err(e) => Err(e.into()),
+    }
 }

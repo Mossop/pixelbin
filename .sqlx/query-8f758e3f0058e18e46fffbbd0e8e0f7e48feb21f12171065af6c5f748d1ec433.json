@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO \"source\" (\"id\", \"name\", \"type\")\n            VALUES ($1,$2,$3)\n            ON CONFLICT(\"id\") DO UPDATE SET\n                \"name\"=\"excluded\".\"name\",\n                \"type\"=\"excluded\".\"type\"\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8f758e3f0058e18e46fffbbd0e8e0f7e48feb21f12171065af6c5f748d1ec433"
+}

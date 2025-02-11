@@ -7,13 +7,13 @@ local API = require "API"
 
 local logger = require("Logging")("UploadMetadata")
 
+---@param api API
 ---@param photo LrPhoto
 ---@param publishSettings PublishSettings
 ---@param remoteId string
-local function uploadMetadata(photo, publishSettings, remoteId)
-  local api = API(publishSettings)
-
-  local result = api:uploadMetadata(photo, publishSettings, remoteId)
+---@param sourceId string
+local function uploadMetadata(api, photo, publishSettings, remoteId, sourceId)
+  local result = api:uploadMetadata(photo, publishSettings, remoteId, sourceId)
   if Utils.isError(result) then
     error(Utils.errorString(result))
   end
@@ -22,10 +22,10 @@ end
 Utils.runAsync(logger, "UploadMetadata", function(context)
   LrDialogs.attachErrorDialogToFunctionContext(context)
 
-  local photos = {}
+  local remoteIdByLocalId = {}
   local totalPhotos = 0
   for _, photo in ipairs(LrApplication.activeCatalog():getTargetPhotos()) do
-    photos[photo:getRawMetadata("uuid")] = true
+    remoteIdByLocalId[photo.localIdentifier] = "unknown"
     totalPhotos = totalPhotos + 1
   end
 
@@ -43,12 +43,17 @@ Utils.runAsync(logger, "UploadMetadata", function(context)
       if service:getPluginId() == _PLUGIN.id then
         ---@type PublishSettings
         local settings = service:getPublishSettings()
+        local api = API(settings)
 
         local defaultCollection = Utils.getDefaultCollection(service)
-        local publishedPhotos = {}
+        local collectionInfo = defaultCollection:getCollectionInfoSummary()
+        local sourceId = collectionInfo.collectionSettings.sourceId
+
         for _, published in ipairs(defaultCollection:getPublishedPhotos()) do
           local photo = published:getPhoto()
-          publishedPhotos[photo.localIdentifier] = published:getRemoteId()
+          if remoteIdByLocalId[photo.localIdentifier] then
+            remoteIdByLocalId[photo.localIdentifier] = published:getRemoteId()
+          end
         end
 
         for _, photo in ipairs(source:getPhotos()) do
@@ -56,8 +61,8 @@ Utils.runAsync(logger, "UploadMetadata", function(context)
             return
           end
 
-          if photos[photo:getRawMetadata("uuid")] and publishedPhotos[photo.localIdentifier] then
-            uploadMetadata(photo, settings, publishedPhotos[photo.localIdentifier])
+          if remoteIdByLocalId[photo.localIdentifier] then
+            uploadMetadata(api, photo, settings, remoteIdByLocalId[photo.localIdentifier], sourceId)
             count = count + 1
             scope:setPortionComplete(count, totalPhotos)
           end

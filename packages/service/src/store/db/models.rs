@@ -180,6 +180,64 @@ impl MediaViewSender {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) enum SourceType {
+    Lightroom,
+}
+
+derive_display_from_serialize!(SourceType);
+derive_fromstr_from_deserialize!(SourceType);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Source {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    #[serde(rename = "type")]
+    pub(crate) source_type: SourceType,
+}
+
+impl Source {
+    pub(crate) async fn create_or_update(&self, conn: &mut DbConnection<'_>) -> Result {
+        sqlx::query!(
+            r#"
+            INSERT INTO "source" ("id", "name", "type")
+            VALUES ($1,$2,$3)
+            ON CONFLICT("id") DO UPDATE SET
+                "name"="excluded"."name",
+                "type"="excluded"."type"
+            "#,
+            &self.id,
+            &self.name,
+            self.source_type.to_string(),
+        )
+        .execute(conn)
+        .await?;
+
+        Ok(())
+    }
+
+    pub(crate) fn from_maybe(
+        id: Option<String>,
+        name: Option<String>,
+        source_type: Option<String>,
+    ) -> SqlxResult<Option<Self>> {
+        match (
+            id,
+            name,
+            source_type.and_then(|st| SourceType::from_str(&st).ok()),
+        ) {
+            (Some(id), Some(name), Some(source_type)) => Ok(Some(Self {
+                id,
+                name,
+                source_type,
+            })),
+            _ => Ok(None),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) enum AlternateFileType {
     Thumbnail,
     Reencode,
@@ -1767,6 +1825,7 @@ pub(crate) struct MediaItem {
     pub media_file: Option<String>,
     pub datetime: DateTime<Utc>,
     pub public: bool,
+    pub source: Option<String>,
 }
 
 impl MediaItem {
@@ -1783,6 +1842,7 @@ impl MediaItem {
             media_file: None,
             datetime: now,
             public: false,
+            source: None,
         }
     }
 
@@ -2037,6 +2097,7 @@ impl MediaItem {
             let mut media_file = Vec::<Option<String>>::new();
             let mut datetime = Vec::<DateTime<Utc>>::new();
             let mut public = Vec::<bool>::new();
+            let mut source = Vec::<Option<String>>::new();
             let mut filename = Vec::<Option<String>>::new();
             let mut title = Vec::<Option<String>>::new();
             let mut description = Vec::<Option<String>>::new();
@@ -2070,6 +2131,7 @@ impl MediaItem {
                 media_file.push(media_item.media_file.clone());
                 datetime.push(media_item.datetime);
                 public.push(media_item.public);
+                source.push(media_item.source.clone());
                 filename.push(media_item.metadata.filename.clone());
                 title.push(media_item.metadata.title.clone());
                 description.push(media_item.metadata.description.clone());
@@ -2106,6 +2168,7 @@ impl MediaItem {
                     "media_file",
                     "datetime",
                     "public",
+                    "source",
 
                     "filename",
                     "title",
@@ -2140,8 +2203,8 @@ impl MediaItem {
                     $6::text[],
                     $7::timestamptz[],
                     $8::bool[],
-
                     $9::text[],
+
                     $10::text[],
                     $11::text[],
                     $12::text[],
@@ -2154,16 +2217,17 @@ impl MediaItem {
                     $19::text[],
                     $20::text[],
                     $21::text[],
-                    $22::real[],
-                    $23::integer[],
+                    $22::text[],
+                    $23::real[],
                     $24::integer[],
                     $25::integer[],
-                    $26::real[],
+                    $26::integer[],
                     $27::real[],
                     $28::real[],
                     $29::real[],
                     $30::real[],
-                    $31::timestamp[]
+                    $31::real[],
+                    $32::timestamp[]
                 )
                 ON CONFLICT (id) DO UPDATE SET
                     "deleted"="excluded"."deleted",
@@ -2173,6 +2237,7 @@ impl MediaItem {
                     "media_file"="excluded"."media_file",
                     "datetime"="excluded"."datetime",
                     "public"="excluded"."public",
+                    "source"="excluded"."source",
 
                     "filename"="excluded"."filename",
                     "title"="excluded"."title",
@@ -2206,6 +2271,7 @@ impl MediaItem {
                 &media_file as &[Option<String>],
                 &datetime,
                 &public,
+                &source as &[Option<String>],
                 &filename as &[Option<String>],
                 &title as &[Option<String>],
                 &description as &[Option<String>],
@@ -3487,6 +3553,7 @@ pub(crate) struct MediaView {
     pub(crate) metadata: MediaMetadata,
     pub(crate) taken_zone: Option<String>,
     pub(crate) file: Option<MediaViewFile>,
+    pub(crate) source: Option<Source>,
 }
 
 impl MediaView {
@@ -3522,6 +3589,11 @@ impl<'r> FromRow<'r, PgRow> for MediaView {
                 row.try_get("uploaded")?,
                 row.try_get("file_name")?,
                 row.try_get("alternates")?,
+            )?,
+            source: Source::from_maybe(
+                row.try_get("source_id")?,
+                row.try_get("source_name")?,
+                row.try_get("source_type")?,
             )?,
         })
     }

@@ -27,7 +27,7 @@ use tracing_subscriber::{
 #[cfg(not(debug_assertions))]
 const STACK_SIZE: usize = 2 * 1024 * 1024;
 #[cfg(debug_assertions)]
-const STACK_SIZE: usize = 2 * 1024 * 1024;
+const STACK_SIZE: usize = 20 * 1024 * 1024;
 
 async fn list_catalogs(store: &Store) -> Result<Vec<String>> {
     store.pooled().list_catalogs().await

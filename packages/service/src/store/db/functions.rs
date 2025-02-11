@@ -102,6 +102,11 @@ macro_rules! from_row {
                 $row.file_name,
                 $row.alternates,
             )?,
+            source: crate::store::db::models::Source::from_maybe(
+                $row.source_id,
+                $row.source_name,
+                $row.source_type,
+            )?,
         }
     };
     (MediaMetadata($row:ident)) => {
@@ -144,6 +149,7 @@ macro_rules! from_row {
             media_file: $row.media_file,
             datetime: $row.datetime,
             public: $row.public,
+            source: $row.source,
         }
     };
     (AlternateFile($row:ident)) => {

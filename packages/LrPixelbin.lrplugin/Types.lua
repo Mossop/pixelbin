@@ -57,6 +57,7 @@ local Media = {}
 ---@field email string
 ---@field password string
 ---@field catalog string
+---@field sourceId string
 local PublishSettings = {}
 
 ---@class RenditionInfo

@@ -102,6 +102,15 @@ function Provider.didCreateNewPublishService(publishSettings, info)
     local defaultCollection = Utils.getDefaultCollection(info.publishService)
     defaultCollection:setRemoteId(publishSettings.catalog)
     defaultCollection:setRemoteUrl(publishSettings.siteUrl .. "catalog/" .. publishSettings.catalog)
+
+    local collectionInfo = defaultCollection:getCollectionInfoSummary()
+
+    local sourceId = api:getSourceId(nil, collectionInfo.name)
+    if Utils.isSuccess(sourceId) then
+      defaultCollection:setCollectionSettings({
+        sourceId = sourceId
+      })
+    end
   end)
 end
 
@@ -189,6 +198,9 @@ function Provider.processRenderedPhotos(context, exportContext)
       defaultCollection = Utils.getDefaultCollection(exportContext.publishService)
     end
 
+    local defaultCollectionInfo = defaultCollection:getCollectionInfoSummary()
+    local sourceId = defaultCollectionInfo.collectionSettings.sourceId
+
     -- A map of photos already supposedly uploaded.
     ---@type { [number]: LrPublishedPhoto }
     local byLocalId = {}
@@ -235,6 +247,8 @@ function Provider.processRenderedPhotos(context, exportContext)
         if remoteId then
           table.insert(knownIds, remoteId)
           renditionInfoByRemoteId[remoteId] = info
+        else
+          info.needsUpload = true
         end
       end
     end)
@@ -275,9 +289,10 @@ function Provider.processRenderedPhotos(context, exportContext)
           local catalogUrl = publishSettings.siteUrl .. "catalog/" .. catalog .. "/media/"
 
           if not remoteId then
-            local result = api:create(publishSettings)
+            local result = api:create(publishSettings, sourceId)
             if Utils.isSuccess(result) then
               remoteId = result.id
+              logger:trace("Created new photo", remoteId)
 
               Utils.runWithWriteAccess(logger, "Add Photo to Catalog", function()
                 defaultCollection:addPhotoByRemoteId(rendition.photo, remoteId, catalogUrl .. remoteId, false)

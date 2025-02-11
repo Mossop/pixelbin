@@ -205,6 +205,21 @@
       },
       {
         "ordinal": 40,
+        "name": "source_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 41,
+        "name": "source_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 42,
+        "name": "source_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 43,
         "name": "added",
         "type_info": "Timestamptz"
       }
@@ -216,6 +231,9 @@
       ]
     },
     "nullable": [
+      true,
+      true,
+      true,
       true,
       true,
       true,

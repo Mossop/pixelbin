@@ -157,6 +157,11 @@
         "ordinal": 30,
         "name": "public",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 31,
+        "name": "source",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
@@ -195,7 +200,8 @@
       true,
       false,
       true,
-      false
+      false,
+      true
     ]
   },
   "hash": "707eec3e4e80ec26a9c0f965bd623b1c81f76ac745824fd5dde91c839da3f537"

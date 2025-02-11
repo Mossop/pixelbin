@@ -10,9 +10,10 @@ use aws_sdk_s3::{
     Client,
 };
 use mime::Mime;
+use pixelbin_shared::Ignorable;
 use tokio::{
     fs::{self, metadata},
-    io,
+    io::{self, AsyncWriteExt},
 };
 use tracing::{debug, instrument, trace};
 
@@ -254,8 +255,6 @@ impl FileStore for AwsClient {
             None => remote_path(path),
         };
 
-        let mut file = fs::File::create(target).await?;
-
         let response = self
             .client
             .get_object()
@@ -267,11 +266,20 @@ impl FileStore for AwsClient {
                 message: format!("Failed to get object: {e}"),
             })?;
 
+        let mut file = fs::File::create(target).await?;
         let mut reader = response.body.into_async_read();
 
-        io::copy(&mut reader, &mut file).await?;
+        match io::copy(&mut reader, &mut file).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                file.flush().await.warn();
+                drop(file);
 
-        Ok(())
+                fs::remove_file(target).await.warn();
+
+                Err(e.into())
+            }
+        }
     }
 
     #[allow(clippy::blocks_in_conditions)]

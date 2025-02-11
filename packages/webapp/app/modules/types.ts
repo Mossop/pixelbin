@@ -233,6 +233,16 @@ export enum Orientation {
   LeftBottom = 8,
 }
 
+export enum SourceType {
+  Lightroom = "lightroom",
+}
+
+export interface Source {
+  id: string;
+  name: string;
+  type: SourceType;
+}
+
 export interface MediaView {
   id: string;
   catalog: string;
@@ -264,6 +274,7 @@ export interface MediaView {
   focalLength: number | null;
   rating: number | null;
   file: MediaViewFile | null;
+  source: Source | null;
 }
 
 export type ApiMediaView = Replace<

@@ -293,6 +293,33 @@ function API:login()
   return result
 end
 
+---@param existingId string | nil
+---@param name string
+---@return string | Error
+function API:getSourceId(existingId, name)
+  local id
+  if existingId then
+    id = json.encode(existingId)
+  else
+    id = "null"
+  end
+
+  local body = string.format([[
+    {
+      "id": %s,
+      "name": %s,
+      "type": "lightroom"
+    }
+  ]], id, json.encode(name))
+
+  local response = self:POST("source", body)
+  if Utils.isError(response) then
+    return response
+  end
+
+  return response.id
+end
+
 ---@param ids string[]
 ---@param progressCallback fun(count: number)?
 ---@return { [string]: Media }
@@ -587,19 +614,37 @@ end
 ---@param photo LrPhoto
 ---@param publishSettings PublishSettings
 ---@param remoteId string
+---@param sourceId string
 ---@return nil | Error
-function API:uploadMetadata(photo, publishSettings, remoteId)
+function API:uploadMetadata(photo, publishSettings, remoteId, sourceId)
   local mediaInfo = self:extractMetadata(photo, publishSettings)
   mediaInfo.id = remoteId
+  mediaInfo.sourceId = sourceId
 
   return self:POST("media/edit", mediaInfo)
 end
 
----@param publishSettings PublishSettings
----@return { id: string } | Error
-function API:create(publishSettings)
+---@param remoteId string
+---@param sourceId string
+function API:setSource(remoteId, sourceId)
   local mediaInfo = {
-    catalog = publishSettings.catalog
+    id = remoteId,
+    sourceId = sourceId
+  }
+  logger:trace("Updating source", remoteId, sourceId)
+
+  local result = self:POST("media/edit", mediaInfo)
+  if Utils.isError(result) then
+  end
+end
+
+---@param publishSettings PublishSettings
+---@param sourceId string
+---@return { id: string } | Error
+function API:create(publishSettings, sourceId)
+  local mediaInfo = {
+    catalog = publishSettings.catalog,
+    source = sourceId
   }
 
   return self:POST("media/create", mediaInfo)
