@@ -619,7 +619,7 @@ end
 function API:uploadMetadata(photo, publishSettings, remoteId, sourceId)
   local mediaInfo = self:extractMetadata(photo, publishSettings)
   mediaInfo.id = remoteId
-  mediaInfo.sourceId = sourceId
+  mediaInfo.source = sourceId
 
   return self:POST("media/edit", mediaInfo)
 end
@@ -629,7 +629,7 @@ end
 function API:setSource(remoteId, sourceId)
   local mediaInfo = {
     id = remoteId,
-    sourceId = sourceId
+    source = sourceId
   }
   logger:trace("Updating source", remoteId, sourceId)
 
