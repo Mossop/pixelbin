@@ -1,7 +1,8 @@
-use std::{collections::HashMap, future::Future, hash::Hash, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, future::Future, hash::Hash, path::PathBuf, result, sync::Arc};
 
+use futures::TryFutureExt;
 use image::DynamicImage;
-use pixelbin_shared::Ignorable;
+use pixelbin_shared::{Error, Ignorable};
 use tokio::{
     fs,
     sync::{Mutex, OnceCell},
@@ -24,7 +25,7 @@ const SOCIAL_HEIGHT: u32 = 630;
 
 #[derive(Clone)]
 struct Task<R> {
-    cell: Arc<OnceCell<R>>,
+    cell: Arc<OnceCell<result::Result<R, String>>>,
 }
 
 impl<R> Default for Task<R> {
@@ -44,9 +45,15 @@ where
         Fut: Future<Output = Result<R>>,
         Fn: FnOnce() -> Fut,
     {
-        let result = self.cell.get_or_try_init(cb).await;
+        let result = self
+            .cell
+            .get_or_init(|| cb().map_err(|e| e.to_string()))
+            .await;
 
-        result.cloned()
+        match result {
+            Ok(r) => Ok(r.clone()),
+            Err(e) => Err(Error::TaskError { message: e.clone() }),
+        }
     }
 }
 

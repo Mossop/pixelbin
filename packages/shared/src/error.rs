@@ -52,6 +52,8 @@ pub enum Error {
     },
     #[error("Unknown error: {message}")]
     Unknown { message: String },
+    #[error("{message}")]
+    TaskError { message: String },
 }
 
 impl From<sqlx::Error> for Error {
