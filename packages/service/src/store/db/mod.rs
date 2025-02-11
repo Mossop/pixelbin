@@ -292,7 +292,10 @@ impl<'conn> DbConnection<'conn> {
     }
 
     pub async fn queue_task(&self, task: Task) {
-        self.store_inner.task_queue.queue_task(task).await;
+        self.store_inner
+            .task_queue
+            .queue_task(task, self.store_inner.store_type)
+            .await;
     }
 
     pub async fn commit(mut self) -> Result<()> {

@@ -168,7 +168,7 @@ impl Worker {
         match command {
             Command::ProcessMediaFile { media_file } => {
                 store
-                    .queue_task(Task::ProcessMediaFile { media_file })
+                    .queue_task_as_worker(Task::ProcessMediaFile { media_file })
                     .await;
             }
         }

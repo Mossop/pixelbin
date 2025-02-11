@@ -189,8 +189,9 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
     {
         if alternate_file.stored.is_none() {
             build_alternate(&store, op_cache.clone(), &mut alternate_file)
-                .warn()
+                .ignore()
                 .await;
+
             if alternate_file.stored.is_some() {
                 modified.push(alternate_file);
             }
@@ -214,7 +215,7 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
     {
         if alternate_file.stored.is_none() {
             build_alternate(&store, op_cache.clone(), &mut alternate_file)
-                .warn()
+                .ignore()
                 .await;
 
             if alternate_file.stored.is_none() {
@@ -229,7 +230,7 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
         models::AlternateFile::upsert(&mut store, &modified).await?;
     }
 
-    if worker_needed {
+    if worker_needed && store.store_type() != StoreType::Worker {
         store
             .send_worker_command(Command::ProcessMediaFile {
                 media_file: media_file_id.to_owned(),

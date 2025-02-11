@@ -65,6 +65,12 @@ impl Clone for Store {
 }
 
 impl Store {
+    pub(crate) fn as_store_type(&self, store_type: StoreType) -> Self {
+        let mut new_store = self.clone();
+        new_store.inner.store_type = store_type;
+        new_store
+    }
+
     pub(crate) fn store_type(&self) -> StoreType {
         self.inner.store_type
     }
@@ -98,7 +104,17 @@ impl Store {
     }
 
     pub async fn queue_task(&self, task: Task) {
-        self.inner.task_queue.queue_task(task).await;
+        self.inner
+            .task_queue
+            .queue_task(task, self.inner.store_type)
+            .await;
+    }
+
+    pub async fn queue_task_as_worker(&self, task: Task) {
+        self.inner
+            .task_queue
+            .queue_task(task, StoreType::Worker)
+            .await;
     }
 
     pub async fn shutdown(&self) {

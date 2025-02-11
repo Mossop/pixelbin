@@ -27,7 +27,7 @@ use crate::{
         },
         media::{process_media_file, prune_deleted_media, upload_media_file},
     },
-    Result, Store,
+    Result, Store, StoreType,
 };
 
 mod maintenance;
@@ -94,7 +94,7 @@ fn next_tick() -> Duration {
     Duration::from_secs(((minutes * 60) + seconds) as u64)
 }
 
-type TaskMessage = (Task, HashMap<String, String>);
+type TaskMessage = (Task, StoreType, HashMap<String, String>);
 
 fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
     set.iter()
@@ -154,8 +154,9 @@ impl TaskLoop {
         tokio::spawn(this.task_loop());
     }
 
-    async fn run_task(&self, task: &Task) -> Result {
-        let result = task.run(self.store.clone()).await;
+    async fn run_task(&self, store_type: StoreType, task: &Task) -> Result {
+        let task_store = self.store.as_store_type(store_type);
+        let result = task.run(task_store).await;
 
         let count = self.pending.fetch_sub(1, Ordering::AcqRel) - 1;
         if count == 0 {
@@ -166,7 +167,7 @@ impl TaskLoop {
     }
 
     async fn task_loop(self) {
-        while let Ok((task, context_data)) = self.receiver.recv().await {
+        while let Ok((task, store_type, context_data)) = self.receiver.recv().await {
             let linked_context =
                 global::get_text_map_propagator(|propagator| propagator.extract(&context_data));
             let linked_span = linked_context.span().span_context().clone();
@@ -175,13 +176,17 @@ impl TaskLoop {
             let span = span!(
                 Level::TRACE,
                 "task",
+                "queue_type" = ?store_type,
                 "otel.name" = task_name,
                 "otel.status_code" = DEFAULT_STATUS,
                 "otel.status_description" = field::Empty
             );
             span.add_link(linked_span);
 
-            let result = self.run_task(&task).instrument(span.clone()).await;
+            let result = self
+                .run_task(store_type, &task)
+                .instrument(span.clone())
+                .await;
             record_result(&span, &result);
         }
     }
@@ -219,7 +224,7 @@ impl TaskQueue {
         }
     }
 
-    pub(crate) async fn queue_task(&self, task: Task) {
+    pub(crate) async fn queue_task(&self, task: Task, store_type: StoreType) {
         self.pending.fetch_add(1, Ordering::AcqRel);
 
         let mut context_data = HashMap::new();
@@ -228,7 +233,10 @@ impl TaskQueue {
             propagator.inject_context(&context, &mut context_data)
         });
 
-        self.sender.send((task, context_data)).await.unwrap();
+        self.sender
+            .send((task, store_type, context_data))
+            .await
+            .unwrap();
     }
 }
 
