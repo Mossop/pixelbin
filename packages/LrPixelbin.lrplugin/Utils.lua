@@ -32,6 +32,10 @@ local Utils = {}
 ---@param args string[]?
 ---@return Error
 function Utils.throw(code, args)
+  if not args then
+    args = {}
+  end
+
   local error = {
     code = code,
     args = args
@@ -76,7 +80,7 @@ end
 ---@param val T | Error
 ---@return string
 function Utils.errorString(val)
-  error = Utils.error(val)
+  local error = Utils.error(val)
 
   local message = "Unknown Error (" .. error.code .. ")"
   if ERROR_CODES[error.code] then

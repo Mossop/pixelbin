@@ -86,19 +86,19 @@ function API:parseHTTPResult(response, info)
 
   if info.status == 401 then
     self.apiToken = nil
-    return Utils.throw("notLoggedIn", info.error.name)
+    return Utils.throw("notLoggedIn")
   end
 
   if info.status == 413 then
-    return Utils.throw("tooLarge", info.error.name)
+    return Utils.throw("tooLarge")
   end
 
   if info.status == 404 then
-    return Utils.throw("notFound", info.error.name)
+    return Utils.throw("notFound")
   end
 
   if info.status == 503 then
-    return Utils.throw("backoff", info.error.name)
+    return Utils.throw("backoff")
   end
 
   local result = Utils.jsonDecode(logger, response)
@@ -150,6 +150,7 @@ function API:callServer(cb)
       logger:info("Received backoff status from server. Sleeping for 20 seconds.")
       LrTasks.sleep(10)
     else
+      logger:error("Error response from server", Utils.errorString(result))
       return result
     end
 
@@ -926,7 +927,7 @@ end
 function API:placeInAlbum(catalog, mediaId, target, media)
   if target == nil then
     return {
-      publishedId = catalog,
+      publishedId = mediaId,
       publishedPath = "catalog/" .. catalog .. "/media/" .. mediaId,
     }
   end
