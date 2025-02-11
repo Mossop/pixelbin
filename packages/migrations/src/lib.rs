@@ -45,11 +45,7 @@ pub enum Phase<'a> {
 }
 
 impl Operation {
-    async fn run<'a>(
-        self,
-        migration: &mut Migration,
-        tx: &mut Transaction<'a, Postgres>,
-    ) -> Result {
+    async fn run(self, migration: &mut Migration, tx: &mut Transaction<'_, Postgres>) -> Result {
         match self {
             Self::Up => {
                 if let Some(sql) = migration.up_sql() {
@@ -89,7 +85,7 @@ impl OperationQueue {
         self.0.push((operation, migration))
     }
 
-    async fn apply<'a, L>(self, tx: &mut Transaction<'a, Postgres>, mut listener: L) -> Result
+    async fn apply<L>(self, tx: &mut Transaction<'_, Postgres>, mut listener: L) -> Result
     where
         L: FnMut(Operation, Phase<'_>, &Migration),
     {

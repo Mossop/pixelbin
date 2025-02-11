@@ -474,7 +474,7 @@ impl Catalog {
         sender.send_stream(stream).await
     }
 
-    pub(crate) async fn list<'conn>(conn: &mut DbConnection<'_>) -> Result<Vec<Catalog>> {
+    pub(crate) async fn list(conn: &mut DbConnection<'_>) -> Result<Vec<Catalog>> {
         Ok(sqlx::query!(r#"SELECT * FROM "catalog""#)
             .map(|row| from_row!(Catalog(row)))
             .fetch_all(conn)
