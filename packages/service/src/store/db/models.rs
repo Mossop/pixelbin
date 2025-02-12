@@ -15,7 +15,7 @@ use mime::Mime;
 use pin_project::pin_project;
 use pixelbin_shared::Ignorable;
 use regex::Regex;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize};
 use serde_json::{from_value, to_string, Value};
 use serde_plain::{derive_display_from_serialize, derive_fromstr_from_deserialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -3636,11 +3636,19 @@ pub(crate) struct Location {
 //     }
 // }
 
+fn deserialize_location<'de, D>(deserializer: D) -> result::Result<Option<Location>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Option::<Location>::deserialize(deserializer).or(Ok(None))
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct PersonRelation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) id: Option<String>,
     pub(crate) name: String,
+    #[serde(default, deserialize_with = "deserialize_location")]
     pub(crate) location: Option<Location>,
 }
 

@@ -219,14 +219,13 @@ pub(crate) struct GetMediaResponse<T> {
 }
 
 #[get("/media/{media_ids}")]
-#[instrument(err, skip(app_state, session), fields(media))]
+#[instrument(err, skip(app_state, session, media_ids))]
 async fn get_media(
     app_state: web::Data<AppState>,
     session: MaybeSession,
     request: web::Query<MediaRequest>,
     media_ids: web::Path<String>,
 ) -> ApiResult<web::Json<GetMediaResponse<models::MediaRelations>>> {
-    tracing::Span::current().record("media", media_ids.as_str());
     let ids: Vec<String> = media_ids.split(',').map(|s| s.to_owned()).collect();
     let email = session.session().map(|s| s.user.email.as_str());
 

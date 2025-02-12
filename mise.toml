@@ -2,6 +2,9 @@
 node = "22"
 watchexec = "latest"
 
+[env]
+DATABASE_URL = "postgres://pixelbin:pixelbin@localhost/pixelbin"
+
 [tasks.syncdata]
 description = "Sync local and temp storage"
 run = "./sync"
@@ -21,6 +24,14 @@ sources = [
   "packages/cli/src/**/*.rs",
 ]
 
+[tasks.apiserver.env]
+PIXELBIN_DATABASE_URL = "postgres://pixelbin:pixelbin@localhost/pixelbin"
+PIXELBIN_MAIL_SERVER = "postfix.clantownsend.com:25"
+PIXELBIN_STORAGE = "testing/data/pixelbin"
+PIXELBIN_TELEMETRY_HOST = "http://localhost:4318/v1/traces"
+PIXELBIN_TESTING = true
+PIXELBIN_MAIL_ADDRESS = "Pixelbin <noreply@pixelbin.org>"
+
 [tasks.webserver]
 description = "Run the web server"
 run = "npm run dev"
@@ -30,6 +41,10 @@ sources = [
   "packages/webapp/instrumentation.mjs",
   "packages/webapp/**/*.ts",
 ]
+
+[tasks.webserver.env]
+PIXELBIN_TELEMETRY_HOST = "http://localhost:4318/v1/traces"
+PIXELBIN_API_URL = "http://localhost:8283"
 
 [tasks.lint]
 description = "Lint the webapp"
