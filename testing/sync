@@ -1,4 +1,7 @@
 #! /bin/bash
 
+set -e
+
 rsync -rlptmz --delete --delete-excluded --filter "- .*" --info=flist2,name,progress2 bhuna:/srv/servers/bhuna/data/pixelbin/ data/pixelbin
-scp bhuna:pixelbin data/pgadmin/storage/pgadmin_pixelbin.org
+ssh bhuna docker exec postgres pg_dump -Fc -Upostgres pixelbin >data/pixelbin.sql
+cat data/pixelbin.sql | docker exec -i testing-postgres-1 pg_restore -U postgres -d pixelbin -c
