@@ -2,9 +2,6 @@
 node = "22"
 watchexec = "latest"
 
-[env]
-DATABASE_URL = "postgres://pixelbin:pixelbin@localhost/pixelbin"
-
 [tasks.syncdata]
 description = "Sync local and temp storage"
 run = "./sync"

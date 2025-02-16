@@ -21,7 +21,8 @@ use crate::{
     store::{
         db::Isolation,
         models::{
-            self, AlbumWithCount, MediaViewStream, SavedSearchWithCount, UserCatalogWithCount,
+            self, AlbumWithCount, MediaViewStream, SavedSearchWithCount, SourceType,
+            UserCatalogWithCount,
         },
     },
     Task,
@@ -383,4 +384,42 @@ async fn unsubscribe(
     models::SavedSearch::unsubscribe(&mut conn, &request.email, request.search.as_deref()).await?;
 
     Ok(web::Json(Default::default()))
+}
+
+#[derive(Deserialize)]
+struct SourceRequest {
+    id: Option<String>,
+    name: String,
+    #[serde(rename = "type")]
+    source_type: SourceType,
+}
+
+#[post("/source")]
+#[instrument(err, skip(app_state, request, _session))]
+async fn set_source(
+    app_state: web::Data<AppState>,
+    request: web::Json<SourceRequest>,
+    _session: Session,
+) -> ApiResult<web::Json<models::Source>> {
+    let source = models::Source {
+        id: request.id.clone().unwrap_or_else(|| short_id("U")),
+        name: request.name.clone(),
+        source_type: request.source_type,
+    };
+
+    match source.create_or_update(&mut app_state.store.pooled()).await {
+        Ok(_) => Ok(web::Json(source)),
+        Err(e) => Err(e.into()),
+    }
+}
+
+#[get("/source/{id}")]
+#[instrument(err, skip(app_state, _session))]
+async fn list_source(
+    app_state: web::Data<AppState>,
+    source_id: web::Path<String>,
+    _session: Session,
+) -> ApiResult<web::Json<Vec<String>>> {
+    let media = models::Source::list_media(&mut app_state.store.pooled(), &source_id).await?;
+    Ok(web::Json(media))
 }

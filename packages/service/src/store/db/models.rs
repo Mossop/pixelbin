@@ -216,6 +216,17 @@ impl Source {
         Ok(())
     }
 
+    pub(crate) async fn list_media(conn: &mut DbConnection<'_>, id: &str) -> Result<Vec<String>> {
+        Ok(sqlx::query_scalar!(
+            r#"
+            SELECT id FROM "media_item" WHERE source=$1
+            "#,
+            id,
+        )
+        .fetch_all(conn)
+        .await?)
+    }
+
     pub(crate) fn from_maybe(
         id: Option<String>,
         name: Option<String>,

@@ -320,6 +320,17 @@ function API:getSourceId(existingId, name)
   return response.id
 end
 
+---@param id string
+---@return string[]
+function API:getSourceMedia(id)
+  local result = self:GET("source/" .. id)
+  if Utils.isSuccess(result) then
+    return result
+  else
+    return {}
+  end
+end
+
 ---@param ids string[]
 ---@param progressCallback fun(count: number)?
 ---@return { [string]: Media }

@@ -10,6 +10,7 @@ local logger = require("Logging")("VerifyRemote")
 Utils.runAsync(logger, "VerifyRemoteAsync", function()
   ---@type LrPublishedPhoto[]
   local needsEdit = {}
+  local deleteCount = 0
 
   local services = LrApplication.activeCatalog():getPublishServices(_PLUGIN.id)
   ProgressScope.new(LOC("$$$/LrPixelBin/Verify=Verifying Remote Media"), Utils.length(services), function(outerScope)
@@ -17,8 +18,9 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
       ---@type PublishSettings
       local publishSettings = service:getPublishSettings()
 
-      outerScope:childScope(6, function(serviceScope)
+      outerScope:childScope(7, function(serviceScope)
         local defaultCollection = Utils.getDefaultCollection(service)
+        local collectionInfo = defaultCollection:getCollectionInfoSummary()
 
         local catalog = publishSettings.catalog
         logger:info("Checking photos for " .. publishSettings.siteUrl)
@@ -113,10 +115,31 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
 
         logger:info("Default collection end")
 
-        if photosToCheck > 0 then
-          local api = API(publishSettings)
-          api:refreshState()
+        local api = API(publishSettings)
+        api:refreshState()
 
+        if collectionInfo.collectionSettings.sourceId then
+          ---@type string[]
+          local mediaToDelete = {}
+
+          local sourceMedia = api:getSourceMedia(collectionInfo.collectionSettings.sourceId)
+          logger:info(Utils.length(sourceMedia) .. " media items exist on the server for this service")
+          serviceScope:ipairs(sourceMedia, function(_, _, media_id)
+            if not byRemoteId[media_id] then
+              table.insert(mediaToDelete, media_id);
+              deleteCount = deleteCount + 1
+            end
+          end)
+
+          if deleteCount > 0 then
+            api:deleteMedia(mediaToDelete)
+          end
+        else
+          logger:warn("Missing publish source ID")
+          serviceScope:advance(1)
+        end
+
+        if photosToCheck > 0 then
           logger:info("Get " .. photosToCheck .. " media")
           local media = serviceScope:childScope(photosToCheck, function(scope)
             return api:getMedia(remoteIds, function(completed)
@@ -184,9 +207,15 @@ Utils.runAsync(logger, "VerifyRemoteAsync", function()
     end)
   end
 
-  if editCount == 0 then
+  if editCount == 0 and deleteCount == 0 then
     LrDialogs.message("All photos are published correctly.", nil, "info")
-  else
+  elseif deleteCount == 0 then
     LrDialogs.message(editCount .. " photos need to be republished.", nil, "warning")
+  elseif editCount == 0 then
+    LrDialogs.message(deleteCount .. " unknown photos were deleted from the service.", nil, "warning")
+  else
+    LrDialogs.message(
+      editCount .. " photos need to be republished, " .. deleteCount .. " unknown photos were deleted from the service.",
+      nil, "warning")
   end
 end)
