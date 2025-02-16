@@ -219,7 +219,7 @@ impl Source {
     pub(crate) async fn list_media(conn: &mut DbConnection<'_>, id: &str) -> Result<Vec<String>> {
         Ok(sqlx::query_scalar!(
             r#"
-            SELECT id FROM "media_item" WHERE source=$1
+            SELECT id FROM "media_item" WHERE source=$1 AND NOT "deleted"
             "#,
             id,
         )
