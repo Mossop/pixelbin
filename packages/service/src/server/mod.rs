@@ -1,5 +1,6 @@
 use std::{collections::HashMap, env, fmt::Display, result};
 
+use actix_multipart::form::MultipartFormConfig;
 use actix_web::{
     body::BoxBody,
     get,
@@ -244,6 +245,11 @@ pub async fn serve(store: Store) -> Result {
     HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
+            .app_data(
+                MultipartFormConfig::default()
+                    .memory_limit(4 * 1024 * 1024)
+                    .total_limit(500 * 1024 * 1024),
+            )
             .wrap(from_fn(middleware::middleware))
             .service(
                 web::resource("/{any:.*}")

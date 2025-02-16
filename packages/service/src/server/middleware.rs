@@ -399,6 +399,8 @@ pub(super) async fn middleware<B: MessageBody>(
         "url.path" = req.path(),
         "user_agent.original" = field::Empty,
         "http.request.method" = %req.method(),
+        "http.request.content_type" = field::Empty,
+        "http.request.content_length" = field::Empty,
         "http.response.status_code" = field::Empty,
         "otel.status_code" = DEFAULT_STATUS,
         "otel.status_description" = field::Empty,
@@ -406,6 +408,14 @@ pub(super) async fn middleware<B: MessageBody>(
 
     if let Some(user_agent) = headers.get("user-agent").and_then(|h| h.to_str().ok()) {
         span.record("user_agent.original", user_agent);
+    }
+
+    if let Some(user_agent) = headers.get("content-type").and_then(|h| h.to_str().ok()) {
+        span.record("http.request.content_type", user_agent);
+    }
+
+    if let Some(user_agent) = headers.get("content-length").and_then(|h| h.to_str().ok()) {
+        span.record("http.request.content_length", user_agent);
     }
 
     let client_addr = client_addr(req.request());
