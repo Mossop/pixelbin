@@ -344,17 +344,23 @@ function Provider.processRenderedPhotos(context, exportContext)
                     defaultCollection:addPhotoByRemoteId(rendition.photo, remoteId, catalogUrl .. remoteId, true)
                   end)
                 end
+
+                info.needsUpload = false
+              else
+                rendition:uploadFailed(Utils.errorString(result))
               end
             end
 
-            local target = api:targetAlbumForPhoto(collectionInfo, album, rendition.photo)
-            local result = api:placeInAlbum(catalog, remoteId, target, knownMedia[remoteId])
+            if not info.needsUpload then
+              local target = api:targetAlbumForPhoto(collectionInfo, album, rendition.photo)
+              local result = api:placeInAlbum(catalog, remoteId, target, knownMedia[remoteId])
 
-            if Utils.isSuccess(result) then
-              rendition:recordPublishedPhotoId(result.publishedId)
-              rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
-            else
-              rendition:uploadFailed(Utils.errorString(result))
+              if Utils.isSuccess(result) then
+                rendition:recordPublishedPhotoId(result.publishedId)
+                rendition:recordPublishedPhotoUrl(publishSettings.siteUrl .. result.publishedPath)
+              else
+                rendition:uploadFailed(Utils.errorString(result))
+              end
             end
           end
         end
