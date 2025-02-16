@@ -36,7 +36,9 @@ jobs:
           password: ${{ secrets.PACKAGE_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
+        env:
+          PROGRESS_NO_TRUNC: 1
         with:
           file: packages/cli/Dockerfile
           platforms: linux/amd64
