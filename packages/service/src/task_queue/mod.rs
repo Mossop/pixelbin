@@ -106,7 +106,7 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
             let bytes = s.as_bytes();
             let char = bytes[bytes.len() - 1];
 
-            // value is 0..61
+            // value is 0..62
             let value = match char {
                 // A .. Z
                 65..=90 => char - 65,
@@ -117,7 +117,10 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
                 _ => return None,
             } as u32;
 
-            if ((size * value) as f64 / 61.0).round() as u32 == offset {
+            let position = (size * value) as f64 / 62.0;
+            let offset = offset as f64;
+
+            if position >= offset && position < offset + 1.0 {
                 Some(s.as_str())
             } else {
                 None
@@ -332,4 +335,46 @@ pub(crate) fn spawn_cron(store: Store) {
             cron_inner(&store).await.warn();
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use crate::task_queue::partition;
+
+    fn scan_partition(catalogs: &[String], size: u32) {
+        let mut seen_catalogs: HashSet<String> = HashSet::new();
+
+        for offset in 0..size {
+            for seen in partition(catalogs, size, offset) {
+                assert!(!seen_catalogs.contains(seen), "Should see {seen} only once");
+
+                seen_catalogs.insert(seen.to_owned());
+            }
+        }
+
+        assert_eq!(
+            seen_catalogs.len(),
+            catalogs.len(),
+            "Should see all catalogs once"
+        );
+    }
+
+    #[test]
+    fn test_partition() {
+        let mut catalogs: Vec<String> = Vec::new();
+        for i in 0_u8..26 {
+            catalogs.push(std::str::from_utf8(&[i + 65]).unwrap().to_owned());
+            catalogs.push(std::str::from_utf8(&[i + 97]).unwrap().to_owned());
+        }
+
+        for i in 0_u8..10 {
+            catalogs.push(std::str::from_utf8(&[i + 48]).unwrap().to_owned());
+        }
+
+        scan_partition(&catalogs, 28);
+        scan_partition(&catalogs, 30);
+        scan_partition(&catalogs, 31);
+    }
 }
