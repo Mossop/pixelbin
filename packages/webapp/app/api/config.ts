@@ -22,6 +22,10 @@ export const loader = safeLoader(
       config.webappChangeset = process.env.SOURCE_CHANGESET;
     }
 
-    return new Response(JSON.stringify(config));
+    return new Response(JSON.stringify(config), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   },
 );
