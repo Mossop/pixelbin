@@ -23,21 +23,21 @@ tracing = { version = "0.1.40", features = ["attributes"] }
 async-trait = "0.1.80"
 thiserror = "2.0.9"
 enum_dispatch = "0.3.13"
-opentelemetry = "0.27.1"
-opentelemetry_sdk = { version = "0.27.1", features = ["rt-tokio"] }
-tracing-opentelemetry = "0.28.0"
+opentelemetry = "0.31.0"
+opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
+tracing-opentelemetry = "0.32.0"
 scoped-futures = "0.1.3"
 serde = { version = "1.0.209", features = ["derive"] }
 serde_json = "1.0.127"
 aws-sdk-s3 = "1.46.0"
 aws-config = "1.5.5"
 futures = "0.3.30"
-chrono = { version = "0.4.38", features = ["clock", "serde", "clock"] }
-bcrypt = "0.16.0"
-monostate = "0.1.13"
+chrono = { version = "0.4.38", features = ["clock", "serde"] }
+bcrypt = "0.17.1"
+monostate = "1.0.2"
 serde_repr = "0.1.19"
 serde_plain = "1.0.2"
-tzf-rs = { version = "0.4.8", default-features = false }
+tzf-rs = { version = "1.1.3", default-features = false }
 lazy_static = "1.5.0"
 lexical-parse-float = "1.0.5"
 chrono-tz = "0.10.0"
@@ -45,7 +45,7 @@ tempfile = "3.12.0"
 image = { version = "0.25.1", features = ["avif"] }
 async-channel = "2.3.1"
 figment = { version = "0.10.19", features = ["json", "env"] }
-strum_macros = "0.26.4"
+strum_macros = "0.27.2"
 webp = "0.3.0"
 pin-project = "1.1.5"
 regex = "1.10.6"
@@ -55,12 +55,12 @@ sqlx = { version = "0.8.2", features = [
   "chrono",
   "json",
 ] }
-itertools = "0.13.0"
+itertools = "0.14.0"
 pixelbin_shared = { path = "../shared" }
 pixelbin_migrations = { path = "../migrations" }
 enum-repr = "0.2.6"
-mail-send = "0.4.9"
-askama = "0.12.1"
+mail-send = "0.5.2"
+askama = "0.14.0"
 
 actix-web = { version = "4.9.0", optional = true }
 actix-multipart = { version = "0.7.2", optional = true }
@@ -69,5 +69,5 @@ nano-id = { version = "0.4.0", features = ["base62"], optional = true }
 serde_with = { version = "3.8.3", optional = true }
 mime = { version = "0.3.17", optional = true }
 tokio-util = { version = "0.7.11", features = ["io"], optional = true }
-file-format = { version = "0.26.0", features = ["reader-mp4"], optional = true }
-rustix = { version = "0.38.37", features = ["process"], optional = true }
+file-format = { version = "0.28.0", features = ["reader-mp4"], optional = true }
+rustix = { version = "1.1.2", features = ["process"], optional = true }

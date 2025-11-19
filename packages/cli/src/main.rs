@@ -11,9 +11,7 @@ use dotenvy::dotenv;
 use enum_dispatch::enum_dispatch;
 use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
 use opentelemetry_otlp::{Protocol, SpanExporter, WithExportConfig};
-use opentelemetry_sdk::{
-    propagation::TraceContextPropagator, runtime, trace::TracerProvider, Resource,
-};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::SdkTracerProvider, Resource};
 use pixelbin::{
     send_test_message, server::serve, worker::worker, Config, Result, Store, StoreStats, StoreType,
     Task, TestMessage,
@@ -283,7 +281,7 @@ struct CliArgs {
 fn init_logging(
     telemetry: Option<&str>,
     level: Option<LevelFilter>,
-) -> result::Result<Option<TracerProvider>, Box<dyn Error>> {
+) -> result::Result<Option<SdkTracerProvider>, Box<dyn Error>> {
     // let filter = EnvFilter::from_default_env().or(TracingFilter {});
 
     let default_level = if let Some(level) = level {
@@ -310,7 +308,7 @@ fn init_logging(
     if let Some(telemetry_host) = telemetry {
         global::set_text_map_propagator(TraceContextPropagator::new());
 
-        let tracer_provider = TracerProvider::builder()
+        let tracer_provider = SdkTracerProvider::builder()
             .with_batch_exporter(
                 SpanExporter::builder()
                     .with_http()
@@ -318,12 +316,12 @@ fn init_logging(
                     .with_endpoint(telemetry_host)
                     .with_timeout(Duration::from_secs(3))
                     .build()?,
-                runtime::Tokio,
             )
-            .with_resource(Resource::new(vec![KeyValue::new(
-                "service.name",
-                "pixelbin-api",
-            )]))
+            .with_resource(
+                Resource::builder()
+                    .with_attribute(KeyValue::new("service.name", "pixelbin-api"))
+                    .build(),
+            )
             .build();
 
         let tracer = tracer_provider.tracer("pixelbin-api");
@@ -365,7 +363,12 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     let result = args.command.exec(config).await;
 
     if let Some(provider) = provider {
-        provider.force_flush();
+        if let Err(e) = provider.force_flush() {
+            eprintln!("Failed to flush telemetry data: {e}");
+        }
+        if let Err(e) = provider.shutdown() {
+            eprintln!("Failed to shutdown telemetry provider: {e}");
+        }
     }
 
     Ok(result?)

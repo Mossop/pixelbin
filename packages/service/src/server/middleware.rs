@@ -387,7 +387,7 @@ pub(super) async fn middleware<B: MessageBody>(
 
     let parent_context =
         global::get_text_map_propagator(|propagator| propagator.extract(&extractor));
-    Span::current().set_parent(parent_context);
+    let _ = Span::current().set_parent(parent_context);
 
     let span = span!(
         Level::TRACE,

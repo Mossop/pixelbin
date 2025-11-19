@@ -16,7 +16,11 @@ const LOGO_IMAGE: &[u8; 10913] = include_bytes!("../templates/logo.png");
 mod filters {
     use crate::store::models::Batch;
 
-    pub(super) fn batch<T>(slice: &'_ [T], count: usize) -> ::askama::Result<Batch<'_, T>> {
+    pub(super) fn batch<'a, T>(
+        slice: &'a [T],
+        _: &dyn askama::Values,
+        count: usize,
+    ) -> ::askama::Result<Batch<'a, T>> {
         Ok(Batch::new(slice, count))
     }
 }
