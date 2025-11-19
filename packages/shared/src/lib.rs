@@ -1,4 +1,5 @@
 #![deny(unreachable_pub)]
+#![allow(clippy::result_large_err)]
 use std::{fmt::Debug, future::Future, result};
 
 mod config;

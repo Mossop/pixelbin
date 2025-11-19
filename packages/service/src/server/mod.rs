@@ -31,7 +31,6 @@ mod auth;
 mod media;
 mod middleware;
 mod relations;
-mod util;
 
 #[derive(Debug)]
 enum ApiErrorCode {

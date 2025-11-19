@@ -103,10 +103,7 @@ fn expect_subsecs(val: &Value) -> Option<f64> {
         }
     };
 
-    match str.parse::<f64>() {
-        Ok(v) => Some(v),
-        Err(_) => None,
-    }
+    str.parse::<f64>().ok()
 }
 
 fn expect_datetime(val: &Value) -> Option<NaiveDateTime> {
@@ -134,11 +131,7 @@ fn expect_gps_coord(val: &Value) -> Option<f32> {
                 s.parse::<f32>()
             };
 
-            if let Ok(v) = result {
-                Some(v)
-            } else {
-                None
-            }
+            result.ok()
         }
         _ => None,
     }

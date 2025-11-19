@@ -16,7 +16,7 @@ const LOGO_IMAGE: &[u8; 10913] = include_bytes!("../templates/logo.png");
 mod filters {
     use crate::store::models::Batch;
 
-    pub(super) fn batch<T>(slice: &[T], count: usize) -> ::askama::Result<Batch<T>> {
+    pub(super) fn batch<T>(slice: &'_ [T], count: usize) -> ::askama::Result<Batch<'_, T>> {
         Ok(Batch::new(slice, count))
     }
 }
@@ -37,7 +37,7 @@ pub(crate) trait MessageTemplate: Template {
         None
     }
 
-    fn build_message(&self) -> MessageBuilder {
+    fn build_message(&'_ self) -> MessageBuilder<'_> {
         let mut mimeparts = MimePart::new(
             "multipart/related",
             vec![

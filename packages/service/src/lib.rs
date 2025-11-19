@@ -1,4 +1,5 @@
 #![deny(unreachable_pub)]
+#![allow(clippy::result_large_err)]
 pub use pixelbin_shared::{Config, Error, Result};
 
 mod mail;

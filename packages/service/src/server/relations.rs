@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, slice};
 
 use actix_web::{
     get,
@@ -59,7 +59,7 @@ async fn create_album(
         parent: request.album.parent.clone(),
     };
 
-    models::Album::upsert(&mut conn, &[album.clone()]).await?;
+    models::Album::upsert(&mut conn, slice::from_ref(&album)).await?;
 
     Ok(web::Json(album))
 }

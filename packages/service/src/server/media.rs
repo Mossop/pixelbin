@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{slice, str::FromStr};
 
 use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
 use actix_web::{
@@ -455,7 +455,7 @@ async fn update_media_item(
         }
     }
 
-    models::MediaItem::upsert(conn, &[media_item.clone()]).await?;
+    models::MediaItem::upsert(conn, slice::from_ref(media_item)).await?;
 
     if let Some(ref tag_list) = data.tags {
         let mut tags = Vec::new();
@@ -529,9 +529,12 @@ async fn upload_media(
     tracing::Span::current().record("id", &data.json.id);
 
     let mut conn = app_state.store.isolated(Isolation::Committed).await?;
-    let mut media_items =
-        models::MediaItem::get_for_user(&mut conn, &session.user.email, &[data.json.id.clone()])
-            .await?;
+    let mut media_items = models::MediaItem::get_for_user(
+        &mut conn,
+        &session.user.email,
+        slice::from_ref(&data.json.id),
+    )
+    .await?;
 
     if media_items.is_empty() {
         return Err(Error::NotFound.into());
@@ -612,7 +615,8 @@ async fn edit_media(
 
     let mut conn = app_state.store.isolated(Isolation::Committed).await?;
     let mut media =
-        models::MediaItem::get_for_user(&mut conn, &session.user.email, &[data.id.clone()]).await?;
+        models::MediaItem::get_for_user(&mut conn, &session.user.email, slice::from_ref(&data.id))
+            .await?;
 
     if media.is_empty() {
         return Err(Error::NotFound.into());

@@ -78,7 +78,7 @@ impl<'a, T> Iterator for Batch<'a, T> {
     }
 }
 
-pub(crate) fn batch<T>(slice: &[T], count: usize) -> Batch<T> {
+pub(crate) fn batch<T>(slice: &'_ [T], count: usize) -> Batch<'_, T> {
     Batch::new(slice, count)
 }
 
@@ -3668,22 +3668,6 @@ pub(crate) struct SearchRelation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) id: Option<String>,
     pub(crate) name: String,
-}
-
-#[derive(Serialize, Clone, Debug)]
-#[serde(transparent)]
-pub(crate) struct MaybeVec<T>(Vec<T>);
-
-impl<T: DeserializeOwned> TryFrom<Option<Value>> for MaybeVec<T> {
-    type Error = serde_json::Error;
-
-    fn try_from(value: Option<Value>) -> result::Result<MaybeVec<T>, serde_json::Error> {
-        if let Some(value) = value {
-            Ok(MaybeVec(from_value(value)?))
-        } else {
-            Ok(MaybeVec(Vec::new()))
-        }
-    }
 }
 
 #[derive(Serialize, Clone, Debug)]
