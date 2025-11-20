@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, env::current_exe, io, process::Stdio, sync::Arc, thread};
 
-use async_channel::{unbounded, Receiver, Sender};
+use async_channel::{Receiver, Sender, unbounded};
 use pixelbin_shared::IgnorableFuture;
 use rustix::process::setpriority_process;
 use serde::{Deserialize, Serialize};
@@ -10,9 +10,9 @@ use tokio::{
     process::{self, Child, ChildStdin},
     sync::Mutex,
 };
-use tracing::{error, span, trace, warn, Instrument, Level};
+use tracing::{Instrument, Level, error, span, trace, warn};
 
-use crate::{store::StoreType, Result, Store, Task};
+use crate::{Result, Store, Task, store::StoreType};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "command", content = "params", rename_all = "camelCase")]
@@ -83,12 +83,20 @@ struct HostInner {
     workers: VecDeque<WorkerProcess>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub(crate) struct WorkerHost {
+    store: Store,
     inner: Arc<Mutex<HostInner>>,
 }
 
 impl WorkerHost {
+    pub(crate) fn new(store: &Store) -> Self {
+        Self {
+            store: store.clone(),
+            inner: Default::default(),
+        }
+    }
+
     pub(crate) async fn shutdown(&self) {
         let mut inner = self.inner.lock().await;
         for worker in inner.workers.drain(..) {
@@ -96,9 +104,9 @@ impl WorkerHost {
         }
     }
 
-    pub(crate) async fn send_command(&self, store: &Store, command: Command) {
-        if store.store_type() != StoreType::Server {
-            Worker::process_command(store, command).await;
+    pub(crate) async fn send_command(&self, command: Command) {
+        if self.store.store_type() != StoreType::Server {
+            Worker::process_command(&self.store, command).await;
             return;
         }
 
@@ -108,7 +116,7 @@ impl WorkerHost {
         let mut has_spawned = false;
 
         loop {
-            let worker = if !has_spawned && inner.workers.len() < store.config().max_workers {
+            let worker = if !has_spawned && inner.workers.len() < self.store.config().max_workers {
                 has_spawned = true;
                 match WorkerProcess::spawn().await {
                     Ok(w) => Some(w),
@@ -135,7 +143,7 @@ impl WorkerHost {
         }
 
         // If we were unable to get a worker then just run the command here.
-        Worker::process_command(store, command).await;
+        Worker::process_command(&self.store, command).await;
     }
 }
 

@@ -46,7 +46,7 @@ async fn social_handler(
     path: web::Path<SocialPath>,
 ) -> ApiResult<impl Responder> {
     let (alternate, path) =
-        match models::AlternateFile::get_social(app_state.store.clone(), &path.item).await {
+        match models::AlternateFile::get_social(app_state.store.pooled(), &path.item).await {
             Ok(alternates) => alternates,
             Err(Error::NotFound) => return not_found(),
             Err(e) => return Err(e.into()),

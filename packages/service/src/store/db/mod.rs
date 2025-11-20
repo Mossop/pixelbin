@@ -8,15 +8,15 @@ use std::{fmt, mem, time::Duration};
 use pixelbin_migrations::{Migrator, Phase};
 use serde::Serialize;
 use sqlx::{
-    pool::{PoolConnection, PoolConnectionMetadata, PoolOptions},
     Result as SqlxResult, Transaction,
+    pool::{PoolConnection, PoolConnectionMetadata, PoolOptions},
 };
-use tracing::{error, info, instrument, trace, warn, Span};
+use tracing::{Span, error, info, instrument, trace, warn};
 
 use crate::{
-    store::{db::internal::Connection, locks::Locks, StoreInner},
-    task_queue::WorkerHost,
     Config, Result, Store, StoreType, Task, TaskQueue,
+    store::{LazyInit, db::internal::Connection, locks::Locks},
+    task_queue::WorkerHost,
 };
 
 pub(crate) type SqlxDatabase = sqlx::Postgres;
@@ -140,50 +140,46 @@ pub(crate) async fn connect(config: &Config, store_type: StoreType) -> Result<St
         }).await?;
     }
 
-    let mut task_queue = TaskQueue::new();
-
-    let mut store: Store = StoreInner {
+    let store = Store {
         store_type,
         pool,
         config: config.clone(),
-        task_queue: task_queue.clone(),
-        workers: WorkerHost::default(),
-        locks: Locks::new(),
-    }
-    .into();
+        task_queue: LazyInit::new(),
+        workers: LazyInit::new(),
+        locks: LazyInit::new(),
+    };
 
-    match store_type {
-        StoreType::Server => task_queue.spawn_loops(store.clone(), 4),
-        StoreType::Worker => task_queue.spawn_loops(store.clone(), 2),
-        _ => {}
-    }
+    store.locks.init(Locks::new(&store));
+    store.workers.init(WorkerHost::new(&store));
+    store.task_queue.init(TaskQueue::new(&store));
 
     // Verify that we can connect and update cached views.
+    let mut conn = store.pooled();
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "user_catalog";"#)
-        .execute(&mut store)
+        .execute(&mut conn)
         .await?;
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "album_descendent";"#)
-        .execute(&mut store)
+        .execute(&mut conn)
         .await?;
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "album_relation";"#)
-        .execute(&mut store)
+        .execute(&mut conn)
         .await?;
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "tag_descendent";"#)
-        .execute(&mut store)
+        .execute(&mut conn)
         .await?;
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "tag_relation";"#)
-        .execute(&mut store)
+        .execute(&mut conn)
         .await?;
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "person_relation";"#)
-        .execute(&mut store)
+        .execute(&mut conn)
         .await?;
     sqlx::query!(r#"REFRESH MATERIALIZED VIEW "media_file_alternates";"#)
-        .execute(&mut store)
+        .execute(&mut conn)
         .await?;
 
     // Clear expired auth tokens.
     sqlx::query!("DELETE FROM auth_token WHERE expiry <= CURRENT_TIMESTAMP")
-        .execute(&mut store)
+        .execute(&mut conn)
         .await?;
 
     Ok(store)
@@ -243,7 +239,7 @@ impl StoreStats {
 }
 
 pub struct DbConnection<'conn> {
-    store_inner: StoreInner,
+    store: Store,
     connection: Connection<'conn>,
 }
 
@@ -256,18 +252,18 @@ impl fmt::Debug for DbConnection<'_> {
 }
 
 impl DbConnection<'static> {
-    pub(super) fn pooled(store_inner: StoreInner) -> Self {
+    pub(super) fn pooled(store: Store) -> Self {
         Self {
-            connection: Connection::Pool(store_inner.pool.clone()),
-            store_inner,
+            connection: Connection::Pool(store.pool.clone()),
+            store,
         }
     }
 
-    pub(super) async fn connect(store_inner: StoreInner) -> Result<Self> {
-        let db_connection = store_inner.pool.acquire().await?;
+    pub(super) async fn connect(store: Store) -> Result<Self> {
+        let db_connection = store.pool.acquire().await?;
 
         Ok(Self {
-            store_inner,
+            store,
             connection: Connection::Connected(db_connection),
         })
     }
@@ -288,15 +284,15 @@ impl<'conn> DbConnection<'conn> {
         tx: Transaction<'conn, SqlxDatabase>,
     ) -> Self {
         DbConnection {
-            store_inner: store.inner,
+            store,
             connection: Connection::Transaction((isolation, tx)),
         }
     }
 
     pub async fn queue_task(&self, task: Task) {
-        self.store_inner
+        self.store
             .task_queue
-            .queue_task(task, self.store_inner.store_type)
+            .queue_task(task, self.store.store_type)
             .await;
     }
 
@@ -334,7 +330,7 @@ impl<'conn> DbConnection<'conn> {
     }
 
     pub fn config(&self) -> &Config {
-        &self.store_inner.config
+        &self.store.config
     }
 
     pub async fn list_catalogs(&mut self) -> Result<Vec<String>> {
@@ -345,12 +341,6 @@ impl<'conn> DbConnection<'conn> {
 
 pub(crate) trait AsDb<'conn> {
     fn as_db(&mut self) -> &mut DbConnection<'conn>;
-}
-
-impl AsDb<'static> for Store {
-    fn as_db(&mut self) -> &mut DbConnection<'static> {
-        self
-    }
 }
 
 impl<'conn> AsDb<'conn> for DbConnection<'conn> {

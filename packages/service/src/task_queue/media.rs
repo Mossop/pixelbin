@@ -5,20 +5,20 @@ use tokio::fs;
 use tracing::{instrument, trace};
 
 use crate::{
+    Error, Result, Store, Task,
     metadata::{
-        encode_alternate_image, encode_alternate_video, parse_media, parse_metadata, FileMetadata,
-        METADATA_FILE,
+        FileMetadata, METADATA_FILE, encode_alternate_image, encode_alternate_video, parse_media,
+        parse_metadata,
     },
     shared::file_exists,
     store::{
-        db::{models, Isolation},
+        StoreType,
+        db::{Isolation, models},
         file::{DiskStore, FileStore},
         models::AlternateFileType,
-        StoreType,
     },
     task_queue::opcache::MediaFileOpCache,
     task_queue::worker::Command,
-    Error, Result, Store, Task,
 };
 
 #[instrument(skip(store, op_cache), err)]
@@ -55,10 +55,11 @@ async fn extract_metadata(store: &Store, op_cache: MediaFileOpCache) -> Result {
 }
 
 #[instrument(skip(store), err)]
-pub(super) async fn upload_media_file(mut store: Store, media_file_id: &str) -> Result {
+pub(super) async fn upload_media_file(store: Store, media_file_id: &str) -> Result {
     trace!("Uploading media file");
 
-    let (media_file, media_file_store) = models::MediaFile::get(&mut store, media_file_id).await?;
+    let mut conn = store.pooled();
+    let (media_file, media_file_store) = models::MediaFile::get(&mut conn, media_file_id).await?;
 
     if media_file.stored.is_some() {
         return Ok(());
@@ -66,7 +67,7 @@ pub(super) async fn upload_media_file(mut store: Store, media_file_id: &str) -> 
 
     let guard = store
         .locks()
-        .media_item(&store, &media_file_store.media_item_store())
+        .media_item(&media_file_store.media_item_store())
         .for_update()
         .await;
 
@@ -91,7 +92,7 @@ pub(super) async fn upload_media_file(mut store: Store, media_file_id: &str) -> 
         .push(&temp_file, &file_path, &op_cache.media_file.mimetype)
         .await?;
 
-    op_cache.media_file.mark_stored(&mut store).await?;
+    op_cache.media_file.mark_stored(&mut conn).await?;
 
     op_cache.release().await
 }
@@ -158,13 +159,14 @@ async fn build_alternate(
 }
 
 #[instrument(skip(store), err)]
-pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) -> Result {
+pub(super) async fn process_media_file(store: Store, media_file_id: &str) -> Result {
     trace!(media_file_id, "Processing media file");
-    let (media_file, media_file_store) = models::MediaFile::get(&mut store, media_file_id).await?;
+    let mut conn = store.pooled();
+    let (media_file, media_file_store) = models::MediaFile::get(&mut conn, media_file_id).await?;
 
     let guard = store
         .locks()
-        .media_item(&store, &media_file_store.media_item_store())
+        .media_item(&media_file_store.media_item_store())
         .for_update()
         .await;
 
@@ -185,7 +187,7 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
     let mut modified = Vec::<models::AlternateFile>::new();
 
     for mut alternate_file in
-        models::AlternateFile::list_for_media_file(&mut store, &media_file_store.file).await?
+        models::AlternateFile::list_for_media_file(&mut conn, &media_file_store.file).await?
     {
         if alternate_file.stored.is_none() {
             build_alternate(&store, op_cache.clone(), &mut alternate_file)
@@ -198,12 +200,13 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
         }
     }
 
-    let mut conn = store.isolated(Isolation::Committed).await?;
+    let mut isolated = store.isolated(Isolation::Committed).await?;
     if !modified.is_empty() {
-        models::AlternateFile::upsert(&mut conn, &modified).await?;
+        models::AlternateFile::upsert(&mut isolated, &modified).await?;
     }
-    models::MediaItem::update_media_files(&mut conn, &op_cache.media_file_store.catalog).await?;
-    conn.commit().await?;
+    models::MediaItem::update_media_files(&mut isolated, &op_cache.media_file_store.catalog)
+        .await?;
+    isolated.commit().await?;
 
     // Now see if there is social media required.
     let mut worker_needed = false;
@@ -211,7 +214,7 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
     modified.clear();
 
     for mut alternate_file in
-        models::AlternateFile::list_for_media_file(&mut store, &media_file_store.file).await?
+        models::AlternateFile::list_for_media_file(&mut conn, &media_file_store.file).await?
     {
         if alternate_file.stored.is_none() {
             build_alternate(&store, op_cache.clone(), &mut alternate_file)
@@ -227,7 +230,7 @@ pub(super) async fn process_media_file(mut store: Store, media_file_id: &str) ->
     }
 
     if !modified.is_empty() {
-        models::AlternateFile::upsert(&mut store, &modified).await?;
+        models::AlternateFile::upsert(&mut conn, &modified).await?;
     }
 
     if worker_needed && store.store_type() != StoreType::Worker {

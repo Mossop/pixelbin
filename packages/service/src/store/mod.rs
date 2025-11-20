@@ -2,7 +2,8 @@
 use std::{
     fmt,
     future::Future,
-    ops::{Deref, DerefMut},
+    ops::Deref,
+    sync::{Arc, OnceLock},
 };
 
 pub(crate) mod aws;
@@ -12,12 +13,12 @@ pub(crate) mod locks;
 pub(crate) mod path;
 
 pub(crate) use db::models;
-use db::{connect, DbConnection};
+use db::{DbConnection, connect};
 
 use crate::{
+    Config, Isolation, Result, Task, TaskQueue,
     store::{db::DbPool, locks::Locks},
     task_queue::worker::{Command, WorkerHost},
-    Config, Isolation, Result, Task, TaskQueue,
 };
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
@@ -28,63 +29,74 @@ pub enum StoreType {
     Worker,
 }
 
-#[derive(Clone)]
-struct StoreInner {
-    store_type: StoreType,
-    config: Config,
-    pool: DbPool,
-    task_queue: TaskQueue,
-    workers: WorkerHost,
-    locks: Locks,
+struct LazyInit<T> {
+    inner: Arc<OnceLock<T>>,
 }
 
-impl From<StoreInner> for Store {
-    fn from(inner: StoreInner) -> Self {
-        Store {
-            pooled: DbConnection::pooled(inner.clone()),
-            inner,
+impl<T> Clone for LazyInit<T> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: Arc::clone(&self.inner),
         }
     }
 }
 
+impl<T> LazyInit<T> {
+    fn new() -> Self {
+        Self {
+            inner: Arc::new(OnceLock::new()),
+        }
+    }
+
+    fn init(&self, value: T) {
+        let _ = self.inner.set(value);
+    }
+}
+
+impl<T> Deref for LazyInit<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner.get().unwrap()
+    }
+}
+
+#[derive(Clone)]
 pub struct Store {
-    inner: StoreInner,
-    pooled: DbConnection<'static>,
+    store_type: StoreType,
+    config: Config,
+    pool: DbPool,
+    task_queue: LazyInit<TaskQueue>,
+    workers: LazyInit<WorkerHost>,
+    locks: LazyInit<Locks>,
 }
 
 impl fmt::Debug for Store {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.inner.config.fmt(f)
-    }
-}
-
-impl Clone for Store {
-    fn clone(&self) -> Self {
-        self.inner.clone().into()
+        self.config.fmt(f)
     }
 }
 
 impl Store {
     pub(crate) fn as_store_type(&self, store_type: StoreType) -> Self {
         let mut new_store = self.clone();
-        new_store.inner.store_type = store_type;
+        new_store.store_type = store_type;
         new_store
     }
 
     pub(crate) fn store_type(&self) -> StoreType {
-        self.inner.store_type
+        self.store_type
     }
 
     pub(crate) fn with_pool(&self, pool: DbPool) -> Self {
-        StoreInner {
-            store_type: self.inner.store_type,
+        Store {
+            store_type: self.store_type,
             pool,
-            task_queue: self.inner.task_queue.clone(),
-            config: self.inner.config.clone(),
-            workers: self.inner.workers.clone(),
-            locks: self.inner.locks.clone(),
+            task_queue: self.task_queue.clone(),
+            config: self.config.clone(),
+            workers: self.workers.clone(),
+            locks: self.locks.clone(),
         }
-        .into()
     }
 
     pub async fn new(config: Config, store_type: StoreType) -> Result<Self> {
@@ -92,63 +104,43 @@ impl Store {
     }
 
     pub fn pooled(&self) -> DbConnection<'static> {
-        DbConnection::pooled(self.inner.clone())
+        DbConnection::pooled(self.clone())
     }
 
     pub fn connect(&self) -> impl Future<Output = Result<DbConnection<'static>>> {
-        DbConnection::connect(self.inner.clone())
+        DbConnection::connect(self.clone())
     }
 
     pub(crate) fn locks(&self) -> &Locks {
-        &self.inner.locks
+        &self.locks
     }
 
     pub async fn queue_task(&self, task: Task) {
-        self.inner
-            .task_queue
-            .queue_task(task, self.inner.store_type)
-            .await;
+        self.task_queue.queue_task(task, self.store_type).await;
     }
 
     pub async fn queue_task_as_worker(&self, task: Task) {
-        self.inner
-            .task_queue
-            .queue_task(task, StoreType::Worker)
-            .await;
+        self.task_queue.queue_task(task, StoreType::Worker).await;
     }
 
     pub async fn shutdown(&self) {
-        self.inner.task_queue.finish_tasks(self).await;
-        self.inner.workers.shutdown().await;
+        self.task_queue.finish_tasks().await;
+        self.workers.shutdown().await;
     }
 
-    pub(crate) fn config(&self) -> &Config {
-        &self.inner.config
+    pub fn config(&self) -> &Config {
+        &self.config
     }
 
     pub(crate) async fn send_worker_command(&self, command: Command) {
-        self.inner.workers.send_command(self, command).await;
+        self.workers.send_command(command).await;
     }
 
     pub async fn isolated<'a, 'c>(&'c self, level: Isolation) -> Result<DbConnection<'a>>
     where
         'c: 'a,
     {
-        let tx = self.inner.pool.begin().await?;
+        let tx = self.pool.begin().await?;
         Ok(DbConnection::from_transaction(self.clone(), level, tx))
-    }
-}
-
-impl Deref for Store {
-    type Target = DbConnection<'static>;
-
-    fn deref(&self) -> &DbConnection<'static> {
-        &self.pooled
-    }
-}
-
-impl DerefMut for Store {
-    fn deref_mut(&mut self) -> &mut DbConnection<'static> {
-        &mut self.pooled
     }
 }

@@ -5,19 +5,19 @@
 use std::{
     collections::HashMap,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
     time::Duration,
 };
 
-use async_channel::{unbounded, Receiver, Sender};
+use async_channel::{Receiver, Sender, unbounded};
 use chrono::{Datelike, Local, NaiveDate, Timelike};
 use opentelemetry::{global, trace::TraceContextExt};
 use pixelbin_shared::Ignorable;
 use strum_macros::IntoStaticStr;
 use tokio::{sync::Notify, time::sleep};
-use tracing::{field, span, Instrument, Level, Span};
+use tracing::{Instrument, Level, Span, field, span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 mod maintenance;
@@ -26,7 +26,8 @@ pub(crate) mod opcache;
 pub mod worker;
 
 use crate::{
-    shared::{record_result, DEFAULT_STATUS},
+    Result, Store, StoreType,
+    shared::{DEFAULT_STATUS, record_result},
     store::models,
     task_queue::{
         maintenance::{
@@ -36,7 +37,6 @@ use crate::{
         },
         media::{process_media_file, prune_deleted_media, upload_media_file},
     },
-    Result, Store, StoreType,
 };
 pub(crate) use worker::WorkerHost;
 
@@ -198,8 +198,8 @@ impl TaskLoop {
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct TaskQueue {
+    store: Store,
     running_loops: usize,
     /// Notified whenever there are no tasks remaining in the queue.
     notify: Arc<Notify>,
@@ -209,34 +209,40 @@ pub(crate) struct TaskQueue {
 }
 
 impl TaskQueue {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(store: &Store) -> Self {
         let (sender, receiver) = unbounded();
 
-        Self {
+        let mut queue = Self {
+            store: store.clone(),
             running_loops: 0,
             notify: Arc::new(Notify::new()),
             pending_tasks: Arc::new(AtomicUsize::new(0)),
             sender,
             receiver,
-        }
-    }
+        };
 
-    /// Spawns a number of in-process task loops to handle tasks.
-    pub(crate) fn spawn_loops(&mut self, store: Store, count: usize) {
-        for _ in 0..count {
-            TaskLoop::spawn(self, &store);
+        let loop_count = match store.store_type() {
+            StoreType::Server => 4,
+            StoreType::Worker => 2,
+            _ => 0,
+        };
+
+        for _ in 0..loop_count {
+            TaskLoop::spawn(&queue, store);
         }
 
-        self.running_loops += count;
+        queue.running_loops += loop_count;
+
+        queue
     }
 
     /// Waits until all pending tasks have completed. This will spawn a new task
     /// loop if none are currently running and there are tasks pending.
-    pub(crate) async fn finish_tasks(&self, store: &Store) {
+    pub(crate) async fn finish_tasks(&self) {
         let count = self.pending_tasks.load(Ordering::Acquire);
         if count > 0 {
             if self.running_loops == 0 {
-                TaskLoop::spawn(self, store);
+                TaskLoop::spawn(self, &self.store);
             }
 
             self.notify.notified().await;

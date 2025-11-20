@@ -1,16 +1,16 @@
-use actix_web::{dev::Payload, get, http::header, post, web, FromRequest, HttpRequest};
+use actix_web::{FromRequest, HttpRequest, dev::Payload, get, http::header, post, web};
 use futures::{future::LocalBoxFuture, join};
 use pixelbin_shared::Ignorable;
 use serde::{Deserialize, Serialize};
-use tracing::{instrument, trace, warn, Instrument};
+use tracing::{Instrument, instrument, trace, warn};
 
 use crate::{
+    Error,
     server::{ApiErrorCode, ApiResult, AppState},
     store::{
         db::Isolation,
         models::{self, AlbumWithCount, SavedSearchWithCount, UserCatalogWithCount},
     },
-    Error,
 };
 
 #[derive(Clone)]
@@ -172,15 +172,15 @@ async fn state(
     let store = &app_state.store;
     let email = &session.user.email;
 
-    let user = models::User::get(store.clone(), email).await?;
+    let user = models::User::get(store.pooled(), email).await?;
 
     let (storage, catalogs, albums, people, tags, searches) = join!(
-        models::Storage::list_for_user(store.clone(), email).in_current_span(),
-        models::Catalog::list_for_user_with_count(store.clone(), email).in_current_span(),
-        models::Album::list_for_user_with_count(store.clone(), email).in_current_span(),
-        models::Person::list_for_user(store.clone(), email).in_current_span(),
-        models::Tag::list_for_user(store.clone(), email).in_current_span(),
-        models::SavedSearch::list_for_user_with_count(store.clone(), email).in_current_span(),
+        models::Storage::list_for_user(store.pooled(), email).in_current_span(),
+        models::Catalog::list_for_user_with_count(store.pooled(), email).in_current_span(),
+        models::Album::list_for_user_with_count(store.pooled(), email).in_current_span(),
+        models::Person::list_for_user(store.pooled(), email).in_current_span(),
+        models::Tag::list_for_user(store.pooled(), email).in_current_span(),
+        models::SavedSearch::list_for_user_with_count(store.pooled(), email).in_current_span(),
     );
 
     Ok(web::Json(UserState {

@@ -5,19 +5,19 @@ use futures::join;
 use pixelbin_shared::{Ignorable, IgnorableFuture};
 use serde::Deserialize;
 use tokio::fs;
-use tracing::{debug, error, warn, Instrument};
+use tracing::{Instrument, debug, error, warn};
 
 use crate::{
-    mail::{send_messages, Media, SavedSearchUpdate},
-    metadata::{alternates_for_media_file, METADATA_FILE},
+    Result, Store, Task,
+    mail::{Media, SavedSearchUpdate, send_messages},
+    metadata::{METADATA_FILE, alternates_for_media_file},
     shared::json::FromDb,
     store::{
-        db::{functions::from_row, Isolation},
+        db::{Isolation, functions::from_row},
         file::{DiskStore, FileStore},
         models,
         path::{CatalogStore, FilePath, MediaFileStore, ResourceList, ResourcePath},
     },
-    Result, Store, Task,
 };
 
 pub(super) async fn clean_queues(store: Store) -> Result {
@@ -79,8 +79,9 @@ async fn prune_storage<S: FileStore>(store: &S, root: &ResourcePath, list: Resou
     store.prune(root).await
 }
 
-pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files: bool) -> Result {
-    let storage = models::Storage::get_for_catalog(&mut store, catalog).await?;
+pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bool) -> Result {
+    let mut conn = store.pooled();
+    let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
 
     let remote_store = storage.file_store(store.config()).await?;
     let local_store = DiskStore::local_store(store.config());
@@ -100,7 +101,6 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
     let mut local_files = local_files?;
     let mut temp_files = temp_files?;
 
-    let mut conn = store.pooled();
     let public_items = models::MediaItem::list_public(&mut conn, catalog).await?;
 
     for media_item_store in models::MediaItem::list_not_deleted(&mut conn, catalog).await? {
@@ -111,7 +111,7 @@ pub(super) async fn verify_storage(mut store: Store, catalog: &str, delete_files
 
         let _guard = store
             .locks()
-            .media_item(&store, &media_item_store)
+            .media_item(&media_item_store)
             .for_delete()
             .await;
 

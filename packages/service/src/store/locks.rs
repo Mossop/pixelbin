@@ -9,9 +9,9 @@ use std::{
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::{
+    Store,
     store::{models, path::MediaItemStore},
     task_queue::opcache::MediaFileOpCache,
-    Store,
 };
 
 pub(crate) struct ResourceLock<T> {
@@ -61,13 +61,15 @@ struct Inner {
 
 #[derive(Clone)]
 pub(crate) struct Locks {
+    store: Store,
     expensive_tasks: Arc<Semaphore>,
     inner: Arc<Mutex<Inner>>,
 }
 
 impl Locks {
-    pub(super) fn new() -> Self {
+    pub(super) fn new(store: &Store) -> Self {
         Self {
+            store: store.clone(),
             expensive_tasks: Arc::new(Semaphore::new(1)),
             inner: Default::default(),
         }
@@ -79,7 +81,6 @@ impl Locks {
 
     pub(crate) fn media_item(
         &self,
-        store: &Store,
         media_item_store: &MediaItemStore,
     ) -> Arc<ResourceLock<MediaItemLock>> {
         let mut inner = self.inner.lock().unwrap();
@@ -93,7 +94,6 @@ impl Locks {
         } else {
             let lock = Arc::new(ResourceLock::new(MediaItemLock::new(
                 self.clone(),
-                store.clone(),
                 media_item_store.clone(),
             )));
 
@@ -108,7 +108,6 @@ impl Locks {
 
 pub(crate) struct MediaItemLock {
     locks: Locks,
-    store: Store,
     media_item_store: MediaItemStore,
     file_ops: Mutex<HashMap<String, MediaFileOpCache>>,
 }
@@ -122,10 +121,9 @@ impl Drop for MediaItemLock {
 }
 
 impl MediaItemLock {
-    fn new(locks: Locks, store: Store, media_item_store: MediaItemStore) -> Self {
+    fn new(locks: Locks, media_item_store: MediaItemStore) -> Self {
         Self {
             locks,
-            store,
             media_item_store,
             file_ops: Default::default(),
         }
@@ -142,7 +140,7 @@ impl MediaItemLock {
             .or_insert_with(|| {
                 MediaFileOpCache::new(
                     self.clone(),
-                    self.store.clone(),
+                    self.locks.store.clone(),
                     media_file,
                     &self.media_item_store.media_file_store(&media_file.id),
                 )

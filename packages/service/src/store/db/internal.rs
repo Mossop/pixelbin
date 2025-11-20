@@ -19,7 +19,7 @@ use tracing::{Instrument, Level, Span, field, span};
 
 use super::{DbConnection, SqlxDatabase};
 use crate::{
-    Isolation, Store,
+    Isolation,
     shared::{DEFAULT_STATUS, record_error},
     store::db::DbPool,
 };
@@ -505,52 +505,5 @@ impl<'c> Executor<'c> for &'c mut DbConnection<'_> {
         'c: 'e,
     {
         self.connection.describe(sql)
-    }
-}
-
-impl<'c> Executor<'c> for &'c mut Store {
-    type Database = SqlxDatabase;
-
-    fn fetch_many<'e, 'q, E>(
-        self,
-        query: E,
-    ) -> BoxStream<'e, SqlxResult<sqlx::Either<PgQueryResult, PgRow>>>
-    where
-        'q: 'e,
-        'c: 'e,
-        E: 'q + sqlx::Execute<'q, Self::Database>,
-    {
-        self.pooled.fetch_many(query)
-    }
-
-    fn fetch_optional<'e, 'q, E>(self, query: E) -> BoxFuture<'e, SqlxResult<Option<PgRow>>>
-    where
-        'q: 'e,
-        'c: 'e,
-        E: 'q + sqlx::Execute<'q, Self::Database>,
-    {
-        self.pooled.fetch_optional(query)
-    }
-
-    fn prepare_with<'e, 'q>(
-        self,
-        sql: &'q str,
-        parameters: &'e [<Self::Database as Database>::TypeInfo],
-    ) -> BoxFuture<'e, SqlxResult<PgStatement<'q>>>
-    where
-        'q: 'e,
-        'c: 'e,
-    {
-        self.pooled.prepare_with(sql, parameters)
-    }
-
-    fn describe<'e, 'q: 'e>(
-        self,
-        sql: &'q str,
-    ) -> BoxFuture<'e, SqlxResult<sqlx::Describe<Self::Database>>>
-    where
-        'c: 'e,
-    {
-        self.pooled.describe(sql)
     }
 }
