@@ -1,15 +1,15 @@
 use std::{path::Path, str::FromStr};
 
-use serde_json::{from_slice, Value};
+use serde_json::{Value, from_slice};
 use tokio::process::Command;
 use tracing::instrument;
 
 use crate::{
+    Error, Result,
     metadata::media::{AudioCodec, Container, VideoCodec},
     shared::json::{
-        expect_float, expect_int, expect_object_array, expect_string, first, map, prop, Object,
+        Object, expect_float, expect_int, expect_object_array, expect_string, first, map, prop,
     },
-    Error, Result,
 };
 
 trait ApplyArgs {
@@ -108,20 +108,18 @@ pub(crate) async fn extract_video_frame(local_file: &Path, target: &Path) -> Res
 
 pub(super) fn expect_frame_rate(val: &Value) -> Option<f32> {
     match val {
-        Value::String(ref str) => {
-            if let Some(pos) = str.find('/') {
-                if let (Ok(num), Ok(den)) =
+        Value::String(str) => {
+            if let Some(pos) = str.find('/')
+                && let (Ok(num), Ok(den)) =
                     (f64::from_str(&str[0..pos]), f64::from_str(&str[pos + 1..]))
-                {
-                    if den != 0.0 {
-                        return Some((num / den) as f32);
-                    }
-                }
+                && den != 0.0
+            {
+                return Some((num / den) as f32);
             }
 
             str.parse::<f32>().ok()
         }
-        Value::Number(ref num) => num.as_f64().map(|f| f as f32),
+        Value::Number(num) => num.as_f64().map(|f| f as f32),
         _ => None,
     }
 }

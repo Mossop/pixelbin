@@ -1,10 +1,10 @@
 use std::{slice, str::FromStr};
 
-use actix_multipart::form::{json::Json as MultipartJson, tempfile::TempFile, MultipartForm};
+use actix_multipart::form::{MultipartForm, json::Json as MultipartJson, tempfile::TempFile};
 use actix_web::{
-    get,
-    http::{header, StatusCode},
-    post, web, Either, HttpRequest, HttpResponse, HttpResponseBuilder, Responder,
+    Either, HttpRequest, HttpResponse, HttpResponseBuilder, Responder, get,
+    http::{StatusCode, header},
+    post, web,
 };
 use chrono::NaiveDateTime;
 use file_format::FileFormat;
@@ -15,17 +15,17 @@ use tokio_util::io::ReaderStream;
 use tracing::{instrument, warn};
 
 use crate::{
-    metadata::{alternates_for_media_file, ISO_FORMAT},
+    Error, Result, Task,
+    metadata::{ISO_FORMAT, alternates_for_media_file},
     server::{
-        auth::{MaybeSession, Session},
         ApiResponse, ApiResult, AppState,
+        auth::{MaybeSession, Session},
     },
     store::{
-        db::{search::SearchQuery, DbConnection, Isolation},
+        db::{DbConnection, Isolation, search::SearchQuery},
         file::DiskStore,
         models::{self, AlternateFile, AlternateFileType, Location, MediaViewStream, Orientation},
     },
-    Error, Result, Task,
 };
 
 fn not_found() -> ApiResult<HttpResponse> {
@@ -193,10 +193,10 @@ async fn encoding_handler(
         .online_uri(&file_path, &mimetype, None, app_state.store.config())
         .await?;
 
-    if let Some(val) = request.headers().get("Accept") {
-        if val == "application/json" {
-            return Ok(Either::Right(web::Json(EncodingResponse { url })));
-        }
+    if let Some(val) = request.headers().get("Accept")
+        && val == "application/json"
+    {
+        return Ok(Either::Right(web::Json(EncodingResponse { url })));
     }
 
     Ok(Either::Left(
@@ -433,25 +433,25 @@ async fn update_media_item(
         media_item.source = Some(source.clone());
     }
 
-    if let Some(public) = data.public {
-        if media_item.public != public {
-            media_item.public = public;
+    if let Some(public) = data.public
+        && media_item.public != public
+    {
+        media_item.public = public;
 
-            if let Some(file) = media_file {
-                let file_id = file.id.clone();
-                let media_file_store = media_item.path().media_file_store(&file.id);
-                let alternates = alternates_for_media_file(conn.config(), &file, public);
-                models::AlternateFile::sync_for_media_files(
-                    conn,
-                    vec![(file, media_file_store, alternates)],
-                )
-                .await?;
+        if let Some(file) = media_file {
+            let file_id = file.id.clone();
+            let media_file_store = media_item.path().media_file_store(&file.id);
+            let alternates = alternates_for_media_file(conn.config(), &file, public);
+            models::AlternateFile::sync_for_media_files(
+                conn,
+                vec![(file, media_file_store, alternates)],
+            )
+            .await?;
 
-                conn.queue_task(Task::ProcessMediaFile {
-                    media_file: file_id,
-                })
-                .await;
-            }
+            conn.queue_task(Task::ProcessMediaFile {
+                media_file: file_id,
+            })
+            .await;
         }
     }
 

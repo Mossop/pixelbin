@@ -1,27 +1,27 @@
 use std::{
-    pin::{pin, Pin},
+    pin::{Pin, pin},
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
 
 use futures::{
-    future::{poll_fn, BoxFuture, Fuse, FusedFuture},
-    stream::BoxStream,
     Future, FutureExt, Stream, StreamExt, TryStreamExt,
+    future::{BoxFuture, Fuse, FusedFuture, poll_fn},
+    stream::BoxStream,
 };
 use pin_project::pin_project;
 use sqlx::{
+    Database, Either, Error as SqlxError, Executor, Transaction,
     pool::PoolConnection,
     postgres::{PgQueryResult, PgRow, PgStatement},
-    Database, Either, Error as SqlxError, Executor, Transaction,
 };
-use tracing::{field, span, Instrument, Level, Span};
+use tracing::{Instrument, Level, Span, field, span};
 
 use super::{DbConnection, SqlxDatabase};
 use crate::{
-    shared::{record_error, DEFAULT_STATUS},
-    store::db::DbPool,
     Isolation, Store,
+    shared::{DEFAULT_STATUS, record_error},
+    store::db::DbPool,
 };
 
 type SqlxResult<T> = sqlx::Result<T>;
@@ -274,7 +274,7 @@ where
 
         if let Poll::Ready(ref ready) = result {
             ready.record(this.span);
-            if let Err(ref error) = ready {
+            if let Err(error) = ready {
                 record_error(this.span, &format!("Database error: {}", error));
             }
         }
@@ -334,10 +334,10 @@ where
                 ),
                 span,
             ),
-            Connection::Connected(ref mut db_conn) => {
+            Connection::Connected(db_conn) => {
                 InstrumentedStream::wrap_stream(db_conn.fetch_many(query), span)
             }
-            Connection::Transaction((_, ref mut tx)) => {
+            Connection::Transaction((_, tx)) => {
                 InstrumentedStream::wrap_stream(tx.fetch_many(query), span)
             }
         }
@@ -374,10 +374,10 @@ where
                 },
                 span,
             ),
-            Connection::Connected(ref mut db_conn) => {
+            Connection::Connected(db_conn) => {
                 InstrumentedFuture::wrap(db_conn.fetch_optional(query), span)
             }
-            Connection::Transaction((_, ref mut tx)) => {
+            Connection::Transaction((_, tx)) => {
                 InstrumentedFuture::wrap(tx.fetch_optional(query), span)
             }
         }
@@ -415,10 +415,10 @@ where
                 },
                 span,
             ),
-            Connection::Connected(ref mut db_conn) => {
+            Connection::Connected(db_conn) => {
                 InstrumentedFuture::wrap(db_conn.prepare_with(sql, parameters), span)
             }
-            Connection::Transaction((_, ref mut tx)) => {
+            Connection::Transaction((_, tx)) => {
                 InstrumentedFuture::wrap(tx.prepare_with(sql, parameters), span)
             }
         }
@@ -455,12 +455,8 @@ where
                 },
                 span,
             ),
-            Connection::Connected(ref mut db_conn) => {
-                InstrumentedFuture::wrap(db_conn.describe(sql), span)
-            }
-            Connection::Transaction((_, ref mut tx)) => {
-                InstrumentedFuture::wrap(tx.describe(sql), span)
-            }
+            Connection::Connected(db_conn) => InstrumentedFuture::wrap(db_conn.describe(sql), span),
+            Connection::Transaction((_, tx)) => InstrumentedFuture::wrap(tx.describe(sql), span),
         }
     }
 }

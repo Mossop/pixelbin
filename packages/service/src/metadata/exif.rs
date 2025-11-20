@@ -4,18 +4,18 @@ use chrono::{NaiveDateTime, Timelike};
 use lexical_parse_float::FromLexical;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_slice, Number, Value};
+use serde_json::{Number, Value, from_slice};
 use tokio::process::Command;
 use tracing::{debug, instrument, warn};
 
 use super::ISO_FORMAT;
 use crate::{
+    Error, Result,
     shared::json::{
-        expect_float, expect_int, expect_object, expect_prop, expect_string, expect_string_list,
-        first_of, map, type_of, Object,
+        Object, expect_float, expect_int, expect_object, expect_prop, expect_string,
+        expect_string_list, first_of, map, type_of,
     },
     store::models::{self, Orientation},
-    Error, Result,
 };
 
 const PARSE_VERSION_KEY: &str = "ParseVersion";
@@ -107,7 +107,7 @@ fn expect_subsecs(val: &Value) -> Option<f64> {
 }
 
 fn expect_datetime(val: &Value) -> Option<NaiveDateTime> {
-    if let Value::String(ref str) = val {
+    if let Value::String(str) = val {
         if let Ok((dt, _)) = NaiveDateTime::parse_and_remainder(str, ISO_FORMAT) {
             return Some(dt);
         }
@@ -169,11 +169,11 @@ fn expect_orientation(val: &Value) -> Option<Orientation> {
 
 fn expect_prefixed_float(val: &Value) -> Option<f32> {
     match val {
-        Value::String(ref str) => match f32::from_lexical_partial(str.as_bytes()) {
+        Value::String(str) => match f32::from_lexical_partial(str.as_bytes()) {
             Ok((val, _)) => Some(val),
             Err(_) => None,
         },
-        Value::Number(ref num) => num.as_f64().map(|f| f as f32),
+        Value::Number(num) => num.as_f64().map(|f| f as f32),
         _ => None,
     }
 }
@@ -448,8 +448,8 @@ impl ExifData {
 
     pub(crate) fn media_metadata(&self, mimetype: &Mime) -> models::MediaMetadata {
         match self {
-            ExifData::V1(ref obj) => ExifData::parse_exif_v1(obj, mimetype),
-            ExifData::V2(ref obj) => ExifData::parse_exif_v2(obj, mimetype),
+            ExifData::V1(obj) => ExifData::parse_exif_v1(obj, mimetype),
+            ExifData::V2(obj) => ExifData::parse_exif_v2(obj, mimetype),
             ExifData::Unknown(_) => Default::default(),
         }
     }

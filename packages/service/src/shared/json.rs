@@ -54,21 +54,21 @@ pub(crate) fn expect_prop<'a, 'b>(
 
 pub(crate) fn expect_string(val: &Value) -> Option<String> {
     match val {
-        Value::String(ref str) => {
+        Value::String(str) => {
             if str.is_empty() {
                 None
             } else {
                 Some(str.clone())
             }
         }
-        Value::Number(ref num) => Some(num.to_string()),
+        Value::Number(num) => Some(num.to_string()),
         _ => None,
     }
 }
 
 pub(crate) fn expect_string_list(val: &Value) -> Option<String> {
     match val {
-        Value::Array(ref array) => {
+        Value::Array(array) => {
             let strings = array
                 .iter()
                 .filter_map(expect_string)
@@ -80,31 +80,27 @@ pub(crate) fn expect_string_list(val: &Value) -> Option<String> {
                 Some(strings.join(", "))
             }
         }
-        Value::String(ref str) => {
+        Value::String(str) => {
             if str.is_empty() {
                 None
             } else {
                 Some(str.clone())
             }
         }
-        Value::Number(ref num) => Some(num.to_string()),
+        Value::Number(num) => Some(num.to_string()),
         _ => None,
     }
 }
 
 pub(crate) fn expect_object_array(val: &Value) -> Option<Vec<&Object>> {
     match val {
-        Value::Array(ref array) => {
+        Value::Array(array) => {
             let objs = array
                 .iter()
                 .filter_map(expect_object)
                 .collect::<Vec<&Object>>();
 
-            if objs.is_empty() {
-                None
-            } else {
-                Some(objs)
-            }
+            if objs.is_empty() { None } else { Some(objs) }
         }
         _ => None,
     }
@@ -112,16 +108,16 @@ pub(crate) fn expect_object_array(val: &Value) -> Option<Vec<&Object>> {
 
 pub(crate) fn expect_float(val: &Value) -> Option<f32> {
     match val {
-        Value::String(ref str) => str.parse::<f32>().ok(),
-        Value::Number(ref num) => num.as_f64().map(|f| f as f32),
+        Value::String(str) => str.parse::<f32>().ok(),
+        Value::Number(num) => num.as_f64().map(|f| f as f32),
         _ => None,
     }
 }
 
 pub(crate) fn expect_int(val: &Value) -> Option<i32> {
     match val {
-        Value::String(ref str) => str.parse::<i32>().ok(),
-        Value::Number(ref num) => num.as_i64().map(|f| f as i32),
+        Value::String(str) => str.parse::<i32>().ok(),
+        Value::Number(num) => num.as_i64().map(|f| f as i32),
         _ => None,
     }
 }

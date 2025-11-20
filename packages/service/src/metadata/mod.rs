@@ -15,8 +15,8 @@ use tracing::{instrument, warn};
 use tzf_rs::DefaultFinder;
 
 use crate::{
-    store::models::{AlternateFile, AlternateFileType, MediaFile, MediaItem},
     Config, Error, Result,
+    store::models::{AlternateFile, AlternateFileType, MediaFile, MediaItem},
 };
 
 pub(crate) mod exif;
@@ -61,10 +61,10 @@ impl Alternate {
             return false;
         }
 
-        if let Some(size) = self.size {
-            if cmp::max(alt.width, alt.height) != size {
-                return false;
-            }
+        if let Some(size) = self.size
+            && cmp::max(alt.width, alt.height) != size
+        {
+            return false;
         }
 
         self.mimetype == alt.mimetype

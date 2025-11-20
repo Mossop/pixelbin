@@ -15,34 +15,34 @@ use mime::Mime;
 use pin_project::pin_project;
 use pixelbin_shared::Ignorable;
 use regex::Regex;
-use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize};
-use serde_json::{from_value, to_string, Value};
+use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned};
+use serde_json::{Value, from_value, to_string};
 use serde_plain::{derive_display_from_serialize, derive_fromstr_from_deserialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use sqlx::{
-    postgres::PgRow, prelude::FromRow, types::Json, Error as SqlxError, QueryBuilder,
-    Result as SqlxResult, Row,
+    Error as SqlxError, QueryBuilder, Result as SqlxResult, Row, postgres::PgRow, prelude::FromRow,
+    types::Json,
 };
-use tokio::sync::mpsc::{channel, Receiver, Sender};
-use tracing::{error, instrument, span, Level};
+use tokio::sync::mpsc::{Receiver, Sender, channel};
+use tracing::{Level, error, instrument, span};
 
 use crate::{
-    mail::{send_messages, Subscribed, SubscriptionRequest},
-    metadata::{alternates_for_media_file, lookup_timezone, media_datetime, Alternate},
+    Config, Error, Result, Task,
+    mail::{Subscribed, SubscriptionRequest, send_messages},
+    metadata::{Alternate, alternates_for_media_file, lookup_timezone, media_datetime},
     shared::{long_id, short_id, spawn_blocking},
     store::{
+        DbConnection,
         aws::AwsClient,
         db::{
+            AsDb, MediaAccess,
             functions::{from_mime, from_row},
             search::{Filterable, SearchQuery},
-            AsDb, MediaAccess,
         },
         file::FileStore,
         models,
         path::{FilePath, MediaFileStore, MediaItemStore},
-        DbConnection,
     },
-    Config, Error, Result, Task,
 };
 
 const TOKEN_EXPIRY_DAYS: i64 = 90;
@@ -445,7 +445,7 @@ pub(crate) struct Storage {
 }
 
 impl Storage {
-    pub(crate) async fn file_store(&self, config: &Config) -> Result<impl FileStore> {
+    pub(crate) async fn file_store(&self, config: &Config) -> Result<impl FileStore + use<>> {
         let client = AwsClient::from_storage(self, config).await?;
 
         Ok(client)
@@ -1817,10 +1817,10 @@ impl MediaMetadata {
         clear_matching(&mut self.focal_length, &media_file.focal_length);
 
         // Ignore any sub-second differences.
-        if let (Some(item_taken), Some(file_taken)) = (self.taken, media_file.taken) {
-            if item_taken.with_nanosecond(0) == file_taken.with_nanosecond(0) {
-                self.taken = None;
-            }
+        if let (Some(item_taken), Some(file_taken)) = (self.taken, media_file.taken)
+            && item_taken.with_nanosecond(0) == file_taken.with_nanosecond(0)
+        {
+            self.taken = None;
         }
     }
 }

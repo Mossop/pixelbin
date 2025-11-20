@@ -1,5 +1,5 @@
 use std::{
-    cmp::{max, Ordering},
+    cmp::{Ordering, max},
     collections::HashMap,
     net::SocketAddr,
     result,
@@ -8,28 +8,28 @@ use std::{
 };
 
 use actix_web::{
+    Error, FromRequest, HttpRequest, HttpResponse,
     body::{EitherBody, MessageBody},
     dev::{ServiceRequest, ServiceResponse},
     http::{
-        header::{HeaderMap, HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
         StatusCode,
+        header::{ACCESS_CONTROL_ALLOW_ORIGIN, HeaderMap, HeaderValue},
     },
     middleware::Next,
     web::Data,
-    Error, FromRequest, HttpRequest, HttpResponse,
 };
 use chrono::{DateTime, Utc};
 use futures::TryFutureExt;
 use opentelemetry::{global, propagation::Extractor};
 use tokio::sync::RwLock;
-use tracing::{error, field, instrument, span, trace, warn, Instrument, Level, Span};
+use tracing::{Instrument, Level, Span, error, field, instrument, span, trace, warn};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use crate::{
-    server::AppState,
-    shared::{record_error, DEFAULT_STATUS},
-    store::db::DbConnection,
     Result, Store,
+    server::AppState,
+    shared::{DEFAULT_STATUS, record_error},
+    store::db::DbConnection,
 };
 
 const PRUNE_INTERVAL_SECS: u64 = 60 * 20;
@@ -179,19 +179,18 @@ impl RequestTracker {
             };
 
             for (client, count, last) in list {
-                if count > rate_limit.limit as i64 {
-                    if let Ok(time_served) = (utc_now - last).to_std() {
-                        if rate_limit.block_time > time_served {
-                            let time_remaining = rate_limit.block_time - time_served;
+                if count > rate_limit.limit as i64
+                    && let Ok(time_served) = (utc_now - last).to_std()
+                    && rate_limit.block_time > time_served
+                {
+                    let time_remaining = rate_limit.block_time - time_served;
 
-                            let block = BlockState {
-                                status: StatusCode::FORBIDDEN,
-                                expiry: now + time_remaining,
-                            };
+                    let block = BlockState {
+                        status: StatusCode::FORBIDDEN,
+                        expiry: now + time_remaining,
+                    };
 
-                            inner.insert_block(client, block);
-                        }
-                    }
+                    inner.insert_block(client, block);
                 }
             }
         }
@@ -223,10 +222,10 @@ impl RequestTracker {
                 );
             }
 
-            if let Some(state) = inner.blocks.get(client) {
-                if state.expiry > Instant::now() {
-                    return Some(state.status);
-                }
+            if let Some(state) = inner.blocks.get(client)
+                && state.expiry > Instant::now()
+            {
+                return Some(state.status);
             }
         }
 
@@ -307,31 +306,29 @@ impl RequestTracker {
         let mut inner = self.inner.write().await;
         inner.prune();
 
-        if let Some(block) = new_block {
-            if inner.insert_block(client_addr.clone(), block) {
-                let secs = (block.expiry - now).as_secs();
-                trace!(
-                    client = client_addr,
-                    duration = secs,
-                    "Client is now blocked"
-                )
-            }
+        if let Some(block) = new_block
+            && inner.insert_block(client_addr.clone(), block)
+        {
+            let secs = (block.expiry - now).as_secs();
+            trace!(
+                client = client_addr,
+                duration = secs,
+                "Client is now blocked"
+            )
         }
 
         Ok(())
     }
 
     fn record_response(&self, client_addr: &Option<String>, status: StatusCode) {
-        if let Some(client) = client_addr {
-            if status.is_client_error() {
-                tokio::spawn(
-                    self.clone()
-                        .record_block_status(client.clone(), status)
-                        .unwrap_or_else(
-                            |error| error!(error=%error, "Error recording block status"),
-                        ),
-                );
-            }
+        if let Some(client) = client_addr
+            && status.is_client_error()
+        {
+            tokio::spawn(
+                self.clone()
+                    .record_block_status(client.clone(), status)
+                    .unwrap_or_else(|error| error!(error=%error, "Error recording block status")),
+            );
         }
     }
 }
@@ -348,10 +345,10 @@ fn is_safe(addr: SocketAddr) -> bool {
 
 fn client_addr(req: &HttpRequest) -> Option<String> {
     if let Some(addr) = req.peer_addr() {
-        if is_safe(addr) {
-            if let Some(ip) = req.connection_info().realip_remote_addr() {
-                return Some(ip.to_owned());
-            }
+        if is_safe(addr)
+            && let Some(ip) = req.connection_info().realip_remote_addr()
+        {
+            return Some(ip.to_owned());
         }
 
         Some(addr.to_string())

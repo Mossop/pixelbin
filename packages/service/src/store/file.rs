@@ -13,8 +13,8 @@ use tokio::fs;
 use tracing::{debug, instrument};
 
 use crate::{
-    store::path::{FilePath, PathLike, ResourceList, ResourcePath},
     Result,
+    store::path::{FilePath, PathLike, ResourceList, ResourcePath},
 };
 
 #[async_trait]
@@ -153,10 +153,10 @@ impl FileStore for DiskStore {
         match fs::metadata(&root).await {
             Ok(metadata) => {
                 if metadata.is_file() {
-                    if let Some(prefix) = prefix {
-                        if let Ok(path) = ResourcePath::try_from(prefix.path_parts()) {
-                            files.insert(path, metadata.len());
-                        }
+                    if let Some(prefix) = prefix
+                        && let Ok(path) = ResourcePath::try_from(prefix.path_parts())
+                    {
+                        files.insert(path, metadata.len());
                     }
                     return Ok(files);
                 }
