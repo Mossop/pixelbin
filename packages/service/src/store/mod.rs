@@ -18,7 +18,6 @@ use db::{DbConnection, connect};
 use crate::{
     Config, Isolation, Result, Task, TaskQueue,
     store::{db::DbPool, locks::Locks},
-    task_queue::worker::{Command, WorkerHost},
 };
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,7 +25,6 @@ pub enum StoreType {
     #[default]
     Cli,
     Server,
-    Worker,
 }
 
 struct LazyInit<T> {
@@ -67,7 +65,6 @@ pub struct Store {
     config: Config,
     pool: DbPool,
     task_queue: LazyInit<TaskQueue>,
-    workers: LazyInit<WorkerHost>,
     locks: LazyInit<Locks>,
 }
 
@@ -78,12 +75,6 @@ impl fmt::Debug for Store {
 }
 
 impl Store {
-    pub(crate) fn as_store_type(&self, store_type: StoreType) -> Self {
-        let mut new_store = self.clone();
-        new_store.store_type = store_type;
-        new_store
-    }
-
     pub(crate) fn store_type(&self) -> StoreType {
         self.store_type
     }
@@ -94,7 +85,6 @@ impl Store {
             pool,
             task_queue: self.task_queue.clone(),
             config: self.config.clone(),
-            workers: self.workers.clone(),
             locks: self.locks.clone(),
         }
     }
@@ -116,24 +106,15 @@ impl Store {
     }
 
     pub async fn queue_task(&self, task: Task) {
-        self.task_queue.queue_task(task, self.store_type).await;
-    }
-
-    pub async fn queue_task_as_worker(&self, task: Task) {
-        self.task_queue.queue_task(task, StoreType::Worker).await;
+        self.task_queue.queue_task(task).await;
     }
 
     pub async fn shutdown(&self) {
         self.task_queue.finish_tasks().await;
-        self.workers.shutdown().await;
     }
 
     pub fn config(&self) -> &Config {
         &self.config
-    }
-
-    pub(crate) async fn send_worker_command(&self, command: Command) {
-        self.workers.send_command(command).await;
     }
 
     pub async fn isolated<'a, 'c>(&'c self, level: Isolation) -> Result<DbConnection<'a>>

@@ -12,13 +12,11 @@ use crate::{
     },
     shared::file_exists,
     store::{
-        StoreType,
         db::{Isolation, models},
         file::{DiskStore, FileStore},
         models::AlternateFileType,
     },
     task_queue::opcache::MediaFileOpCache,
-    task_queue::worker::Command,
 };
 
 #[instrument(skip(store, op_cache), err)]
@@ -104,13 +102,6 @@ async fn build_alternate(
     alternate_file: &mut models::AlternateFile,
 ) -> Result {
     if alternate_file.stored.is_some() {
-        return Ok(());
-    }
-
-    let always_build = alternate_file.file_type == AlternateFileType::Social
-        || (alternate_file.required && alternate_file.mimetype.type_() != mime::VIDEO);
-
-    if !always_build && store.store_type() == StoreType::Server {
         return Ok(());
     }
 
@@ -208,9 +199,6 @@ pub(super) async fn process_media_file(store: Store, media_file_id: &str) -> Res
         .await?;
     isolated.commit().await?;
 
-    // Now see if there is social media required.
-    let mut worker_needed = false;
-
     modified.clear();
 
     for mut alternate_file in
@@ -221,11 +209,7 @@ pub(super) async fn process_media_file(store: Store, media_file_id: &str) -> Res
                 .ignore()
                 .await;
 
-            if alternate_file.stored.is_none() {
-                worker_needed = true;
-            } else {
-                modified.push(alternate_file);
-            }
+            modified.push(alternate_file);
         }
     }
 
@@ -233,15 +217,7 @@ pub(super) async fn process_media_file(store: Store, media_file_id: &str) -> Res
         models::AlternateFile::upsert(&mut conn, &modified).await?;
     }
 
-    if worker_needed && store.store_type() != StoreType::Worker {
-        store
-            .send_worker_command(Command::ProcessMediaFile {
-                media_file: media_file_id.to_owned(),
-            })
-            .await;
-    } else {
-        op_cache.release().warn().await;
-    }
+    op_cache.release().warn().await;
 
     trace!(media_file_id, "Processing complete");
 

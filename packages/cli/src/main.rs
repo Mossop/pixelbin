@@ -9,17 +9,17 @@ use std::{
 use clap::{Args, Parser, Subcommand};
 use dotenvy::dotenv;
 use enum_dispatch::enum_dispatch;
-use opentelemetry::{global, trace::TracerProvider as _, KeyValue};
+use opentelemetry::{KeyValue, global, trace::TracerProvider as _};
 use opentelemetry_otlp::{Protocol, SpanExporter, WithExportConfig};
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::SdkTracerProvider, Resource};
+use opentelemetry_sdk::{Resource, propagation::TraceContextPropagator, trace::SdkTracerProvider};
 use pixelbin::{
-    send_test_message, server::serve, worker::worker, Config, Result, Store, StoreStats, StoreType,
-    Task, TestMessage,
+    Config, Result, Store, StoreStats, StoreType, Task, TestMessage, send_test_message,
+    server::serve,
 };
 use tokio::runtime::Builder;
-use tracing::{level_filters::LevelFilter, span, Instrument, Level, Span};
+use tracing::{Instrument, Level, Span, level_filters::LevelFilter, span};
 use tracing_subscriber::{
-    filter::Targets, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry,
+    Layer, Registry, filter::Targets, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
 #[cfg(not(debug_assertions))]
@@ -202,40 +202,11 @@ impl Runnable for Serve {
     }
 }
 
-#[derive(Args)]
-struct Worker;
-
-impl Runnable for Worker {
-    fn span(&self) -> Span {
-        span!(Level::INFO, "worker startup")
-    }
-
-    async fn run(&self, store: &Store) -> Result {
-        worker(store.clone()).await
-    }
-
-    async fn exec(&self, config: Config) -> Result {
-        let span = self.span();
-        let store = async move {
-            let store = Store::new(config, StoreType::Worker).await?;
-            Result::<Store>::Ok(store)
-        }
-        .instrument(span)
-        .await?;
-
-        let result = self.run(&store).await;
-        store.shutdown().await;
-        result
-    }
-}
-
 #[enum_dispatch]
 #[derive(Subcommand)]
 enum Command {
     /// Runs the server.
     Serve,
-    /// Runs a worker process.
-    Worker,
     /// List some basic stats about objects in the database.
     Stats,
     /// Reprocesses media where necessary.

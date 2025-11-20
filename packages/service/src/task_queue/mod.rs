@@ -1,7 +1,6 @@
 //! The task queue is used for running any potentially long-running or periodic tasks. It consists
 //! of a queue of pending tasks, a series of task loops that process tasks from the queue, and a
-//! cron-like scheduler that periodically adds tasks to the queue. Additionally there is support
-//! for spawning worker processes that can be used to offload tasks from the main process.
+//! cron-like scheduler that periodically adds tasks to the queue.
 use std::{
     collections::HashMap,
     sync::{
@@ -23,7 +22,6 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 mod maintenance;
 mod media;
 pub(crate) mod opcache;
-pub mod worker;
 
 use crate::{
     Result, Store, StoreType,
@@ -38,7 +36,6 @@ use crate::{
         media::{process_media_file, prune_deleted_media, upload_media_file},
     },
 };
-pub(crate) use worker::WorkerHost;
 
 #[derive(Debug, IntoStaticStr)]
 pub enum Task {
@@ -102,7 +99,7 @@ fn next_tick() -> Duration {
     Duration::from_secs(((minutes * 60) + seconds) as u64)
 }
 
-type TaskMessage = (Task, StoreType, HashMap<String, String>);
+type TaskMessage = (Task, HashMap<String, String>);
 
 /// Splits a set of strings into a number of partitions based on the last
 /// character of each string returning the partition at the given offset.
@@ -160,8 +157,8 @@ impl TaskLoop {
         tokio::spawn(this.task_loop());
     }
 
-    async fn run_task(&self, store_type: StoreType, task: &Task) -> Result {
-        let task_store = self.store.as_store_type(store_type);
+    async fn run_task(&self, task: &Task) -> Result {
+        let task_store = self.store.clone();
         let result = task.run(task_store).await;
 
         let count = self.pending_tasks.fetch_sub(1, Ordering::AcqRel) - 1;
@@ -173,7 +170,7 @@ impl TaskLoop {
     }
 
     async fn task_loop(self) {
-        while let Ok((task, store_type, context_data)) = self.receiver.recv().await {
+        while let Ok((task, context_data)) = self.receiver.recv().await {
             let linked_context =
                 global::get_text_map_propagator(|propagator| propagator.extract(&context_data));
             let linked_span = linked_context.span().span_context().clone();
@@ -182,17 +179,14 @@ impl TaskLoop {
             let span = span!(
                 Level::TRACE,
                 "task",
-                "queue_type" = ?store_type,
                 "otel.name" = task_name,
                 "otel.status_code" = DEFAULT_STATUS,
                 "otel.status_description" = field::Empty
             );
             span.add_link(linked_span);
 
-            let result = self
-                .run_task(store_type, &task)
-                .instrument(span.clone())
-                .await;
+            let result: std::result::Result<(), pixelbin_shared::Error> =
+                self.run_task(&task).instrument(span.clone()).await;
             record_result(&span, &result);
         }
     }
@@ -223,8 +217,7 @@ impl TaskQueue {
 
         let loop_count = match store.store_type() {
             StoreType::Server => 4,
-            StoreType::Worker => 2,
-            _ => 0,
+            StoreType::Cli => 0,
         };
 
         for _ in 0..loop_count {
@@ -249,7 +242,7 @@ impl TaskQueue {
         }
     }
 
-    pub(crate) async fn queue_task(&self, task: Task, store_type: StoreType) {
+    pub(crate) async fn queue_task(&self, task: Task) {
         self.pending_tasks.fetch_add(1, Ordering::AcqRel);
 
         let mut context_data = HashMap::new();
@@ -258,10 +251,7 @@ impl TaskQueue {
             propagator.inject_context(&context, &mut context_data)
         });
 
-        self.sender
-            .send((task, store_type, context_data))
-            .await
-            .unwrap();
+        self.sender.send((task, context_data)).await.unwrap();
     }
 }
 

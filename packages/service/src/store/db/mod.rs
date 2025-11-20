@@ -16,7 +16,6 @@ use tracing::{Span, error, info, instrument, trace, warn};
 use crate::{
     Config, Result, Store, StoreType, Task, TaskQueue,
     store::{LazyInit, db::internal::Connection, locks::Locks},
-    task_queue::WorkerHost,
 };
 
 pub(crate) type SqlxDatabase = sqlx::Postgres;
@@ -48,7 +47,6 @@ impl DbPool {
         let (min_connections, max_connections) = match store_type {
             StoreType::Cli => (0, 10),
             StoreType::Server => (0, 5),
-            StoreType::Worker => (0, 5),
         };
 
         Self::from_options(
@@ -145,12 +143,10 @@ pub(crate) async fn connect(config: &Config, store_type: StoreType) -> Result<St
         pool,
         config: config.clone(),
         task_queue: LazyInit::new(),
-        workers: LazyInit::new(),
         locks: LazyInit::new(),
     };
 
     store.locks.init(Locks::new(&store));
-    store.workers.init(WorkerHost::new(&store));
     store.task_queue.init(TaskQueue::new(&store));
 
     // Verify that we can connect and update cached views.
@@ -290,10 +286,7 @@ impl<'conn> DbConnection<'conn> {
     }
 
     pub async fn queue_task(&self, task: Task) {
-        self.store
-            .task_queue
-            .queue_task(task, self.store.store_type)
-            .await;
+        self.store.queue_task(task).await;
     }
 
     pub async fn commit(mut self) -> Result<()> {
