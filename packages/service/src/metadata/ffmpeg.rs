@@ -1,5 +1,11 @@
-use std::{path::Path, str::FromStr};
+use std::{
+    io,
+    path::Path,
+    process::{Output, Stdio},
+    str::FromStr,
+};
 
+use rustix::process::{Pid, setpriority_process};
 use serde_json::{Value, from_slice};
 use tokio::process::Command;
 use tracing::instrument;
@@ -46,6 +52,22 @@ impl ApplyArgs for Command {
     }
 }
 
+async fn run_nice(command: &mut Command) -> io::Result<Output> {
+    let child = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    if let Some(raw) = child.id()
+        && let Ok(raw) = i32::try_from(raw)
+        && let Some(pid) = Pid::from_raw(raw)
+    {
+        let _ = setpriority_process(Some(pid), 10);
+    }
+
+    child.wait_with_output().await
+}
+
 pub(crate) async fn encode_video(
     local_file: &Path,
     container: Container,
@@ -53,18 +75,19 @@ pub(crate) async fn encode_video(
     audio_codec: AudioCodec,
     target: &Path,
 ) -> Result {
-    let output = Command::new("ffmpeg")
-        .arg("-y")
-        .arg("-loglevel")
-        .arg("warning")
-        .arg("-i")
-        .arg(local_file)
-        .add_video_args(video_codec)
-        .add_audio_args(audio_codec)
-        .add_container_args(container)
-        .arg(target)
-        .output()
-        .await?;
+    let output = run_nice(
+        Command::new("ffmpeg")
+            .arg("-y")
+            .arg("-loglevel")
+            .arg("warning")
+            .arg("-i")
+            .arg(local_file)
+            .add_video_args(video_codec)
+            .add_audio_args(audio_codec)
+            .add_container_args(container)
+            .arg(target),
+    )
+    .await?;
 
     if !output.status.success() {
         return Err(Error::Unknown {
@@ -80,19 +103,20 @@ pub(crate) async fn encode_video(
 
 #[instrument(level = "trace", err, skip_all)]
 pub(crate) async fn extract_video_frame(local_file: &Path, target: &Path) -> Result {
-    let output = Command::new("ffmpeg")
-        .arg("-y")
-        .arg("-loglevel")
-        .arg("warning")
-        .arg("-i")
-        .arg(local_file)
-        .arg("-frames:v")
-        .arg("1")
-        .arg("-q:v")
-        .arg("3")
-        .arg(target)
-        .output()
-        .await?;
+    let output = run_nice(
+        Command::new("ffmpeg")
+            .arg("-y")
+            .arg("-loglevel")
+            .arg("warning")
+            .arg("-i")
+            .arg(local_file)
+            .arg("-frames:v")
+            .arg("1")
+            .arg("-q:v")
+            .arg("3")
+            .arg(target),
+    )
+    .await?;
 
     if !output.status.success() {
         return Err(Error::Unknown {
@@ -168,15 +192,16 @@ impl VideoData {
 
     #[instrument(level = "trace", err, skip_all)]
     pub(crate) async fn extract_video_data(local_file: &Path) -> Result<Self> {
-        let output = Command::new("ffprobe")
-            .arg("-hide_banner")
-            .arg("-show_streams")
-            .arg("-show_format")
-            .arg("-output_format")
-            .arg("json")
-            .arg(local_file)
-            .output()
-            .await?;
+        let output = run_nice(
+            Command::new("ffprobe")
+                .arg("-hide_banner")
+                .arg("-show_streams")
+                .arg("-show_format")
+                .arg("-output_format")
+                .arg("json")
+                .arg(local_file),
+        )
+        .await?;
 
         if !output.status.success() {
             return Err(Error::Unknown {
