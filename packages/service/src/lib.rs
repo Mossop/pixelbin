@@ -8,9 +8,7 @@ mod metadata;
 pub mod server;
 mod shared;
 mod store;
-mod task_queue;
-#[cfg(feature = "worker")]
-pub mod worker;
+pub mod task_queue;
 
 pub use mail::{send_test_message, TestMessage};
 pub use store::{
@@ -18,5 +16,6 @@ pub use store::{
     file::FileStore,
     Store, StoreType,
 };
+pub use task_queue::worker;
 pub use task_queue::Task;
 pub(crate) use task_queue::TaskQueue;

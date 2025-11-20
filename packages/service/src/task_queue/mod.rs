@@ -1,3 +1,7 @@
+//! The task queue is used for running any potentially long-running or periodic tasks. It consists
+//! of a queue of pending tasks, a series of task loops that process tasks from the queue, and a
+//! cron-like scheduler that periodically adds tasks to the queue. Additionally there is support
+//! for spawning worker processes that can be used to offload tasks from the main process.
 use std::{
     collections::HashMap,
     sync::{
@@ -16,6 +20,11 @@ use tokio::{sync::Notify, time::sleep};
 use tracing::{field, span, Instrument, Level, Span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
+mod maintenance;
+mod media;
+pub(crate) mod opcache;
+pub mod worker;
+
 use crate::{
     shared::{record_result, DEFAULT_STATUS},
     store::models,
@@ -29,10 +38,7 @@ use crate::{
     },
     Result, Store, StoreType,
 };
-
-mod maintenance;
-mod media;
-pub(crate) mod opcache;
+pub(crate) use worker::WorkerHost;
 
 #[derive(Debug, IntoStaticStr)]
 pub enum Task {
@@ -86,6 +92,8 @@ impl Task {
     }
 }
 
+/// The duration until the start of the next hour. This is imperfect in the case
+/// of timezone changes.
 fn next_tick() -> Duration {
     let now = Local::now();
     let seconds = 60 - now.second();
@@ -96,7 +104,10 @@ fn next_tick() -> Duration {
 
 type TaskMessage = (Task, StoreType, HashMap<String, String>);
 
-fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
+/// Splits a set of strings into a number of partitions based on the last
+/// character of each string returning the partition at the given offset.
+/// The last character of the string is expected to be alphanumeric (A-Z, a-z, 0-9).
+fn partition(set: &[String], partitions: u32, offset: u32) -> Vec<&str> {
     set.iter()
         .filter_map(|s| {
             if s.is_empty() {
@@ -106,7 +117,7 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
             let bytes = s.as_bytes();
             let char = bytes[bytes.len() - 1];
 
-            // value is 0..62
+            // Map the last character to a value in 0..62
             let value = match char {
                 // A .. Z
                 65..=90 => char - 65,
@@ -117,7 +128,7 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
                 _ => return None,
             } as u32;
 
-            let position = (size * value) as f64 / 62.0;
+            let position = (partitions * value) as f64 / 62.0;
             let offset = offset as f64;
 
             if position >= offset && position < offset + 1.0 {
@@ -129,19 +140,11 @@ fn partition(set: &[String], size: u32, offset: u32) -> Vec<&str> {
         .collect()
 }
 
-#[derive(Clone)]
-pub(crate) struct TaskQueue {
-    workers: usize,
-    notify: Arc<Notify>,
-    pending: Arc<AtomicUsize>,
-    sender: Sender<TaskMessage>,
-    receiver: Receiver<TaskMessage>,
-}
-
 pub(crate) struct TaskLoop {
     store: Store,
+    /// Notified whenever there are no tasks remaining in the queue.
     notify: Arc<Notify>,
-    pending: Arc<AtomicUsize>,
+    pending_tasks: Arc<AtomicUsize>,
     receiver: Receiver<TaskMessage>,
 }
 
@@ -150,7 +153,7 @@ impl TaskLoop {
         let this = TaskLoop {
             store: store.clone(),
             notify: queue.notify.clone(),
-            pending: queue.pending.clone(),
+            pending_tasks: queue.pending_tasks.clone(),
             receiver: queue.receiver.clone(),
         };
 
@@ -161,7 +164,7 @@ impl TaskLoop {
         let task_store = self.store.as_store_type(store_type);
         let result = task.run(task_store).await;
 
-        let count = self.pending.fetch_sub(1, Ordering::AcqRel) - 1;
+        let count = self.pending_tasks.fetch_sub(1, Ordering::AcqRel) - 1;
         if count == 0 {
             self.notify.notify_waiters();
         }
@@ -195,31 +198,44 @@ impl TaskLoop {
     }
 }
 
+#[derive(Clone)]
+pub(crate) struct TaskQueue {
+    running_loops: usize,
+    /// Notified whenever there are no tasks remaining in the queue.
+    notify: Arc<Notify>,
+    pending_tasks: Arc<AtomicUsize>,
+    sender: Sender<TaskMessage>,
+    receiver: Receiver<TaskMessage>,
+}
+
 impl TaskQueue {
     pub(crate) fn new() -> Self {
         let (sender, receiver) = unbounded();
 
         Self {
-            workers: 0,
+            running_loops: 0,
             notify: Arc::new(Notify::new()),
-            pending: Arc::new(AtomicUsize::new(0)),
+            pending_tasks: Arc::new(AtomicUsize::new(0)),
             sender,
             receiver,
         }
     }
 
-    pub(crate) fn spawn(&mut self, store: Store, worker_count: usize) {
-        for _ in 0..worker_count {
+    /// Spawns a number of in-process task loops to handle tasks.
+    pub(crate) fn spawn_loops(&mut self, store: Store, count: usize) {
+        for _ in 0..count {
             TaskLoop::spawn(self, &store);
         }
 
-        self.workers += worker_count;
+        self.running_loops += count;
     }
 
+    /// Waits until all pending tasks have completed. This will spawn a new task
+    /// loop if none are currently running and there are tasks pending.
     pub(crate) async fn finish_tasks(&self, store: &Store) {
-        let count = self.pending.load(Ordering::Acquire);
+        let count = self.pending_tasks.load(Ordering::Acquire);
         if count > 0 {
-            if self.workers == 0 {
+            if self.running_loops == 0 {
                 TaskLoop::spawn(self, store);
             }
 
@@ -228,7 +244,7 @@ impl TaskQueue {
     }
 
     pub(crate) async fn queue_task(&self, task: Task, store_type: StoreType) {
-        self.pending.fetch_add(1, Ordering::AcqRel);
+        self.pending_tasks.fetch_add(1, Ordering::AcqRel);
 
         let mut context_data = HashMap::new();
         let context = Span::current().context();
@@ -331,6 +347,7 @@ pub(crate) fn spawn_cron(store: Store) {
 
     tokio::spawn(async move {
         loop {
+            // Wait until the start of the next hour.
             sleep(next_tick()).await;
             cron_inner(&store).await.warn();
         }

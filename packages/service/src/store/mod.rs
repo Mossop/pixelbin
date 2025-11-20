@@ -16,7 +16,7 @@ use db::{connect, DbConnection};
 
 use crate::{
     store::{db::DbPool, locks::Locks},
-    worker::{Command, WorkerHost},
+    task_queue::worker::{Command, WorkerHost},
     Config, Isolation, Result, Task, TaskQueue,
 };
 

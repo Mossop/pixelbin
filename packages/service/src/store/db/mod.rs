@@ -15,7 +15,7 @@ use tracing::{error, info, instrument, trace, warn, Span};
 
 use crate::{
     store::{db::internal::Connection, locks::Locks, StoreInner},
-    worker::WorkerHost,
+    task_queue::WorkerHost,
     Config, Result, Store, StoreType, Task, TaskQueue,
 };
 
@@ -153,8 +153,8 @@ pub(crate) async fn connect(config: &Config, store_type: StoreType) -> Result<St
     .into();
 
     match store_type {
-        StoreType::Server => task_queue.spawn(store.clone(), 4),
-        StoreType::Worker => task_queue.spawn(store.clone(), 2),
+        StoreType::Server => task_queue.spawn_loops(store.clone(), 4),
+        StoreType::Worker => task_queue.spawn_loops(store.clone(), 2),
         _ => {}
     }
 

@@ -1,3 +1,5 @@
+//! The opcache for media file operations. This ensures that if multiple concurrent tasks are
+//! processing the same media file they don't repeat the same operations unnecessarily.
 use std::{collections::HashMap, future::Future, hash::Hash, path::PathBuf, result, sync::Arc};
 
 use futures::TryFutureExt;

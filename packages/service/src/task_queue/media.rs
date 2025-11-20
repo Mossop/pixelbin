@@ -17,7 +17,7 @@ use crate::{
         StoreType,
     },
     task_queue::opcache::MediaFileOpCache,
-    worker::Command,
+    task_queue::worker::Command,
     Error, Result, Store, Task,
 };
 

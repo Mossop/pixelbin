@@ -1,3 +1,5 @@
+//! Locks for various resources in the store to prevent concurrent work on the same resource by
+//! multiple tasks.
 use std::{
     collections::HashMap,
     ops::Deref,
