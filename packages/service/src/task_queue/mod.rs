@@ -10,12 +10,18 @@ use std::{
     time::Duration,
 };
 
-use async_channel::{Receiver, Sender, unbounded};
 use chrono::{Datelike, Local, NaiveDate, Timelike};
 use opentelemetry::{global, trace::TraceContextExt};
 use pixelbin_shared::Ignorable;
 use strum_macros::IntoStaticStr;
-use tokio::{sync::Notify, time::sleep};
+use tokio::{
+    runtime::Builder,
+    sync::{
+        Notify, OwnedSemaphorePermit, Semaphore,
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
+    },
+    time::sleep,
+};
 use tracing::{Instrument, Level, Span, field, span};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
@@ -36,6 +42,11 @@ use crate::{
         media::{process_media_file, prune_deleted_media, upload_media_file},
     },
 };
+
+#[cfg(not(debug_assertions))]
+const STACK_SIZE: usize = 2 * 1024 * 1024;
+#[cfg(debug_assertions)]
+const STACK_SIZE: usize = 20 * 1024 * 1024;
 
 #[derive(Debug, IntoStaticStr)]
 pub enum Task {
@@ -137,40 +148,43 @@ fn partition(set: &[String], partitions: u32, offset: u32) -> Vec<&str> {
         .collect()
 }
 
-pub(crate) struct TaskLoop {
+#[derive(Clone)]
+pub(crate) struct TaskContext {
     store: Store,
     /// Notified whenever there are no tasks remaining in the queue.
     notify: Arc<Notify>,
     pending_tasks: Arc<AtomicUsize>,
-    receiver: Receiver<TaskMessage>,
 }
 
-impl TaskLoop {
-    fn spawn(queue: &TaskQueue, store: &Store) {
-        let this = TaskLoop {
-            store: store.clone(),
+impl TaskContext {
+    fn new(queue: &TaskQueue) -> Self {
+        TaskContext {
+            store: queue.store.clone(),
             notify: queue.notify.clone(),
             pending_tasks: queue.pending_tasks.clone(),
-            receiver: queue.receiver.clone(),
-        };
-
-        tokio::spawn(this.task_loop());
+        }
     }
 
-    async fn run_task(&self, task: &Task) -> Result {
-        let task_store = self.store.clone();
-        let result = task.run(task_store).await;
+    async fn run_task(self, span: Span, task: Task, guard: OwnedSemaphorePermit) {
+        let result = task.run(self.store).instrument(span.clone()).await;
+        record_result(&span, &result);
 
         let count = self.pending_tasks.fetch_sub(1, Ordering::AcqRel) - 1;
         if count == 0 {
             self.notify.notify_waiters();
         }
 
-        result
+        std::mem::drop(guard);
     }
 
-    async fn task_loop(self) {
-        while let Ok((task, context_data)) = self.receiver.recv().await {
+    async fn process_tasks(
+        self,
+        task_guard: Arc<Semaphore>,
+        mut receiver: UnboundedReceiver<TaskMessage>,
+    ) {
+        while let Some((task, context_data)) = receiver.recv().await {
+            let guard = task_guard.clone().acquire_owned().await.unwrap();
+
             let linked_context =
                 global::get_text_map_propagator(|propagator| propagator.extract(&context_data));
             let linked_span = linked_context.span().span_context().clone();
@@ -185,46 +199,48 @@ impl TaskLoop {
             );
             span.add_link(linked_span);
 
-            let result: std::result::Result<(), pixelbin_shared::Error> =
-                self.run_task(&task).instrument(span.clone()).await;
-            record_result(&span, &result);
+            let task_context = self.clone();
+            tokio::spawn(task_context.run_task(span, task, guard));
         }
     }
 }
 
 pub(crate) struct TaskQueue {
     store: Store,
-    running_loops: usize,
     /// Notified whenever there are no tasks remaining in the queue.
     notify: Arc<Notify>,
     pending_tasks: Arc<AtomicUsize>,
-    sender: Sender<TaskMessage>,
-    receiver: Receiver<TaskMessage>,
+    sender: UnboundedSender<TaskMessage>,
 }
 
 impl TaskQueue {
     pub(crate) fn new(store: &Store) -> Self {
-        let (sender, receiver) = unbounded();
+        let (sender, receiver) = unbounded_channel();
 
-        let mut queue = Self {
+        let queue = Self {
             store: store.clone(),
-            running_loops: 0,
             notify: Arc::new(Notify::new()),
             pending_tasks: Arc::new(AtomicUsize::new(0)),
             sender,
-            receiver,
         };
 
-        let loop_count = match store.store_type() {
-            StoreType::Server => 4,
-            StoreType::Cli => 0,
+        let concurrency = if store.store_type() == StoreType::Server {
+            4
+        } else {
+            1
         };
 
-        for _ in 0..loop_count {
-            TaskLoop::spawn(&queue, store);
-        }
+        let task_context = TaskContext::new(&queue);
+        let task_guard = Arc::new(Semaphore::new(concurrency));
 
-        queue.running_loops += loop_count;
+        let runtime = Builder::new_multi_thread()
+            .thread_stack_size(STACK_SIZE)
+            .enable_all()
+            .thread_name("task-queue")
+            .build()
+            .unwrap();
+
+        runtime.spawn(task_context.process_tasks(task_guard, receiver));
 
         queue
     }
@@ -234,10 +250,6 @@ impl TaskQueue {
     pub(crate) async fn finish_tasks(&self) {
         let count = self.pending_tasks.load(Ordering::Acquire);
         if count > 0 {
-            if self.running_loops == 0 {
-                TaskLoop::spawn(self, &self.store);
-            }
-
             self.notify.notified().await;
         }
     }
@@ -251,7 +263,7 @@ impl TaskQueue {
             propagator.inject_context(&context, &mut context_data)
         });
 
-        self.sender.send((task, context_data)).await.unwrap();
+        self.sender.send((task, context_data)).unwrap();
     }
 }
 
