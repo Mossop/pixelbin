@@ -1,4 +1,4 @@
-FROM node:lts-alpine3.19 AS builder
+FROM node:lts-alpine3.22 AS builder
 
 ENV NODE_ENV="production"
 
@@ -26,7 +26,7 @@ RUN \
     cd packages/webapp && \
     cp -R build public modules server.mjs package.json /app/packages/webapp
 
-FROM node:lts-alpine3.19
+FROM node:lts-alpine3.22
 
 COPY --from=builder /app /app
 

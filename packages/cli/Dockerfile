@@ -1,4 +1,4 @@
-FROM rust:alpine3.19 AS builder
+FROM rust:1.91-alpine AS builder
 
 WORKDIR /build
 ENV SQLX_OFFLINE=true
@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/cargo \
     --mount=type=cache,target=/build/target \
     du -sh $CARGO_HOME /build/target
 
-FROM alpine:3.19
+FROM alpine:3.22
 
 RUN \
   mkdir -p /data /app /config && \
