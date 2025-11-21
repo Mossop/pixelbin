@@ -7,7 +7,11 @@ description = "Sync local and temp storage"
 run = "./sync"
 dir = "testing"
 
-[tasks.apiserver]
+[tasks.migrate]
+description = "Run database migrations"
+run = "cargo run -p pixelbin_migrations -- apply"
+
+[tasks."run:api"]
 description = "Run the API server"
 run = "cargo run -p pixelbin_cli -- serve"
 sources = [
@@ -21,7 +25,7 @@ sources = [
   "packages/cli/src/**/*.rs",
 ]
 
-[tasks.webserver]
+[tasks."run:webapp"]
 description = "Run the web server"
 run = "npm run dev"
 dir = "packages/webapp"
@@ -56,3 +60,46 @@ sources = [
   "packages/webapp/**/*.cjs",
   "packages/webapp/**/*.mjs",
 ]
+
+[tasks."build:server"]
+description = "Build the Docker image for the pixelbin API server"
+run = "docker build -t pixelbin-server -f packages/cli/Dockerfile ."
+
+[tasks."build:webapp"]
+description = "Build the Docker image for the pixelbin webapp server"
+run = "docker build -t pixelbin-webapp -f packages/webapp/Dockerfile ."
+
+[tasks."kill:server"]
+run = "docker rm -f pixelbin-server"
+
+[tasks."kill:webapp"]
+run = "docker rm -f pixelbin-webapp"
+
+[tasks."container:server"]
+depends = ["build:server", "kill:server"]
+wait_for = ["build:webapp"]
+description = "Run the pixelbin API server in a Docker container"
+run = '''
+  . .env && docker run -p 8283:8283 \
+    -e "PIXELBIN_LOG_LEVEL=trace" \
+    -e "PIXELBIN_MAIL_SERVER=$PIXELBIN_MAIL_SERVER" \
+    -e "PIXELBIN_DATABASE_URL=postgres://pixelbin:pixelbin@postgres/pixelbin" \
+    -e "PIXELBIN_TELEMETRY_HOST=http://jaeger:4318/v1/traces" \
+    -v $PWD/$PIXELBIN_STORAGE:/data \
+    --network pixelbin \
+    --name pixelbin-server \
+    pixelbin-server
+'''
+
+[tasks."container:webapp"]
+depends = ["build:webapp", "kill:webapp"]
+wait_for = ["build:server"]
+description = "Run the pixelbin webapp server in a Docker container"
+run = '''
+  . .env && docker run -p 3000:3000 \
+    -e "PIXELBIN_LOG_LEVEL=trace" \
+    -e "PIXELBIN_TELEMETRY_HOST=http://jaeger:4318/v1/traces" \
+    --network pixelbin \
+    --name pixelbin-webapp \
+    pixelbin-webapp
+'''

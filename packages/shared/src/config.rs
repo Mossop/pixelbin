@@ -14,6 +14,7 @@ use serde::{
     de::{Error as _, Unexpected},
     Deserialize, Deserializer, Serialize,
 };
+use tracing::level_filters::LevelFilter;
 
 use crate::{Error, Result};
 
@@ -143,6 +144,8 @@ pub struct Config {
 
     pub max_workers: usize,
 
+    pub log_level: Option<LevelFilter>,
+
     /// Disables writing to remote stores for testing purposes.
     pub testing: bool,
 }
@@ -159,13 +162,24 @@ where
     D: Deserializer<'de>,
 {
     if let Some(uri) = Option::<String>::deserialize(deserializer)? {
-        match uri.parse() {
-            Ok(uri) => Ok(Some(uri)),
-            Err(_) => Err(D::Error::invalid_value(
-                Unexpected::Str(&uri),
-                &"a valid URI",
-            )),
-        }
+        uri.parse()
+            .map(Some)
+            .map_err(|_| D::Error::invalid_value(Unexpected::Str(&uri), &"a valid URI"))
+    } else {
+        Ok(None)
+    }
+}
+
+fn deserialize_level_filter<'de, D>(
+    deserializer: D,
+) -> result::Result<Option<LevelFilter>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    if let Some(level) = Option::<String>::deserialize(deserializer)? {
+        LevelFilter::from_str(&level)
+            .map(Some)
+            .map_err(|_| D::Error::invalid_value(Unexpected::Str(&level), &"a valid log level"))
     } else {
         Ok(None)
     }
@@ -189,6 +203,8 @@ struct ParsedConfig {
     thumbnails: Option<ThumbnailConfig>,
     rate_limits: Option<Vec<RateLimit>>,
     max_workers: Option<usize>,
+    #[serde(default, deserialize_with = "deserialize_level_filter")]
+    log_level: Option<LevelFilter>,
     #[serde(default)]
     testing: bool,
 }
@@ -314,6 +330,7 @@ impl Config {
                 ]
             }),
             max_workers: parsed.max_workers.unwrap_or(1),
+            log_level: parsed.log_level,
             testing: parsed.testing,
         })
     }

@@ -19,7 +19,7 @@ use pixelbin::{
     Task, TestMessage,
 };
 use tokio::runtime::Builder;
-use tracing::{span, Instrument, Level, Span};
+use tracing::{level_filters::LevelFilter, span, Instrument, Level, Span};
 use tracing_subscriber::{
     filter::Targets, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry,
 };
@@ -280,13 +280,18 @@ struct CliArgs {
     command: Command,
 }
 
-fn init_logging(telemetry: Option<&str>) -> result::Result<Option<TracerProvider>, Box<dyn Error>> {
+fn init_logging(
+    telemetry: Option<&str>,
+    level: Option<LevelFilter>,
+) -> result::Result<Option<TracerProvider>, Box<dyn Error>> {
     // let filter = EnvFilter::from_default_env().or(TracingFilter {});
 
-    let default_level = if cfg!(debug_assertions) {
-        Level::TRACE
+    let default_level = if let Some(level) = level {
+        level
+    } else if cfg!(debug_assertions) {
+        Level::TRACE.into()
     } else {
-        Level::INFO
+        Level::INFO.into()
     };
 
     let formatter = tracing_subscriber::fmt::layer()
@@ -349,7 +354,7 @@ async fn inner_main() -> result::Result<(), Box<dyn Error>> {
     let args = CliArgs::parse();
     let config = Config::load(args.config.as_deref())?;
 
-    let provider = match init_logging(config.telemetry_host.as_deref()) {
+    let provider = match init_logging(config.telemetry_host.as_deref(), config.log_level) {
         Ok(t) => t,
         Err(e) => {
             eprintln!("Failed to initialise logging: {e}");

@@ -136,4 +136,14 @@ async function main() {
   );
 }
 
+process.on("SIGINT", () => {
+  console.log("Received SIGINT, shutting down...");
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  console.log("Received SIGTERM, shutting down...");
+  process.exit(0);
+});
+
 main().catch(console.error);

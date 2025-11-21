@@ -1,10 +1,19 @@
+networks:
+  pixelbin:
+    driver: bridge
+    name: pixelbin
+
 services:
   postgres:
-    image: postgres:15
+    image: postgres:17
     restart: always
+    container_name: postgres
 
     environment:
       POSTGRES_PASSWORD: postgres
+
+    networks:
+      - pixelbin
 
     ports:
       - 5432:5432
@@ -15,10 +24,14 @@ services:
   pgadmin:
     image: dpage/pgadmin4
     restart: always
+    container_name: pgadmin
 
     environment:
       PGADMIN_DEFAULT_EMAIL: pgadmin@pixelbin.org
       PGADMIN_DEFAULT_PASSWORD: pgadmin
+
+    networks:
+      - pixelbin
 
     ports:
       - 5454:80
@@ -30,6 +43,10 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1.60
     restart: always
+    container_name: jaeger
+
+    networks:
+      - pixelbin
 
     ports:
       - "4318:4318"

@@ -121,6 +121,8 @@ impl DbPool {
 
 #[instrument(err, skip_all)]
 pub(crate) async fn connect(config: &Config, store_type: StoreType) -> Result<Store> {
+    trace!(url = config.database_url, "Connecting to database");
+
     // Set up the async pool.
     let pool = DbPool::connect(config, store_type).await?;
 
