@@ -15,7 +15,7 @@ use opentelemetry::{global, trace::TraceContextExt};
 use pixelbin_shared::Ignorable;
 use strum_macros::IntoStaticStr;
 use tokio::{
-    runtime::Builder,
+    runtime::{Builder, Runtime},
     sync::{
         Notify, OwnedSemaphorePermit, Semaphore,
         mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
@@ -211,17 +211,26 @@ pub(crate) struct TaskQueue {
     notify: Arc<Notify>,
     pending_tasks: Arc<AtomicUsize>,
     sender: UnboundedSender<TaskMessage>,
+    runtime: Runtime,
 }
 
 impl TaskQueue {
     pub(crate) fn new(store: &Store) -> Self {
         let (sender, receiver) = unbounded_channel();
 
+        let runtime = Builder::new_multi_thread()
+            .thread_stack_size(STACK_SIZE)
+            .enable_all()
+            .thread_name("task-queue")
+            .build()
+            .unwrap();
+
         let queue = Self {
             store: store.clone(),
             notify: Arc::new(Notify::new()),
             pending_tasks: Arc::new(AtomicUsize::new(0)),
             sender,
+            runtime,
         };
 
         let concurrency = if store.store_type() == StoreType::Server {
@@ -233,14 +242,9 @@ impl TaskQueue {
         let task_context = TaskContext::new(&queue);
         let task_guard = Arc::new(Semaphore::new(concurrency));
 
-        let runtime = Builder::new_multi_thread()
-            .thread_stack_size(STACK_SIZE)
-            .enable_all()
-            .thread_name("task-queue")
-            .build()
-            .unwrap();
-
-        runtime.spawn(task_context.process_tasks(task_guard, receiver));
+        queue
+            .runtime
+            .spawn(task_context.process_tasks(task_guard, receiver));
 
         queue
     }
