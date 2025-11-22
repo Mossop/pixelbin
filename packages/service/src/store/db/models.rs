@@ -21,7 +21,6 @@ use serde_plain::{derive_display_from_serialize, derive_fromstr_from_deserialize
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use sqlx::{
     Error as SqlxError, QueryBuilder, Result as SqlxResult, Row, postgres::PgRow, prelude::FromRow,
-    types::Json,
 };
 use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tracing::{Level, error, instrument, span};
@@ -937,34 +936,6 @@ impl MediaAlbum {
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn replace_for_media(
-        conn: &mut DbConnection<'_>,
-        media: &str,
-        albums: &[MediaAlbum],
-    ) -> Result {
-        if albums.is_empty() {
-            return Ok(());
-        }
-
-        MediaAlbum::upsert(conn, albums).await?;
-
-        let album_ids: Vec<String> = albums.iter().map(|a| a.album.clone()).collect();
-
-        sqlx::query!(
-            r#"
-            DELETE FROM "media_album"
-            WHERE "media"=$1 AND "album"!=ALL($2)
-            "#,
-            media,
-            &album_ids
-        )
-        .execute(conn)
-        .await?;
-
-        Ok(())
-    }
-
-    #[instrument(skip_all)]
     pub(crate) async fn upsert(conn: &mut DbConnection<'_>, albums: &[MediaAlbum]) -> Result {
         if albums.is_empty() {
             return Ok(());
@@ -1412,49 +1383,6 @@ impl SavedSearch {
                 &email
             )
             .execute(conn)
-            .await?;
-        }
-
-        Ok(())
-    }
-
-    #[instrument(skip_all)]
-    pub(crate) async fn upsert(conn: &mut DbConnection<'_>, searches: &[SavedSearch]) -> Result {
-        if searches.is_empty() {
-            return Ok(());
-        }
-
-        for records in batch(searches, 500) {
-            let mut id: Vec<String> = Vec::new();
-            let mut catalog: Vec<String> = Vec::new();
-            let mut name: Vec<String> = Vec::new();
-            let mut shared: Vec<bool> = Vec::new();
-            let mut query: Vec<Json<&SearchQuery>> = Vec::new();
-
-            records.iter().for_each(|search| {
-                id.push(search.id.clone());
-                catalog.push(search.catalog.clone());
-                name.push(search.name.clone());
-                shared.push(search.shared);
-                query.push(Json(&search.query));
-            });
-
-            sqlx::query!(
-                r#"
-                INSERT INTO "saved_search" ("id", "name", "shared", "query", "catalog")
-                SELECT * FROM UNNEST($1::text[], $2::text[], $3::bool[], $4::jsonb[], $5::text[])
-                ON CONFLICT("id") DO UPDATE SET
-                    "name"="excluded"."name",
-                    "shared"="excluded"."shared",
-                    "query"="excluded"."query"
-                "#,
-                &id,
-                &name,
-                &shared,
-                &query as &[Json<&SearchQuery>],
-                &catalog,
-            )
-            .execute(&mut *conn)
             .await?;
         }
 
@@ -2562,40 +2490,6 @@ impl MediaFile {
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn list_newest(
-        conn: &mut DbConnection<'_>,
-        catalog: &str,
-    ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
-        let files = sqlx::query!(
-            r#"
-            SELECT DISTINCT ON ("media_file"."media_item") "media_file".*
-            FROM "media_file"
-                JOIN "media_item" ON "media_item"."media_file"="media_file"."id"
-            WHERE
-                "media_item"."catalog"=$1 AND
-                NOT "media_item"."deleted"
-            ORDER BY "media_file"."media_item", "media_file"."uploaded" DESC
-            "#,
-            catalog
-        )
-        .try_map(|row| Ok(from_row!(MediaFile(row))))
-        .fetch_all(conn)
-        .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|media_file| {
-                let media_file_store = MediaFileStore {
-                    catalog: catalog.to_owned(),
-                    item: media_file.media_item.clone(),
-                    file: media_file.id.clone(),
-                };
-                (media_file, media_file_store)
-            })
-            .collect())
-    }
-
-    #[instrument(skip_all)]
     pub(crate) async fn list_for_item(
         conn: &mut DbConnection<'_>,
         item: &str,
@@ -2719,36 +2613,6 @@ impl MediaFile {
                     file: media_file.id.clone(),
                 };
                 (media_file, media_file_store)
-            })
-            .collect())
-    }
-
-    pub(crate) async fn list_for_catalog(
-        conn: &mut DbConnection<'_>,
-        catalog: &str,
-    ) -> Result<Vec<(MediaFile, MediaFileStore)>> {
-        let files = sqlx::query!(
-            r#"
-            SELECT "media_file".*
-            FROM "media_file"
-                JOIN "media_item" ON "media_file"."media_item"="media_item"."id"
-            WHERE "media_item"."catalog"=$1
-            "#,
-            catalog
-        )
-        .try_map(|row| Ok(from_row!(MediaFile(row))))
-        .fetch_all(conn)
-        .await?;
-
-        Ok(files
-            .into_iter()
-            .map(|media_file| {
-                let file_path = MediaFileStore {
-                    catalog: catalog.to_owned(),
-                    item: media_file.media_item.clone(),
-                    file: media_file.id.clone(),
-                };
-                (media_file, file_path)
             })
             .collect())
     }
