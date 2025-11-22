@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \"media_file\".\"media_item\", \"media_file\".\"id\"\n            FROM \"media_file\"\n                JOIN \"media_item\" ON \"media_item\".\"id\"=\"media_file\".\"media_item\"\n            WHERE\n                \"media_item\".\"catalog\"=$1 AND\n                \"media_file\".\"stored\" IS NOT NULL AND\n                NOT \"media_file\".\"needs_metadata\" AND\n                \"media_file\".\"id\" NOT IN (\n                    SELECT \"media_file\"\n                    FROM \"alternate_file\"\n                    WHERE \"stored\" IS NULL\n                )\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "media_item",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "aaaafe28c0cbb1a628b75308e49fef7542de3abe618554b803a8d5f6e33a9e18"
+}

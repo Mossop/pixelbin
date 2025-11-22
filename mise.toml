@@ -1,6 +1,7 @@
 [tools]
 node = "22"
 watchexec = "latest"
+"cargo:sqlx-cli" = "latest"
 
 [tasks.migrate]
 description = "Run database migrations"

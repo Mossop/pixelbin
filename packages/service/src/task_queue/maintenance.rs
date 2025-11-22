@@ -352,6 +352,10 @@ pub(super) async fn prune_media_files(store: Store, catalog: &str) -> Result {
         temp_store.delete(&media_file_store).await.warn();
     }
 
+    for media_file_store in models::MediaFile::list_complete(&mut conn, catalog).await? {
+        temp_store.delete(&media_file_store).await.ignore();
+    }
+
     conn.commit().await
 }
 

@@ -2656,6 +2656,39 @@ impl MediaFile {
     }
 
     #[instrument(skip_all)]
+    pub(crate) async fn list_complete(
+        conn: &mut DbConnection<'_>,
+        catalog: &str,
+    ) -> Result<Vec<MediaFileStore>> {
+        Ok(sqlx::query!(
+            r#"
+            SELECT "media_file"."media_item", "media_file"."id"
+            FROM "media_file"
+                JOIN "media_item" ON "media_item"."id"="media_file"."media_item"
+            WHERE
+                "media_item"."catalog"=$1 AND
+                "media_file"."stored" IS NOT NULL AND
+                NOT "media_file"."needs_metadata" AND
+                "media_file"."id" NOT IN (
+                    SELECT "media_file"
+                    FROM "alternate_file"
+                    WHERE "stored" IS NULL
+                )
+            "#,
+            catalog
+        )
+        .try_map(|row| {
+            Ok(MediaFileStore {
+                catalog: catalog.to_owned(),
+                item: row.media_item,
+                file: row.id,
+            })
+        })
+        .fetch_all(conn)
+        .await?)
+    }
+
+    #[instrument(skip_all)]
     pub(crate) async fn list_prunable(
         conn: &mut DbConnection<'_>,
         catalog: &str,
