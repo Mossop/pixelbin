@@ -78,7 +78,7 @@ pub(super) async fn upload_media_file(store: Store, media_file_id: &str) -> Resu
     }
 
     let storage = op_cache.storage().await?;
-    let remote_store = storage.file_store(store.config()).await?;
+    let remote_store = storage.file_store(&store).await?;
 
     remote_store
         .push(&temp_file, &file_path, &op_cache.media_file.mimetype)
@@ -130,7 +130,7 @@ async fn build_alternate(
             .push(&built_file, &file_path, &alternate_file.mimetype)
             .await?;
     } else {
-        let store = storage.file_store(store.config()).await?;
+        let store = storage.file_store(store).await?;
         store
             .push(&built_file, &file_path, &alternate_file.mimetype)
             .await?;
@@ -208,10 +208,17 @@ pub(super) async fn process_media_file(store: Store, media_file_id: &str) -> Res
 
 #[instrument(skip(store), err)]
 pub(super) async fn clean_media_file(store: Store, media_file_id: &str) -> Result {
+    trace!(media_file_id, "Cleaning media file");
     let mut conn = store.pooled();
     let (media_file, media_file_store) = models::MediaFile::get(&mut conn, media_file_id).await?;
 
     if media_file.stored.is_none() || media_file.needs_metadata {
+        trace!(
+            media_file_id,
+            stored = media_file.stored.is_none(),
+            needs_metadata = media_file.needs_metadata,
+            "Media file still needs processing; skipping cleanup"
+        );
         return Ok(());
     }
 
@@ -219,12 +226,16 @@ pub(super) async fn clean_media_file(store: Store, media_file_id: &str) -> Resul
     if alternates.into_iter().any(|af| af.stored.is_none()) {
         // If there are any alternate files still to be generated then we should not remove the
         // temp file.
+        trace!(
+            media_file_id,
+            "Alternate files still need processing; skipping cleanup"
+        );
         return Ok(());
     }
 
     // Delete temp file if present
     let temp_store = DiskStore::temp_store(conn.config());
-    temp_store.prune(&media_file_store).await.ignore();
+    temp_store.delete(&media_file_store).await.ignore();
 
     Ok(())
 }
@@ -248,7 +259,7 @@ pub(super) async fn prune_deleted_media(store: Store, catalog: &str) -> Result {
 
     for (catalog, media) in mapped.iter() {
         let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
-        let remote_store = storage.file_store(store.config()).await?;
+        let remote_store = storage.file_store(&store).await?;
 
         for media in media {
             let path = media.path();

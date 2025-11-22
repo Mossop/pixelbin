@@ -25,16 +25,20 @@ pub trait FileStore {
 
     async fn exists(&self, path: &FilePath) -> Result<bool>;
 
+    /// Prunes empty directories up to the root
     async fn prune<P>(&self, path: &P) -> Result
     where
         P: PathLike + Send + Sync + fmt::Debug;
 
+    /// Deletes the file or directory at the given path
     async fn delete<P>(&self, path: &P) -> Result
     where
         P: PathLike + Send + Sync + fmt::Debug;
 
+    /// Pulls the file at the given path to the target location
     async fn pull(&self, path: &FilePath, target: &Path) -> Result;
 
+    /// Pushes the file from the source location to the given path
     async fn push(&self, source: &Path, path: &FilePath, mimetype: &Mime) -> Result;
 }
 
@@ -274,6 +278,7 @@ impl FileStore for DiskStore {
 
         if stats.is_dir() {
             fs::remove_dir_all(&local).await?;
+            self.prune(path).await?;
         } else {
             fs::remove_file(&local).await?;
         }

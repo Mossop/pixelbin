@@ -16,7 +16,7 @@ use crate::{
         db::{Isolation, functions::from_row},
         file::{DiskStore, FileStore},
         models,
-        path::{CatalogStore, FilePath, MediaFileStore, ResourceList, ResourcePath},
+        path::{CatalogStore, FilePath, MediaFileStore, ResourceList},
     },
 };
 
@@ -65,19 +65,19 @@ pub(super) async fn delete_alternate_files(store: Store, alternate_files: &[Stri
     Ok(())
 }
 
-async fn prune_storage<S: FileStore>(store: &S, root: &ResourcePath, list: ResourceList) -> Result {
+async fn prune_storage<S: FileStore>(store: &S, list: ResourceList) -> Result {
     for (resource, _) in list {
         store.delete(&resource).await?;
     }
 
-    store.prune(root).await
+    Ok(())
 }
 
 pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bool) -> Result {
     let mut conn = store.pooled();
     let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
 
-    let remote_store = storage.file_store(store.config()).await?;
+    let remote_store = storage.file_store(&store).await?;
     let local_store = DiskStore::local_store(store.config());
     let temp_store = DiskStore::temp_store(store.config());
 
@@ -319,19 +319,14 @@ pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bo
     }
 
     if delete_files {
-        let catalog = CatalogStore {
-            catalog: catalog.to_owned(),
-        }
-        .into();
-
-        prune_storage(&local_store, &catalog, local_files).await?;
-        prune_storage(&temp_store, &catalog, temp_files).await?;
-        prune_storage(&remote_store, &catalog, remote_files).await?;
+        prune_storage(&local_store, local_files).await?;
+        prune_storage(&temp_store, temp_files).await?;
+        prune_storage(&remote_store, remote_files).await?;
     } else {
         debug!(
             remote_files = remote_files.len(),
             local_files = local_files.len(),
-            temp_store = temp_files.len(),
+            temp_files = temp_files.len(),
             "Skipping deletion"
         );
     }
@@ -343,7 +338,7 @@ pub(super) async fn prune_media_files(store: Store, catalog: &str) -> Result {
     let mut conn = store.isolated(Isolation::Committed).await?;
 
     let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
-    let remote_store = storage.file_store(conn.config()).await?;
+    let remote_store = storage.file_store(&store).await?;
     let local_store = DiskStore::local_store(conn.config());
     let temp_store = DiskStore::temp_store(conn.config());
 
@@ -366,7 +361,7 @@ pub(super) async fn prune_media_items(store: Store, catalog: &str) -> Result {
     let mut conn = store.isolated(Isolation::Committed).await?;
 
     let storage = models::Storage::get_for_catalog(&mut conn, catalog).await?;
-    let remote_store = storage.file_store(conn.config()).await?;
+    let remote_store = storage.file_store(&store).await?;
     let local_store = DiskStore::local_store(conn.config());
     let temp_store = DiskStore::temp_store(conn.config());
 

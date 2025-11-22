@@ -3,11 +3,11 @@ use std::{fmt, path::Path, time::Duration};
 use async_trait::async_trait;
 use aws_config::{AppName, BehaviorVersion};
 use aws_sdk_s3::{
+    Client,
     config::{Credentials, Region},
     presigning::PresigningConfig,
     primitives::ByteStream,
     types::{Delete, ObjectIdentifier},
-    Client,
 };
 use mime::Mime;
 use pixelbin_shared::Ignorable;
@@ -18,12 +18,12 @@ use tokio::{
 use tracing::{debug, instrument, trace};
 
 use crate::{
+    Error, Result, Store,
     store::{
         file::FileStore,
         models::Storage,
         path::{FilePath, PathLike, ResourceList, ResourcePath},
     },
-    Config, Error, Result,
 };
 
 pub(crate) fn joinable(st: &str) -> &str {
@@ -35,11 +35,11 @@ fn remote_path<P: PathLike>(path: &P) -> String {
 }
 
 pub(crate) struct AwsClient {
+    store: Store,
     client: Client,
     bucket: String,
     path: Option<String>,
     public_url: Option<String>,
-    testing: bool,
 }
 
 impl AwsClient {
@@ -58,7 +58,7 @@ impl AwsClient {
         }
     }
 
-    pub(crate) async fn from_storage(storage: &Storage, config: &Config) -> Result<Self> {
+    pub(crate) async fn from_storage(storage: &Storage, store: &Store) -> Result<Self> {
         let mut config_loader = aws_config::defaults(BehaviorVersion::latest())
             .region(Region::new(storage.region.clone()))
             .app_name(AppName::new("pixelbin").unwrap())
@@ -77,11 +77,11 @@ impl AwsClient {
         let sdk_config = config_loader.load().await;
 
         Ok(Self {
+            store: store.clone(),
             client: Client::new(&sdk_config),
             bucket: storage.bucket.clone(),
             path: storage.path.clone(),
             public_url: storage.public_url.clone(),
-            testing: config.testing,
         })
     }
 
@@ -183,7 +183,7 @@ impl FileStore for AwsClient {
     where
         P: PathLike + Send + Sync + fmt::Debug,
     {
-        if self.testing {
+        if self.store.config().testing {
             debug!("Not deleting in testing mode.");
             return Ok(());
         }
@@ -285,10 +285,12 @@ impl FileStore for AwsClient {
     #[allow(clippy::blocks_in_conditions)]
     #[instrument(skip(self), fields(size), err)]
     async fn push(&self, source: &Path, path: &FilePath, mimetype: &Mime) -> Result {
-        if self.testing {
+        if self.store.config().testing {
             debug!("Not pushing in testing mode.");
             return Ok(());
         }
+
+        let _guard = self.store.locks().enter_upload_task().await;
 
         let stats = metadata(source).await?;
         tracing::Span::current().record("size", stats.len());

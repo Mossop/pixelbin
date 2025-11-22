@@ -151,7 +151,7 @@ impl MediaFileOpCache {
                 }
 
                 let storage = self.storage().await?;
-                let remote_store = storage.file_store(self.store.config()).await?;
+                let remote_store = storage.file_store(&self.store).await?;
                 remote_store.pull(&file_path, &temp_path).await?;
 
                 Ok(temp_path)

@@ -27,7 +27,7 @@ use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tracing::{Level, error, instrument, span};
 
 use crate::{
-    Config, Error, Result, Task,
+    Error, Result, Store, Task,
     mail::{Subscribed, SubscriptionRequest, send_messages},
     metadata::{Alternate, alternates_for_media_file, lookup_timezone, media_datetime},
     shared::{long_id, short_id, spawn_blocking},
@@ -445,8 +445,8 @@ pub(crate) struct Storage {
 }
 
 impl Storage {
-    pub(crate) async fn file_store(&self, config: &Config) -> Result<impl FileStore + use<>> {
-        let client = AwsClient::from_storage(self, config).await?;
+    pub(crate) async fn file_store(&self, store: &Store) -> Result<impl FileStore + use<>> {
+        let client = AwsClient::from_storage(self, store).await?;
 
         Ok(client)
     }
@@ -456,9 +456,9 @@ impl Storage {
         path: &FilePath,
         mimetype: &Mime,
         filename: Option<&str>,
-        config: &Config,
+        store: &Store,
     ) -> Result<String> {
-        let client = AwsClient::from_storage(self, config).await?;
+        let client = AwsClient::from_storage(self, store).await?;
         client.file_uri(path, mimetype, filename).await
     }
 

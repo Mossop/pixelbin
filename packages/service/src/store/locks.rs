@@ -22,6 +22,7 @@ struct Inner {
 pub(crate) struct Locks {
     store: Store,
     expensive_tasks: Arc<Semaphore>,
+    uploads: Arc<Semaphore>,
     inner: Arc<Mutex<Inner>>,
 }
 
@@ -30,12 +31,17 @@ impl Locks {
         Self {
             store: store.clone(),
             expensive_tasks: Arc::new(Semaphore::new(1)),
+            uploads: Arc::new(Semaphore::new(10)),
             inner: Default::default(),
         }
     }
 
     pub(crate) async fn enter_expensive_task(&self) -> OwnedSemaphorePermit {
         self.expensive_tasks.clone().acquire_owned().await.unwrap()
+    }
+
+    pub(crate) async fn enter_upload_task(&self) -> OwnedSemaphorePermit {
+        self.uploads.clone().acquire_owned().await.unwrap()
     }
 
     pub(crate) fn media_file_ops(

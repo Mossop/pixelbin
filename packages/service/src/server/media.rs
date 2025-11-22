@@ -91,7 +91,7 @@ async fn download_handler(
             &file_path,
             &media_file.mimetype,
             Some(&filename),
-            app_state.store.config(),
+            &app_state.store,
         )
         .await?;
 
@@ -190,7 +190,7 @@ async fn encoding_handler(
     let storage = models::Storage::get_for_catalog(&mut conn, &file_path.catalog).await?;
 
     let url = storage
-        .online_uri(&file_path, &mimetype, None, app_state.store.config())
+        .online_uri(&file_path, &mimetype, None, &app_state.store)
         .await?;
 
     if let Some(val) = request.headers().get("Accept")
