@@ -76,6 +76,7 @@ wait_for = ["build:webapp"]
 description = "Run the pixelbin API server in a Docker container"
 run = '''
   . .env && docker run -p 8283:8283 \
+    -e "PIXELBIN_TESTING=$PIXELBIN_TESTING" \
     -e "PIXELBIN_LOG_LEVEL=trace" \
     -e "PIXELBIN_MAIL_SERVER=$PIXELBIN_MAIL_SERVER" \
     -e "PIXELBIN_DATABASE_URL=postgres://pixelbin:pixelbin@postgres/pixelbin" \

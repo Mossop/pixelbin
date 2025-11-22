@@ -3342,6 +3342,10 @@ impl AlternateFile {
 
     #[instrument(skip_all)]
     pub(crate) async fn delete(conn: &mut DbConnection<'_>, alternate_files: &[String]) -> Result {
+        if alternate_files.is_empty() {
+            return Ok(());
+        }
+
         sqlx::query!(
             r#"
             DELETE FROM "alternate_file"

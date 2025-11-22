@@ -134,8 +134,6 @@ pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bo
             let mut changed = false;
             remote_files.remove(&media_file_path);
 
-            temp_files.remove(&media_file_path);
-
             if !has_remote && media_file.stored.is_some() {
                 warn!(
                     media_item = media_file.media_item,
