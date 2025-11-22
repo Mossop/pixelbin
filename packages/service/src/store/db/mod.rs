@@ -285,8 +285,8 @@ impl<'conn> DbConnection<'conn> {
         }
     }
 
-    pub async fn queue_task(&self, task: Task) {
-        self.store.queue_task(task).await;
+    pub fn queue_task(&self, task: Task) {
+        self.store.queue_task(task);
     }
 
     pub async fn commit(mut self) -> Result<()> {

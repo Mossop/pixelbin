@@ -4,30 +4,29 @@ use std::{collections::HashMap, future::Future, hash::Hash, path::PathBuf, resul
 
 use futures::TryFutureExt;
 use image::DynamicImage;
-use pixelbin_shared::{Error, Ignorable};
+use pixelbin_shared::Error;
 use tokio::{
     fs,
     sync::{Mutex, OnceCell},
 };
+use tracing::trace;
 
 use crate::{
+    Result, Store,
     metadata::{crop_image, load_source_image, resize_image},
     shared::file_exists,
     store::{
         file::{DiskStore, FileStore},
-        locks::MediaItemLock,
         models,
         path::MediaFileStore,
     },
-    Result, Store,
 };
 
 const SOCIAL_WIDTH: u32 = 1200;
 const SOCIAL_HEIGHT: u32 = 630;
 
-#[derive(Clone)]
 struct Task<R> {
-    cell: Arc<OnceCell<result::Result<R, String>>>,
+    cell: OnceCell<result::Result<Arc<R>, Error>>,
 }
 
 impl<R> Default for Task<R> {
@@ -42,26 +41,25 @@ impl<R> Task<R>
 where
     R: Clone,
 {
-    async fn perform<Fn, Fut>(&self, cb: Fn) -> Result<R>
+    async fn perform<Fn, Fut>(&self, cb: Fn) -> Result<Arc<R>>
     where
         Fut: Future<Output = Result<R>>,
         Fn: FnOnce() -> Fut,
     {
-        let result = self
-            .cell
-            .get_or_init(|| cb().map_err(|e| e.to_string()))
-            .await;
+        let result = self.cell.get_or_init(|| cb().map_ok(Arc::new)).await;
 
         match result {
             Ok(r) => Ok(r.clone()),
-            Err(e) => Err(Error::TaskError { message: e.clone() }),
+            Err(e) => Err(Error::TaskError {
+                message: e.to_string(),
+            }),
         }
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 struct Tasks<P, R> {
-    tasks: Arc<Mutex<HashMap<P, Task<R>>>>,
+    tasks: Mutex<HashMap<P, Arc<Task<R>>>>,
 }
 
 impl<P, R> Tasks<P, R>
@@ -69,7 +67,7 @@ where
     P: Eq + Hash,
     R: Clone,
 {
-    async fn perform<Fn, Fut>(&self, params: P, cb: Fn) -> Result<R>
+    async fn perform<Fn, Fut>(&self, params: P, cb: Fn) -> Result<Arc<R>>
     where
         Fut: Future<Output = Result<R>>,
         Fn: FnOnce() -> Fut,
@@ -83,9 +81,7 @@ where
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct MediaFileOpCache {
-    _guard: Arc<MediaItemLock>,
     store: Store,
     pub(super) media_file: models::MediaFile,
     pub(super) media_file_store: MediaFileStore,
@@ -97,15 +93,26 @@ pub(crate) struct MediaFileOpCache {
     resize: Tasks<i32, DynamicImage>,
 }
 
+impl Drop for MediaFileOpCache {
+    fn drop(&mut self) {
+        trace!(
+            media_file = self.media_file_store.file,
+            "Dropped MediaFileOpCache"
+        );
+        self.store.locks().clear_file_ops();
+        self.store.queue_task(super::Task::CleanMediaFile {
+            media_file: self.media_file.id.clone(),
+        });
+    }
+}
+
 impl MediaFileOpCache {
     pub(crate) fn new(
-        guard: Arc<MediaItemLock>,
         store: Store,
         media_file: &models::MediaFile,
         media_file_store: &MediaFileStore,
     ) -> Self {
         Self {
-            _guard: guard,
             store,
             media_file: media_file.clone(),
             media_file_store: media_file_store.clone(),
@@ -118,36 +125,13 @@ impl MediaFileOpCache {
         }
     }
 
-    pub(super) async fn release(&self) -> Result {
-        let mut conn = self.store.connect().await?;
-        let (media_file, _) =
-            models::MediaFile::get(&mut conn, &self.media_file_store.file).await?;
-
-        if media_file.stored.is_none() || media_file.needs_metadata {
-            return Ok(());
-        }
-
-        let alternates =
-            models::AlternateFile::list_for_media_file(&mut conn, &self.media_file.id).await?;
-        if alternates.into_iter().any(|af| af.stored.is_none()) {
-            // If there are any alternate files still to be generated then we should not remove the
-            // temp file.
-            return Ok(());
-        }
-
-        // Delete local file if present
-        let temp_store = DiskStore::temp_store(conn.config());
-        temp_store.prune(&self.media_file_store).await.ignore();
-
-        Ok(())
-    }
-
     pub(super) async fn storage(&self) -> Result<models::Storage> {
         self.storage
             .perform(|| async {
                 let mut conn = self.store.pooled();
                 models::Storage::get_for_catalog(&mut conn, &self.media_file_store.catalog).await
             })
+            .map_ok(Arc::unwrap_or_clone)
             .await
     }
 
@@ -172,10 +156,11 @@ impl MediaFileOpCache {
 
                 Ok(temp_path)
             })
+            .map_ok(Arc::unwrap_or_clone)
             .await
     }
 
-    pub(super) async fn decode(&self) -> Result<DynamicImage> {
+    pub(super) async fn decode(&self) -> Result<Arc<DynamicImage>> {
         self.decode
             .perform(|| async {
                 let path = self.ensure_local().await?;
@@ -184,7 +169,7 @@ impl MediaFileOpCache {
             .await
     }
 
-    pub(super) async fn resize(&self, size: i32) -> Result<DynamicImage> {
+    pub(super) async fn resize(&self, size: i32) -> Result<Arc<DynamicImage>> {
         self.resize
             .perform(size, || async {
                 let image = self.decode().await?;
@@ -193,7 +178,7 @@ impl MediaFileOpCache {
             .await
     }
 
-    pub(super) async fn resize_social(&self) -> Result<DynamicImage> {
+    pub(super) async fn resize_social(&self) -> Result<Arc<DynamicImage>> {
         self.social
             .perform(|| async {
                 let mut image = self.decode().await?;
@@ -208,7 +193,7 @@ impl MediaFileOpCache {
                     let target_height = ((target_width as f32) / target_aspect).round() as u32;
                     let diff = image.height() - target_height;
                     let top = diff / 3;
-                    image = crop_image(image, 0, top, target_width, target_height).await;
+                    image = Arc::new(crop_image(image, 0, top, target_width, target_height).await);
                 }
 
                 Ok(resize_image(image, SOCIAL_WIDTH as i32, SOCIAL_HEIGHT as i32).await)

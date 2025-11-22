@@ -39,7 +39,7 @@ use crate::{
             prune_media_items, server_startup, trigger_media_tasks, update_searches,
             verify_storage,
         },
-        media::{process_media_file, prune_deleted_media, upload_media_file},
+        media::{clean_media_file, process_media_file, prune_deleted_media, upload_media_file},
     },
 };
 
@@ -66,6 +66,8 @@ pub enum Task {
     ProcessMedia { catalog: String },
     /// Triggers any tasks required to complete a media file.
     ProcessMediaFile { media_file: String },
+    /// Cleans up any remaining temporary files for a media file.
+    CleanMediaFile { media_file: String },
     /// Uploads the media file.
     UploadMediaFile { media_file: String },
     /// Deletes the no longer required alternate files.
@@ -90,6 +92,7 @@ impl Task {
             Task::PruneMediaItems { catalog } => prune_media_items(store, catalog).await,
             Task::ProcessMedia { catalog } => trigger_media_tasks(store, catalog).await,
             Task::ProcessMediaFile { media_file } => process_media_file(store, media_file).await,
+            Task::CleanMediaFile { media_file } => clean_media_file(store, media_file).await,
             Task::UploadMediaFile { media_file } => upload_media_file(store, media_file).await,
             Task::DeleteAlternateFiles { alternate_files } => {
                 delete_alternate_files(store, alternate_files).await
@@ -258,7 +261,7 @@ impl TaskQueue {
         }
     }
 
-    pub(crate) async fn queue_task(&self, task: Task) {
+    pub(crate) fn queue_task(&self, task: Task) {
         self.pending_tasks.fetch_add(1, Ordering::AcqRel);
 
         let mut context_data = HashMap::new();
@@ -288,45 +291,33 @@ pub(crate) fn spawn_cron(store: Store) {
             .collect();
 
         // Hourly
-        store.queue_task(Task::CleanQueues).await;
+        store.queue_task(Task::CleanQueues);
 
         for catalog in catalogs.iter() {
-            store
-                .queue_task(Task::UpdateSearches {
-                    catalog: catalog.clone(),
-                })
-                .await;
+            store.queue_task(Task::UpdateSearches {
+                catalog: catalog.clone(),
+            });
         }
 
         // Daily
         {
             let catalogs = partition(&catalogs, 24, hours);
             for catalog in catalogs.iter() {
-                store
-                    .queue_task(Task::ProcessMedia {
-                        catalog: catalog.to_string(),
-                    })
-                    .await;
-                store
-                    .queue_task(Task::DeleteMedia {
-                        catalog: catalog.to_string(),
-                    })
-                    .await;
-                store
-                    .queue_task(Task::PruneMediaItems {
-                        catalog: catalog.to_string(),
-                    })
-                    .await;
-                store
-                    .queue_task(Task::PruneMediaFiles {
-                        catalog: catalog.to_string(),
-                    })
-                    .await;
-                store
-                    .queue_task(Task::ProcessSubscriptions {
-                        catalog: catalog.to_string(),
-                    })
-                    .await;
+                store.queue_task(Task::ProcessMedia {
+                    catalog: catalog.to_string(),
+                });
+                store.queue_task(Task::DeleteMedia {
+                    catalog: catalog.to_string(),
+                });
+                store.queue_task(Task::PruneMediaItems {
+                    catalog: catalog.to_string(),
+                });
+                store.queue_task(Task::PruneMediaFiles {
+                    catalog: catalog.to_string(),
+                });
+                store.queue_task(Task::ProcessSubscriptions {
+                    catalog: catalog.to_string(),
+                });
             }
         }
 
@@ -345,12 +336,10 @@ pub(crate) fn spawn_cron(store: Store) {
 
             let catalogs = partition(&catalogs, days_in_month, now.day0());
             for catalog in catalogs.iter() {
-                store
-                    .queue_task(Task::VerifyStorage {
-                        catalog: catalog.to_string(),
-                        delete_files: true,
-                    })
-                    .await;
+                store.queue_task(Task::VerifyStorage {
+                    catalog: catalog.to_string(),
+                    delete_files: true,
+                });
             }
         }
 

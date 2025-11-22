@@ -2,11 +2,6 @@
 node = "22"
 watchexec = "latest"
 
-[tasks.syncdata]
-description = "Sync local and temp storage"
-run = "./sync"
-dir = "testing"
-
 [tasks.migrate]
 description = "Run database migrations"
 run = "cargo run -p pixelbin_migrations -- apply"

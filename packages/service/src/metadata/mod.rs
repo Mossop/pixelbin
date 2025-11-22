@@ -1,4 +1,4 @@
-use std::{cmp, os::unix::fs::MetadataExt, path::Path, str::FromStr};
+use std::{cmp, os::unix::fs::MetadataExt, path::Path, str::FromStr, sync::Arc};
 
 use chrono::{DateTime, LocalResult, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
@@ -73,7 +73,7 @@ impl Alternate {
 
 pub(crate) async fn encode_alternate_image(
     alternate_file: &mut AlternateFile,
-    source_image: &DynamicImage,
+    source_image: Arc<DynamicImage>,
 ) -> Result<TempPath> {
     let temp = NamedTempFile::new()?.into_temp_path();
 

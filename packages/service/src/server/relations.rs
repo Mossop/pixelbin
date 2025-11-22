@@ -1,21 +1,21 @@
 use std::{collections::HashSet, slice};
 
 use actix_web::{
-    get,
-    http::{header, StatusCode},
+    HttpResponse, HttpResponseBuilder, get,
+    http::{StatusCode, header},
     post,
     web::{self},
-    HttpResponse, HttpResponseBuilder,
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
-use serde_with::{serde_as, OneOrMany};
+use serde_with::{OneOrMany, serde_as};
 use tracing::instrument;
 
 use crate::{
+    Task,
     server::{
-        auth::{MaybeSession, Session},
         ApiResponse, ApiResult, AppState,
+        auth::{MaybeSession, Session},
     },
     shared::short_id,
     store::{
@@ -25,7 +25,6 @@ use crate::{
             UserCatalogWithCount,
         },
     },
-    Task,
 };
 
 #[derive(Deserialize, Clone, Debug)]
@@ -87,12 +86,9 @@ async fn edit_album(
     models::Album::upsert(&mut conn, &[album.clone()]).await?;
     conn.commit().await?;
 
-    app_state
-        .store
-        .queue_task(Task::UpdateSearches {
-            catalog: album.catalog.clone(),
-        })
-        .await;
+    app_state.store.queue_task(Task::UpdateSearches {
+        catalog: album.catalog.clone(),
+    });
 
     Ok(web::Json(album))
 }
@@ -119,10 +115,7 @@ async fn delete_album(
     conn.commit().await?;
 
     for catalog in catalogs {
-        app_state
-            .store
-            .queue_task(Task::UpdateSearches { catalog })
-            .await;
+        app_state.store.queue_task(Task::UpdateSearches { catalog });
     }
 
     Ok(web::Json(Default::default()))
@@ -183,10 +176,7 @@ async fn album_media_change(
     conn.commit().await?;
 
     for catalog in catalogs {
-        app_state
-            .store
-            .queue_task(Task::UpdateSearches { catalog })
-            .await;
+        app_state.store.queue_task(Task::UpdateSearches { catalog });
     }
 
     return Ok(web::Json(ApiResponse::default()));

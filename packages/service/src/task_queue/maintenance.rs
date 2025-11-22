@@ -30,29 +30,23 @@ pub(super) async fn server_startup(store: Store) -> Result {
     let catalogs = conn.list_catalogs().await?;
 
     for catalog in catalogs {
-        store
-            .queue_task(Task::DeleteMedia {
-                catalog: catalog.clone(),
-            })
-            .await;
+        store.queue_task(Task::DeleteMedia {
+            catalog: catalog.clone(),
+        });
 
         models::MediaItem::update_media_files(&mut conn, &catalog).await?;
 
-        store
-            .queue_task(Task::UpdateSearches {
-                catalog: catalog.clone(),
-            })
-            .await;
+        store.queue_task(Task::UpdateSearches {
+            catalog: catalog.clone(),
+        });
 
-        store
-            .queue_task(Task::ProcessMedia {
-                catalog: catalog.clone(),
-            })
-            .await;
+        store.queue_task(Task::ProcessMedia {
+            catalog: catalog.clone(),
+        });
 
-        store.queue_task(Task::PruneMediaFiles { catalog }).await;
+        store.queue_task(Task::PruneMediaFiles { catalog });
 
-        store.queue_task(Task::CleanQueues).await;
+        store.queue_task(Task::CleanQueues);
     }
 
     Ok(())
@@ -108,12 +102,6 @@ pub(super) async fn verify_storage(store: Store, catalog: &str, delete_files: bo
         let mut media_files_to_delete: Vec<String> = Vec::new();
         let mut alternates_to_update: Vec<models::AlternateFile> = Vec::new();
         let mut alternates_to_delete: Vec<String> = Vec::new();
-
-        let _guard = store
-            .locks()
-            .media_item(&media_item_store)
-            .for_delete()
-            .await;
 
         let mut media_files = VecDeque::<(models::MediaFile, MediaFileStore)>::from(
             models::MediaFile::list_for_item(&mut conn, &media_item_store.item).await?,
@@ -399,9 +387,7 @@ pub(super) async fn prune_media_items(store: Store, catalog: &str) -> Result {
 pub(super) async fn trigger_media_tasks(store: Store, catalog: &str) -> Result {
     let mut conn = store.connect().await?;
     for media_file in models::MediaFile::list_needs_processing(&mut conn, catalog).await? {
-        store
-            .queue_task(Task::ProcessMediaFile { media_file })
-            .await;
+        store.queue_task(Task::ProcessMediaFile { media_file });
     }
 
     Ok(())

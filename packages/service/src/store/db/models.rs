@@ -3256,8 +3256,7 @@ impl AlternateFile {
         if !to_delete.is_empty() {
             conn.queue_task(Task::DeleteAlternateFiles {
                 alternate_files: to_delete,
-            })
-            .await;
+            });
         }
 
         AlternateFile::upsert(conn, &to_create).await

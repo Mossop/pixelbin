@@ -450,8 +450,7 @@ async fn update_media_item(
 
             conn.queue_task(Task::ProcessMediaFile {
                 media_file: file_id,
-            })
-            .await;
+            });
         }
     }
 
@@ -594,12 +593,9 @@ async fn upload_media(
     models::AlternateFile::upsert(&mut conn, &alternate_files).await?;
     conn.commit().await?;
 
-    app_state
-        .store
-        .queue_task(Task::ProcessMediaFile {
-            media_file: media_file_id,
-        })
-        .await;
+    app_state.store.queue_task(Task::ProcessMediaFile {
+        media_file: media_file_id,
+    });
 
     Ok(web::Json(MediaUploadResponse { id: media_item.id }))
 }
@@ -630,12 +626,9 @@ async fn edit_media(
     update_media_item(&mut conn, &mut media_item, &data.metadata).await?;
     conn.commit().await?;
 
-    app_state
-        .store
-        .queue_task(Task::UpdateSearches {
-            catalog: media_item.catalog,
-        })
-        .await;
+    app_state.store.queue_task(Task::UpdateSearches {
+        catalog: media_item.catalog,
+    });
 
     Ok(web::Json(Default::default()))
 }

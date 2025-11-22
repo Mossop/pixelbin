@@ -3,26 +3,27 @@ use std::{
     io::{BufWriter, Write},
     path::Path,
     str::FromStr,
+    sync::Arc,
 };
 
 use file_format::FileFormat;
 use image::{
+    DynamicImage, ImageReader, RgbImage,
     codecs::{
         avif::{AvifEncoder, ColorSpace},
         jpeg::JpegEncoder,
     },
     imageops::FilterType,
-    DynamicImage, ImageReader, RgbImage,
 };
 use mime::Mime;
-use tracing::{span, Instrument, Level};
+use tracing::{Instrument, Level, span};
 use webp::PixelLayout;
 
 use crate::{
-    metadata::ffmpeg::{extract_video_frame, VideoData},
+    Error, Result,
+    metadata::ffmpeg::{VideoData, extract_video_frame},
     shared::spawn_blocking,
     store::models::AlternateFileType,
-    Error, Result,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -41,7 +42,7 @@ pub(crate) enum AudioCodec {
 }
 
 pub(crate) async fn resize_image(
-    source_image: DynamicImage,
+    source_image: Arc<DynamicImage>,
     width: i32,
     height: i32,
 ) -> DynamicImage {
@@ -60,7 +61,7 @@ pub(crate) async fn resize_image(
 }
 
 pub(crate) async fn crop_image(
-    source_image: DynamicImage,
+    source_image: Arc<DynamicImage>,
     x: u32,
     y: u32,
     width: u32,
@@ -127,7 +128,7 @@ fn encode_image(
         _ => {
             return Err(Error::UnsupportedMedia {
                 mime: target_mime.clone(),
-            })
+            });
         }
     }
 
@@ -144,7 +145,7 @@ async fn encode_video(
         st => {
             return Err(Error::InvalidData {
                 message: format!("Unknown video codec: {st}"),
-            })
+            });
         }
     };
 
@@ -157,7 +158,7 @@ async fn encode_video(
 }
 
 pub(super) async fn encode_alternate_image(
-    source_image: DynamicImage,
+    source_image: Arc<DynamicImage>,
     mime: &Mime,
     file_type: AlternateFileType,
     target_path: &Path,

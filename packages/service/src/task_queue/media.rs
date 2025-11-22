@@ -1,6 +1,6 @@
-use std::{cmp, collections::HashMap};
+use std::{cmp, collections::HashMap, sync::Arc};
 
-use pixelbin_shared::IgnorableFuture;
+use pixelbin_shared::{Ignorable, IgnorableFuture};
 use tokio::fs;
 use tracing::{instrument, trace};
 
@@ -20,7 +20,7 @@ use crate::{
 };
 
 #[instrument(skip(store, op_cache), err)]
-async fn extract_metadata(store: &Store, op_cache: MediaFileOpCache) -> Result {
+async fn extract_metadata(store: &Store, op_cache: Arc<MediaFileOpCache>) -> Result {
     trace!("Extracting file metadata");
 
     let local_store = DiskStore::local_store(store.config());
@@ -63,13 +63,7 @@ pub(super) async fn upload_media_file(store: Store, media_file_id: &str) -> Resu
         return Ok(());
     }
 
-    let guard = store
-        .locks()
-        .media_item(&media_file_store.media_item_store())
-        .for_update()
-        .await;
-
-    let mut op_cache = guard.file_ops(&media_file).await;
+    let op_cache = store.locks().media_file_ops(&media_file, &media_file_store);
 
     let temp_store = DiskStore::temp_store(store.config());
     let file_path = op_cache
@@ -90,15 +84,13 @@ pub(super) async fn upload_media_file(store: Store, media_file_id: &str) -> Resu
         .push(&temp_file, &file_path, &op_cache.media_file.mimetype)
         .await?;
 
-    op_cache.media_file.mark_stored(&mut conn).await?;
-
-    op_cache.release().await
+    op_cache.media_file.clone().mark_stored(&mut conn).await
 }
 
 #[instrument(skip(store, op_cache), err)]
 async fn build_alternate(
     store: &Store,
-    op_cache: MediaFileOpCache,
+    op_cache: Arc<MediaFileOpCache>,
     alternate_file: &mut models::AlternateFile,
 ) -> Result {
     if alternate_file.stored.is_some() {
@@ -124,7 +116,7 @@ async fn build_alternate(
             AlternateFileType::Social => op_cache.resize_social().await?,
         };
 
-        encode_alternate_image(alternate_file, &source_image).await?
+        encode_alternate_image(alternate_file, source_image).await?
     } else {
         let temp_file = op_cache.ensure_local().await?;
         encode_alternate_video(&temp_file, alternate_file).await?
@@ -155,20 +147,12 @@ pub(super) async fn process_media_file(store: Store, media_file_id: &str) -> Res
     let mut conn = store.pooled();
     let (media_file, media_file_store) = models::MediaFile::get(&mut conn, media_file_id).await?;
 
-    let guard = store
-        .locks()
-        .media_item(&media_file_store.media_item_store())
-        .for_update()
-        .await;
-
-    let op_cache = guard.file_ops(&media_file).await;
+    let op_cache = store.locks().media_file_ops(&media_file, &media_file_store);
 
     if media_file.stored.is_none() {
-        store
-            .queue_task(Task::UploadMediaFile {
-                media_file: media_file_id.to_owned(),
-            })
-            .await;
+        store.queue_task(Task::UploadMediaFile {
+            media_file: media_file_id.to_owned(),
+        });
     }
 
     if media_file.needs_metadata {
@@ -217,9 +201,30 @@ pub(super) async fn process_media_file(store: Store, media_file_id: &str) -> Res
         models::AlternateFile::upsert(&mut conn, &modified).await?;
     }
 
-    op_cache.release().warn().await;
-
     trace!(media_file_id, "Processing complete");
+
+    Ok(())
+}
+
+#[instrument(skip(store), err)]
+pub(super) async fn clean_media_file(store: Store, media_file_id: &str) -> Result {
+    let mut conn = store.pooled();
+    let (media_file, media_file_store) = models::MediaFile::get(&mut conn, media_file_id).await?;
+
+    if media_file.stored.is_none() || media_file.needs_metadata {
+        return Ok(());
+    }
+
+    let alternates = models::AlternateFile::list_for_media_file(&mut conn, media_file_id).await?;
+    if alternates.into_iter().any(|af| af.stored.is_none()) {
+        // If there are any alternate files still to be generated then we should not remove the
+        // temp file.
+        return Ok(());
+    }
+
+    // Delete temp file if present
+    let temp_store = DiskStore::temp_store(conn.config());
+    temp_store.prune(&media_file_store).await.ignore();
 
     Ok(())
 }

@@ -90,9 +90,7 @@ impl Runnable for ProcessSubscriptions {
         let catalogs = list_catalogs(store).await?;
 
         for catalog in catalogs {
-            store
-                .queue_task(Task::ProcessSubscriptions { catalog })
-                .await;
+            store.queue_task(Task::ProcessSubscriptions { catalog });
         }
 
         Ok(())
@@ -111,7 +109,7 @@ impl Runnable for Reprocess {
         let catalogs = list_catalogs(store).await?;
 
         for catalog in catalogs {
-            store.queue_task(Task::ProcessMedia { catalog }).await;
+            store.queue_task(Task::ProcessMedia { catalog });
         }
 
         Ok(())
@@ -133,40 +131,32 @@ impl Runnable for Verify {
         let catalogs = list_catalogs(store).await?;
 
         for catalog in catalogs.iter() {
-            store
-                .queue_task(Task::VerifyStorage {
-                    catalog: catalog.clone(),
-                    delete_files: !self.no_delete,
-                })
-                .await;
+            store.queue_task(Task::VerifyStorage {
+                catalog: catalog.clone(),
+                delete_files: !self.no_delete,
+            });
         }
 
         store.shutdown().await;
 
         for catalog in catalogs.iter() {
-            store
-                .queue_task(Task::PruneMediaFiles {
-                    catalog: catalog.clone(),
-                })
-                .await;
+            store.queue_task(Task::PruneMediaFiles {
+                catalog: catalog.clone(),
+            });
         }
 
         for catalog in catalogs.iter() {
-            store
-                .queue_task(Task::PruneMediaItems {
-                    catalog: catalog.clone(),
-                })
-                .await;
+            store.queue_task(Task::PruneMediaItems {
+                catalog: catalog.clone(),
+            });
         }
 
         store.shutdown().await;
 
         for catalog in catalogs.iter() {
-            store
-                .queue_task(Task::UpdateSearches {
-                    catalog: catalog.clone(),
-                })
-                .await;
+            store.queue_task(Task::UpdateSearches {
+                catalog: catalog.clone(),
+            });
         }
 
         Ok(())
@@ -189,7 +179,7 @@ impl Runnable for Serve {
         let span = self.span();
         let store = async move {
             let store = Store::new(config, StoreType::Server).await?;
-            store.queue_task(Task::ServerStartup).await;
+            store.queue_task(Task::ServerStartup);
 
             Result::<Store>::Ok(store)
         }
