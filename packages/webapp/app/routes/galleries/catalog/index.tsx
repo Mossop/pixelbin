@@ -9,7 +9,7 @@ import { getCatalog } from "@/modules/api";
 import { SearchQuery } from "@/modules/types";
 import { url } from "@/modules/util";
 
-import type { Info, Route } from "./+types/index";
+import type { Route } from "./+types/index";
 
 export async function loader({
   request,
@@ -30,10 +30,8 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export const handle = {
-  headerButtons(data: Info["loaderData"]) {
-    let query: SearchQuery = {
-      queries: [],
-    };
+  headerButtons(data: Awaited<ReturnType<typeof loader>>) {
+    let query: SearchQuery = { queries: [] };
 
     if (data) {
       let params = new URLSearchParams({ q: JSON.stringify(query) });

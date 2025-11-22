@@ -67,17 +67,13 @@ class CastManager extends BaseContext {
       urlMimetype = "video-mp4";
       extension = "mp4";
 
-      if (!filename) {
-        filename = "video";
-      }
+      filename ??= "video";
     } else {
       mimetype = "image/jpeg";
       urlMimetype = "image-jpeg";
       extension = "jpg";
 
-      if (!filename) {
-        filename = "image";
-      }
+      filename ??= "image";
     }
 
     let mediaUrl = url([
@@ -90,9 +86,7 @@ class CastManager extends BaseContext {
     ]);
 
     let response = await fetch(mediaUrl, {
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     });
 
     if (response.ok) {

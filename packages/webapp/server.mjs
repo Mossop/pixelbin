@@ -6,7 +6,7 @@ import {
 } from "@opentelemetry/api";
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
-import { Resource } from "@opentelemetry/resources";
+import { resourceFromAttributes } from "@opentelemetry/resources";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import {
   ATTR_SERVICE_NAME,
@@ -33,9 +33,7 @@ function initTelemetry() {
         url: process.env.PIXELBIN_TELEMETRY_HOST,
       }),
       instrumentations: [],
-      resource: new Resource({
-        [ATTR_SERVICE_NAME]: "pixelbin",
-      }),
+      resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: "pixelbin" }),
     });
 
     propagation.setGlobalPropagator(new W3CTraceContextPropagator());
@@ -93,7 +91,7 @@ async function initServer() {
     });
   }
 
-  app.all("*", (request, response, next) => {
+  app.all("*splat", (request, response, next) => {
     let parentContext = propagation.extract(context.active(), request.headers, {
       keys(headers) {
         return Object.keys(headers);

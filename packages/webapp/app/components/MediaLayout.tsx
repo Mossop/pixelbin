@@ -36,20 +36,14 @@ export function mediaMeta(
 
   if (title && parentTitle) {
     title = `${title} - ${parentTitle}`;
-  } else if (!title) {
-    title = parentTitle;
+  } else {
+    title ??= parentTitle;
   }
 
   let metas: MetaDescriptor[] = [];
 
   if (title) {
-    metas.push(
-      { title },
-      {
-        property: "og:title",
-        content: title,
-      },
-    );
+    metas.push({ title }, { property: "og:title", content: title });
   }
 
   if (media.description) {
@@ -216,10 +210,7 @@ export default function MediaLayout({ media }: { media: MediaRelations }) {
     ) {
       void fetcher.submit(
         { id: displayingMedia.id },
-        {
-          action: "/markPublic",
-          method: "POST",
-        },
+        { action: "/markPublic", method: "POST" },
       );
     }
 
