@@ -7,7 +7,7 @@ watchexec = "latest"
 description = "Run database migrations"
 run = "cargo run -p pixelbin_migrations -- apply"
 
-[tasks."run:api"]
+[tasks."run:server"]
 description = "Run the API server"
 run = "cargo run -p pixelbin_cli -- serve"
 sources = [
@@ -23,8 +23,7 @@ sources = [
 
 [tasks."run:webapp"]
 description = "Run the web server"
-run = "npm run dev"
-dir = "packages/webapp"
+run = "node packages/webapp/server.mjs"
 sources = [
   "packages/webapp/package.json",
   "packages/webapp/instrumentation.mjs",

@@ -24,7 +24,7 @@ import express from "express";
 
 import { inSpan } from "./modules/telemetry.mjs";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 function initTelemetry() {
   if ("PIXELBIN_TELEMETRY_HOST" in process.env) {
@@ -77,6 +77,7 @@ async function initServer() {
   } else {
     let viteDevServer = await import("vite").then((vite) =>
       vite.createServer({
+        root: import.meta.dirname,
         server: { middlewareMode: true },
       }),
     );
@@ -91,7 +92,7 @@ async function initServer() {
     });
   }
 
-  app.all("*splat", (request, response, next) => {
+  app.use((request, response, next) => {
     let parentContext = propagation.extract(context.active(), request.headers, {
       keys(headers) {
         return Object.keys(headers);
