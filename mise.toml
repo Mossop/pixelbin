@@ -71,8 +71,12 @@ run = "docker rm -f pixelbin-server"
 [tasks."kill:webapp"]
 run = "docker rm -f pixelbin-webapp"
 
+[tasks."container:db"]
+description = "Ensure that the database container for testing is running"
+run = "docker compose -f testing/docker-compose.yml up -d"
+
 [tasks."container:server"]
-depends = ["build:server", "kill:server"]
+depends = ["container:server", "build:server", "kill:server"]
 wait_for = ["build:webapp"]
 description = "Run the pixelbin API server in a Docker container"
 run = '''
